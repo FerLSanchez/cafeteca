@@ -37,8 +37,8 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
 
 /* FILTER BAR */
 .filter-bar{margin-bottom:12px}
-.filter-status{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:8px}
-.fb{background:var(--surface2);border:1px solid var(--border);color:var(--text2);padding:6px 13px;border-radius:20px;font-size:13px;cursor:pointer;white-space:nowrap;font-family:'DM Sans',sans-serif;transition:all 0.15s}
+.filter-status{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px}
+.fb{background:var(--surface2);border:1px solid var(--border);color:var(--text2);padding:5px 10px;border-radius:20px;font-size:12px;cursor:pointer;white-space:nowrap;font-family:'DM Sans',sans-serif;transition:all 0.15s}
 .fb.active{background:var(--accent);border-color:var(--accent);color:#fff}
 
 /* FILTER PANEL */
@@ -176,6 +176,26 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
 .modal-confirm-inner{max-width:320px;text-align:center}
 .confirm-icon{font-size:28px;margin-bottom:8px}
 .confirm-msg{font-size:14px;color:var(--text2);margin-bottom:20px;line-height:1.5}
+
+/* LOAD MORE */
+.btn-load-more{width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text2);border-radius:12px;padding:12px;font-size:14px;font-family:'DM Sans',sans-serif;cursor:pointer;margin-top:4px;text-align:center;transition:border-color 0.15s}
+.btn-load-more:active{background:var(--surface2)}
+.btn-load-more span{color:var(--text3);font-size:12px}
+
+/* CALENDAR */
+.cal-nav-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.cal-title-text{font-family:'Playfair Display',serif;font-size:17px;color:var(--accent2)}
+.cal-nav-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text2);width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:20px;line-height:1;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.cal-layout{display:flex;align-items:flex-start;gap:0}
+.cal-names-col{flex-shrink:0;width:85px;display:flex;flex-direction:column;gap:5px;margin-top:25px}
+.cal-name{font-size:11px;color:var(--text2);height:18px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;align-items:center}
+.cal-tracks-col{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px}
+.cal-days-header{height:20px;position:relative;flex-shrink:0;margin-bottom:0}
+.cal-day-tick{position:absolute;font-size:9px;color:var(--text3);transform:translateX(-50%);line-height:20px}
+.cal-track{height:18px;position:relative;background:var(--surface2);border-radius:4px}
+.cal-bar{position:absolute;top:0;height:100%;border-radius:4px;overflow:hidden;display:flex;align-items:center;padding:0 5px;min-width:3px}
+.cal-bar-label{font-size:10px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cal-empty{font-size:13px;color:var(--text3);padding:12px 0}
 </style>
 </head>
 <body>
@@ -277,6 +297,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
 <!-- STATS PAGE -->
 <div class="page" id="page-stats">
   <div class="stats-grid" id="stats-grid"><div class="loading">Cargando...</div></div>
+  <div id="stats-calendar"></div>
   <div id="stats-charts"></div>
 </div>
 
@@ -468,6 +489,17 @@ let searchQuery = '';
 let searchTimer = null;
 let currentSort = 'created_desc';
 
+// Pagination
+const PAGE_SIZE = 15;
+let visibleCount = PAGE_SIZE;
+
+// Calendar
+const MONTH_NAMES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
+                     'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+let calYear  = new Date().getFullYear();
+let calMonth = new Date().getMonth(); // 0-based
+let calCoffees = [];
+
 // ---------------------------------------------------------------------------
 // API
 // ---------------------------------------------------------------------------
@@ -499,6 +531,7 @@ function showConfirm({icon='🗑', title='¿Confirmar?', msg='', btnLabel='Elimi
 
 function onSortChange() {
   currentSort = document.getElementById('sort-select').value;
+  visibleCount = PAGE_SIZE;
   renderList();
 }
 
@@ -550,6 +583,7 @@ function populateFilterSelects() {
 // Fetch + render
 // ---------------------------------------------------------------------------
 async function fetchAndRender() {
+  visibleCount = PAGE_SIZE;
   const params = new URLSearchParams();
   if (activeStatus) params.set('status', activeStatus);
   if (searchQuery)  params.set('q', searchQuery);
@@ -597,13 +631,17 @@ function renderList() {
   const el = document.getElementById('coffee-list');
   const info = document.getElementById('results-info');
   const total = displayedCoffees.length;
-  info.textContent = total === 0 ? '' : `${total} café${total!==1?'s':''}`;
-
-  if (!total) {
+  if (total === 0) {
+    info.textContent = '';
     el.innerHTML = `<div class="empty-state"><div class="empty-icon">☕</div><h3>Sin cafés aquí</h3><p>Prueba a cambiar los filtros o añade uno nuevo</p></div>`;
     return;
   }
-  el.innerHTML = sortedCoffees().map(c => {
+  const sorted = sortedCoffees();
+  const showing = Math.min(visibleCount, total);
+  info.textContent = showing < total ? `${showing} de ${total} cafés` : `${total} café${total!==1?'s':''}`;
+
+  const visible = sorted.slice(0, showing);
+  el.innerHTML = visible.map(c => {
     const status = getStatus(c);
     const finished = !!c.finished_date, opened = !!c.opened_date && !finished;
     const origin = [c.origin, c.region].filter(Boolean).map(esc).join(' · ');
@@ -639,6 +677,19 @@ function renderList() {
       ${actions}
     </div>`;
   }).join('');
+
+  if (showing < total) {
+    const remaining = total - showing;
+    const next = Math.min(PAGE_SIZE, remaining);
+    el.innerHTML += `<button class="btn-load-more" onclick="loadMore()">
+      Mostrar ${next} más <span>(${remaining} restantes)</span>
+    </button>`;
+  }
+}
+
+function loadMore() {
+  visibleCount += PAGE_SIZE;
+  renderList();
 }
 
 // ---------------------------------------------------------------------------
@@ -918,7 +969,9 @@ function deleteCoffee() {
 // Stats
 // ---------------------------------------------------------------------------
 async function loadStats() {
-  const s = await api('/stats');
+  const [s, coffees] = await Promise.all([api('/stats'), api('/coffees')]);
+  calCoffees = coffees;
+
   const dpkg = s.days_per_kg ? `${s.days_per_kg} días/kg` : '–';
   document.getElementById('stats-grid').innerHTML = `
     <div class="stat-card"><div class="stat-val">${s.total}</div><div class="stat-label">Registrados</div></div>
@@ -927,6 +980,8 @@ async function loadStats() {
     <div class="stat-card"><div class="stat-val">${s.total_spent?s.total_spent+'€':'–'}</div><div class="stat-label">Gasto total</div></div>
     <div class="stat-card" style="grid-column:1/-1"><div class="stat-val" style="font-size:22px">${dpkg}</div><div class="stat-label">Consumo medio normalizado (días para 1 kg)</div></div>
   `;
+
+  renderCalendar();
 
   let charts = '';
   if (s.top_roasters?.length) charts += buildBarChart('Tostadores más usados', s.top_roasters);
@@ -947,6 +1002,80 @@ function buildBarChart(title, data) {
     </div>`;
   }).join('');
   return `<div class="stats-section"><h3>${title}</h3>${rows}</div>`;
+}
+
+// ---------------------------------------------------------------------------
+// Calendar
+// ---------------------------------------------------------------------------
+function calNav(delta) {
+  calMonth += delta;
+  if (calMonth < 0)  { calMonth = 11; calYear--; }
+  if (calMonth > 11) { calMonth = 0;  calYear++; }
+  renderCalendar();
+}
+
+function renderCalendar() {
+  const el = document.getElementById('stats-calendar');
+  if (!el) return;
+
+  const firstDay = new Date(calYear, calMonth, 1);
+  const lastDay  = new Date(calYear, calMonth + 1, 0);
+  const dim      = lastDay.getDate();
+  const today    = new Date(); today.setHours(0,0,0,0);
+
+  // coffees that overlap this month and have been opened
+  const active = calCoffees.filter(c => {
+    if (!c.opened_date) return false;
+    const o = new Date(c.opened_date);
+    const e = c.finished_date ? new Date(c.finished_date) : today;
+    return o <= lastDay && e >= firstDay;
+  });
+
+  // day tick marks: 1, every 5, last day
+  const ticks = new Set([1]);
+  for (let d = 5; d < dim; d += 5) ticks.add(d);
+  ticks.add(dim);
+
+  const dayHeader = Array.from({length: dim}, (_,i) => {
+    const d = i + 1;
+    const left = ((i + 0.5) / dim * 100).toFixed(2);
+    return ticks.has(d) ? `<span class="cal-day-tick" style="left:${left}%">${d}</span>` : '';
+  }).join('');
+
+  let namesHTML = '', tracksHTML = '';
+  active.forEach(c => {
+    const opened   = new Date(c.opened_date);
+    const closed   = c.finished_date ? new Date(c.finished_date) : today;
+    const isOpen   = !c.finished_date;
+    const startIdx = Math.max(0,     Math.round((opened - firstDay) / 86400000));
+    const endIdx   = Math.min(dim-1, Math.round((closed - firstDay) / 86400000));
+    const leftPct  = (startIdx / dim * 100).toFixed(2);
+    const widthPct = ((endIdx - startIdx + 1) / dim * 100).toFixed(2);
+    const color    = isOpen ? 'var(--green)' : 'var(--accent)';
+
+    namesHTML  += `<div class="cal-name" title="${esc(c.name)}">${esc(c.name)}</div>`;
+    tracksHTML += `<div class="cal-track">
+      <div class="cal-bar" style="left:${leftPct}%;width:${widthPct}%;background:${color}">
+        <span class="cal-bar-label">${esc(c.name)}</span>
+      </div>
+    </div>`;
+  });
+
+  el.innerHTML = `<div class="stats-section" style="margin-bottom:10px">
+    <div class="cal-nav-header">
+      <button class="cal-nav-btn" onclick="calNav(-1)">‹</button>
+      <span class="cal-title-text">${MONTH_NAMES[calMonth]} ${calYear}</span>
+      <button class="cal-nav-btn" onclick="calNav(1)">›</button>
+    </div>
+    ${active.length ? `
+    <div class="cal-layout">
+      <div class="cal-names-col">${namesHTML}</div>
+      <div class="cal-tracks-col">
+        <div class="cal-days-header">${dayHeader}</div>
+        ${tracksHTML}
+      </div>
+    </div>` : `<div class="cal-empty">Sin consumo registrado en ${MONTH_NAMES[calMonth].toLowerCase()} ${calYear}</div>`}
+  </div>`;
 }
 
 // ---------------------------------------------------------------------------
