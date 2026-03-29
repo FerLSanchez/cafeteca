@@ -1146,10 +1146,18 @@ function onRegionSelect(regionName) {
 function onOriginChange() {
   const originName = (document.getElementById('f-origin')||{}).value||'';
   const hint = document.getElementById('region-hint');
+  const regionInput = document.getElementById('f-region');
   if (!hint) return;
   if (originName.trim()) {
     const origin = (allOptions.origins||[]).find(o => o.name.toLowerCase() === originName.trim().toLowerCase());
     if (origin) {
+      // If the currently entered region belongs to a different country, clear it
+      if (regionInput && regionInput.value.trim()) {
+        const region = (allOptions.regions||[]).find(r => r.name.toLowerCase() === regionInput.value.trim().toLowerCase());
+        if (region && region.origin_id && region.origin_id !== origin.id) {
+          regionInput.value = '';
+        }
+      }
       const count = (allOptions.regions||[]).filter(r => r.origin_id === origin.id).length;
       hint.textContent = count ? count + ' región' + (count!==1?'es':'') + ' disponible' + (count!==1?'s':'') : '';
       return;
@@ -1239,6 +1247,16 @@ async function submitForm(e) {
     notes:         document.getElementById('f-notes').value||null,
     altitude:      document.getElementById('f-altitude').value?parseInt(document.getElementById('f-altitude').value):null,
   };
+  // Validate region-country consistency for known entities
+  if (data.region && data.origin) {
+    const region = (allOptions.regions||[]).find(r => r.name.toLowerCase() === data.region.toLowerCase());
+    const origin = (allOptions.origins||[]).find(o => o.name.toLowerCase() === data.origin.toLowerCase());
+    if (region && region.origin_id && origin && region.origin_id !== origin.id) {
+      const correct = (allOptions.origins||[]).find(o => o.id === region.origin_id);
+      showToast(`⚠️ La región "${data.region}" pertenece a "${correct ? correct.name : '?'}", no a "${data.origin}"`);
+      return;
+    }
+  }
   if (id) await api('/coffees/'+id, {method:'PUT', body:JSON.stringify(data)});
   else    await api('/coffees',     {method:'POST',body:JSON.stringify(data)});
   closeModal('modal-form');
