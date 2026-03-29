@@ -1,11 +1,33 @@
-from flask import Flask, request, jsonify, send_from_directory
-import sqlite3, os, re
+from flask import Flask, request, jsonify, send_from_directory, session
+import sqlite3, os, re, hashlib, secrets, functools
 from datetime import datetime
 from contextlib import contextmanager
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
 app.config['MAX_CONTENT_LENGTH'] = 1 * 1024 * 1024  # 1 MB request size limit
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Strict'
 DB = '/data/coffee.db'
+
+
+def _get_secret_key():
+    data_dir = os.path.dirname(DB) or '.'
+    key_path = os.path.join(data_dir, 'secret_key')
+    try:
+        with open(key_path) as f:
+            return f.read().strip()
+    except FileNotFoundError:
+        key = secrets.token_hex(32)
+        try:
+            os.makedirs(data_dir, exist_ok=True)
+            with open(key_path, 'w') as f:
+                f.write(key)
+        except Exception:
+            pass
+        return key
+
+
+app.secret_key = _get_secret_key()
 
 DATE_RE = re.compile(r'^\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01])$')
 
@@ -108,11 +130,36 @@ def get_or_create(conn, table, name):
 # Schema + migration
 # ---------------------------------------------------------------------------
 
+def _pin_hash(pin: str) -> str:
+    return hashlib.sha256(pin.encode()).hexdigest()
+
+
+def init_settings(conn):
+    conn.execute('''CREATE TABLE IF NOT EXISTS settings (
+        key   TEXT PRIMARY KEY,
+        value TEXT NOT NULL
+    )''')
+    conn.execute(
+        "INSERT OR IGNORE INTO settings (key, value) VALUES ('pin_hash', ?)",
+        (_pin_hash('1111'),)
+    )
+
+
+def login_required(f):
+    @functools.wraps(f)
+    def decorated(*args, **kwargs):
+        if not session.get('authenticated'):
+            return jsonify({'error': 'Unauthorized'}), 401
+        return f(*args, **kwargs)
+    return decorated
+
+
 def init_db():
     db_dir = os.path.dirname(DB)
     if db_dir:
         os.makedirs(db_dir, exist_ok=True)
     with db_conn() as conn:
+        init_settings(conn)
         create_lookup_tables(conn)
         conn.execute('''CREATE TABLE IF NOT EXISTS coffees (
             id            INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -415,13 +462,52 @@ def index():
     return send_from_directory('templates', 'index.html')
 
 
+# ---------------------------------------------------------------------------
+# Auth
+# ---------------------------------------------------------------------------
+
+@app.route('/api/auth/status')
+def auth_status():
+    return jsonify({'authenticated': bool(session.get('authenticated'))})
+
+
+@app.route('/api/auth/login', methods=['POST'])
+def auth_login():
+    data = request.get_json(silent=True) or {}
+    pin = str(data.get('pin', ''))
+    with db_conn() as conn:
+        row = conn.execute("SELECT value FROM settings WHERE key='pin_hash'").fetchone()
+    if row and _pin_hash(pin) == row['value']:
+        session['authenticated'] = True
+        return jsonify({'ok': True})
+    return jsonify({'error': 'PIN incorrecto'}), 401
+
+
+@app.route('/api/auth/change-pin', methods=['POST'])
+@login_required
+def auth_change_pin():
+    data = request.get_json(silent=True) or {}
+    current = str(data.get('current_pin', ''))
+    new_pin = str(data.get('new_pin', ''))
+    if not new_pin.isdigit() or len(new_pin) != 4:
+        return jsonify({'error': 'El nuevo PIN debe ser 4 dígitos'}), 400
+    with db_conn() as conn:
+        row = conn.execute("SELECT value FROM settings WHERE key='pin_hash'").fetchone()
+        if not row or _pin_hash(current) != row['value']:
+            return jsonify({'error': 'PIN actual incorrecto'}), 401
+        conn.execute("UPDATE settings SET value=? WHERE key='pin_hash'", (_pin_hash(new_pin),))
+    return jsonify({'ok': True})
+
+
 @app.route('/api/lookup-tables')
+@login_required
 def get_lookup_tables():
     """Exposes the canonical list of lookup tables so the frontend stays in sync."""
     return jsonify(LOOKUP_TABLES)
 
 
 @app.route('/api/options')
+@login_required
 def options():
     with db_conn() as conn:
         result = {}
@@ -438,6 +524,7 @@ def options():
 
 
 @app.route('/api/coffees')
+@login_required
 def list_coffees():
     args = request.args
     where, vals = [], []
@@ -480,6 +567,7 @@ def list_coffees():
 
 
 @app.route('/api/coffees', methods=['POST'])
+@login_required
 def add_coffee():
     data = request.get_json(silent=True)
     err = validate_coffee(data)
@@ -499,6 +587,7 @@ def add_coffee():
 
 
 @app.route('/api/coffees/<int:cid>', methods=['PUT'])
+@login_required
 def update_coffee(cid):
     data = request.get_json(silent=True)
     err = validate_coffee(data)
@@ -517,6 +606,7 @@ def update_coffee(cid):
 
 
 @app.route('/api/coffees/<int:cid>/open', methods=['POST'])
+@login_required
 def open_coffee(cid):
     data = request.get_json(silent=True) or {}
     date = data.get('date') or datetime.now().strftime('%Y-%m-%d')
@@ -529,6 +619,7 @@ def open_coffee(cid):
 
 
 @app.route('/api/coffees/<int:cid>/finish', methods=['POST'])
+@login_required
 def finish_coffee(cid):
     today = datetime.now().strftime('%Y-%m-%d')
     with db_conn() as conn:
@@ -538,6 +629,7 @@ def finish_coffee(cid):
 
 
 @app.route('/api/coffees/<int:cid>/unrate', methods=['POST'])
+@login_required
 def unrate_coffee(cid):
     with db_conn() as conn:
         conn.execute('UPDATE coffees SET rating=NULL WHERE id=?', (cid,))
@@ -546,6 +638,7 @@ def unrate_coffee(cid):
 
 
 @app.route('/api/coffees/<int:cid>', methods=['DELETE'])
+@login_required
 def delete_coffee(cid):
     with db_conn() as conn:
         conn.execute('DELETE FROM coffees WHERE id=?', (cid,))
@@ -553,6 +646,7 @@ def delete_coffee(cid):
 
 
 @app.route('/api/stats')
+@login_required
 def stats():
     with db_conn() as conn:
         total    = conn.execute('SELECT COUNT(*) FROM coffees').fetchone()[0]
@@ -601,6 +695,7 @@ def stats():
 
 # Lookup management
 @app.route('/api/lookup/<table>')
+@login_required
 def lookup_list(table):
     if table not in LOOKUP_TABLES:
         return jsonify({'error': 'Unknown table'}), 404
@@ -631,6 +726,7 @@ def lookup_list(table):
     return jsonify([dict(r) for r in rows])
 
 @app.route('/api/lookup/<table>/<int:lid>', methods=['PUT'])
+@login_required
 def lookup_rename(table, lid):
     if table not in LOOKUP_TABLES:
         return jsonify({'error': 'Unknown table'}), 404
@@ -645,6 +741,7 @@ def lookup_rename(table, lid):
     return jsonify({'ok': True})
 
 @app.route('/api/lookup/<table>/<int:lid>', methods=['DELETE'])
+@login_required
 def lookup_delete(table, lid):
     if table not in LOOKUP_TABLES:
         return jsonify({'error': 'Unknown table'}), 404
@@ -661,6 +758,7 @@ def lookup_delete(table, lid):
     return jsonify({'ok': True})
 
 @app.route('/api/lookup/<table>/purge', methods=['POST'])
+@login_required
 def lookup_purge(table):
     """Delete all orphan entries (coffee_count = 0) from a table."""
     if table not in LOOKUP_TABLES:

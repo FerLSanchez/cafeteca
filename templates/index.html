@@ -206,14 +206,56 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
 .chip-text-input{background:transparent;border:none;color:var(--text);font-size:14px;font-family:'DM Sans',sans-serif;outline:none;min-width:80px;flex:1;padding:3px 4px}
 .chip-text-input::placeholder{color:var(--text3)}
 .region-hint{font-size:11px;color:var(--text3);margin-top:3px}
+
+/* PIN LOCK */
+.pin-lock{position:fixed;inset:0;background:var(--bg);z-index:1000;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px}
+.pin-dots{display:flex;gap:18px;margin-bottom:12px}
+.pin-dot{width:14px;height:14px;border-radius:50%;border:2px solid var(--border);background:transparent;transition:background 0.15s,border-color 0.15s}
+.pin-dot.filled{background:var(--accent);border-color:var(--accent)}
+.pin-error{color:var(--red);font-size:14px;height:20px;margin-bottom:16px;text-align:center}
+.pin-pad{display:grid;grid-template-columns:repeat(3,72px);gap:10px}
+.pin-btn{background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:50%;width:72px;height:72px;font-size:22px;font-family:'DM Sans',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.1s}
+.pin-btn:active{background:var(--surface3)}
+.pin-btn.del{font-size:20px;color:var(--text3)}
+.pin-btn.empty{background:transparent;border-color:transparent;cursor:default}
+.btn-icon-nav{background:var(--surface2);border:1px solid var(--border);color:var(--text2);width:36px;height:36px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.btn-icon-nav:active{background:var(--surface3)}
 </style>
 </head>
 <body>
+
+<!-- PIN LOCK SCREEN -->
+<div class="pin-lock" id="pin-lock">
+  <div style="font-family:'Playfair Display',serif;font-size:30px;color:var(--accent2);margin-bottom:6px">Cafeteca</div>
+  <div style="color:var(--text3);font-size:14px;margin-bottom:44px">tu diario de café</div>
+  <div class="pin-dots" id="pin-dots">
+    <div class="pin-dot"></div>
+    <div class="pin-dot"></div>
+    <div class="pin-dot"></div>
+    <div class="pin-dot"></div>
+  </div>
+  <div class="pin-error" id="pin-error"></div>
+  <div class="pin-pad">
+    <button class="pin-btn" onclick="pinDigit('1')">1</button>
+    <button class="pin-btn" onclick="pinDigit('2')">2</button>
+    <button class="pin-btn" onclick="pinDigit('3')">3</button>
+    <button class="pin-btn" onclick="pinDigit('4')">4</button>
+    <button class="pin-btn" onclick="pinDigit('5')">5</button>
+    <button class="pin-btn" onclick="pinDigit('6')">6</button>
+    <button class="pin-btn" onclick="pinDigit('7')">7</button>
+    <button class="pin-btn" onclick="pinDigit('8')">8</button>
+    <button class="pin-btn" onclick="pinDigit('9')">9</button>
+    <button class="pin-btn empty" disabled></button>
+    <button class="pin-btn" onclick="pinDigit('0')">0</button>
+    <button class="pin-btn del" onclick="pinDelete()">⌫</button>
+  </div>
+</div>
 
 <nav class="nav">
   <div class="nav-logo">Cafeteca <span>tu diario de café</span></div>
   <div class="nav-right">
     <input class="nav-search" id="search-input" placeholder="Buscar..." oninput="onSearch(this.value)">
+    <button class="btn-icon-nav" onclick="document.getElementById('modal-change-pin').classList.add('open')" title="Ajustes">⚙️</button>
     <button class="nav-add" onclick="openAddModal()">+</button>
   </div>
 </nav>
@@ -499,6 +541,29 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
       <button class="btn-secondary" onclick="closeModal('modal-confirm')">Cancelar</button>
       <button class="btn-danger" id="confirm-action-btn">Eliminar</button>
     </div>
+  </div>
+</div>
+
+<!-- CHANGE PIN MODAL -->
+<div class="modal-overlay" id="modal-change-pin">
+  <div class="modal" style="max-width:320px">
+    <div class="modal-header">
+      <div class="modal-title">Cambiar PIN</div>
+      <button class="modal-close" onclick="closeModal('modal-change-pin')">✕</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">PIN actual</label>
+      <input class="form-input" id="cp-current" type="password" inputmode="numeric" maxlength="4" placeholder="••••">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Nuevo PIN (4 dígitos)</label>
+      <input class="form-input" id="cp-new" type="password" inputmode="numeric" maxlength="4" placeholder="••••">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Confirmar nuevo PIN</label>
+      <input class="form-input" id="cp-confirm" type="password" inputmode="numeric" maxlength="4" placeholder="••••">
+    </div>
+    <button class="btn-primary" onclick="changePinSubmit()">Cambiar PIN</button>
   </div>
 </div>
 
@@ -1416,7 +1481,68 @@ document.querySelectorAll('.modal-overlay').forEach(m=>{
   m.addEventListener('click', e=>{ if(e.target===m) m.classList.remove('open'); });
 });
 
-init();
+// ---------------------------------------------------------------------------
+// PIN auth
+// ---------------------------------------------------------------------------
+let pinValue = '';
+
+function pinDigit(d) {
+  if (pinValue.length >= 4) return;
+  pinValue += d;
+  updatePinDots();
+  if (pinValue.length === 4) submitPin();
+}
+
+function pinDelete() {
+  pinValue = pinValue.slice(0, -1);
+  updatePinDots();
+}
+
+function updatePinDots() {
+  document.querySelectorAll('#pin-dots .pin-dot').forEach((dot, i) => {
+    dot.classList.toggle('filled', i < pinValue.length);
+  });
+}
+
+async function submitPin() {
+  try {
+    await api('/auth/login', {method:'POST', body:JSON.stringify({pin: pinValue})});
+    document.getElementById('pin-lock').style.display = 'none';
+    init();
+  } catch {
+    document.getElementById('pin-error').textContent = 'PIN incorrecto';
+    pinValue = '';
+    updatePinDots();
+    setTimeout(() => { document.getElementById('pin-error').textContent = ''; }, 1500);
+  }
+}
+
+async function changePinSubmit() {
+  const current = document.getElementById('cp-current').value;
+  const newPin = document.getElementById('cp-new').value;
+  const confirm = document.getElementById('cp-confirm').value;
+  if (!/^\d{4}$/.test(newPin)) { showToast('⚠️ El PIN debe tener exactamente 4 dígitos'); return; }
+  if (newPin !== confirm) { showToast('⚠️ Los PINs no coinciden'); return; }
+  try {
+    await api('/auth/change-pin', {method:'POST', body:JSON.stringify({current_pin:current, new_pin:newPin})});
+    closeModal('modal-change-pin');
+    document.getElementById('cp-current').value = '';
+    document.getElementById('cp-new').value = '';
+    document.getElementById('cp-confirm').value = '';
+    showToast('✓ PIN cambiado correctamente');
+  } catch { /* api() already shows toast */ }
+}
+
+async function startup() {
+  const status = await fetch('/api/auth/status').then(r => r.json()).catch(() => ({authenticated: false}));
+  if (status.authenticated) {
+    document.getElementById('pin-lock').style.display = 'none';
+    init();
+  }
+  // else: pin-lock screen is already visible (default display:flex)
+}
+
+startup();
 </script>
 </body>
 </html>

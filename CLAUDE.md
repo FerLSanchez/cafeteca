@@ -52,6 +52,18 @@ Los endpoints de lookup (`/api/lookup/<table>`) y las funciones de conteo/borrad
 - Las respuestas incluyen `varieties: [...]`, `variety_ids: [...]`, `processes: [...]`, `process_ids: [...]`
 - `/api/options` devuelve regiones con `origin_id` para que el frontend pueda filtrar por país
 
+## Autenticación por PIN
+
+La app está protegida con un PIN de 4 dígitos. Por defecto es `1111`.
+
+- **Pantalla de bloqueo**: se muestra al cargar la app; `startup()` comprueba `/api/auth/status` y, si ya hay sesión activa, salta directamente a `init()`.
+- **Sesión Flask**: `session['authenticated'] = True` tras login correcto. La cookie es `HttpOnly` y `SameSite=Strict`.
+- **Clave secreta**: generada aleatoriamente al primer arranque y guardada en `/data/secret_key`. Persiste entre reinicios del contenedor.
+- **PIN almacenado**: como SHA-256 en la tabla `settings` (`key='pin_hash'`). Valor por defecto = hash de `'1111'`.
+- **Cambiar PIN**: botón ⚙️ en la barra de navegación → modal "Cambiar PIN". Endpoint `POST /api/auth/change-pin` requiere el PIN actual.
+- **`login_required`**: decorador en todos los endpoints `/api/*` excepto `/api/auth/status` y `/api/auth/login`.
+- **`init_settings(conn)`**: crea la tabla `settings` e inserta el PIN por defecto si no existe. Se llama desde `init_db()`.
+
 ## Convenciones importantes
 
 - La BD vive en `/data/coffee.db` (variable `DB` en `app.py`)
