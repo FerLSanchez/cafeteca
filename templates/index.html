@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Cafeteca</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;1,500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0f0b08; --surface:#1a1410; --surface2:#241c15; --surface3:#2e2419;
+  --border:#3d2f22; --accent:#c8703a; --accent2:#e8a96a;
+  --text:#f0e8df; --text2:#a8998c; --text3:#6b5d52;
+  --green:#7ab87a; --red:#c87070; --r:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:15px;min-height:100vh}
+
+/* NAV */
+.nav{position:sticky;top:0;z-index:100;background:rgba(15,11,8,0.93);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:13px 18px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.nav-logo{font-family:'Playfair Display',serif;font-size:20px;color:var(--accent2);white-space:nowrap}
+.nav-logo span{color:var(--text3);font-style:italic;font-size:12px;display:block;font-family:'DM Sans',sans-serif;margin-top:-3px}
+.nav-right{display:flex;gap:8px;align-items:center}
+.nav-add{background:var(--accent);color:#fff;border:none;width:36px;height:36px;border-radius:50%;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 12px rgba(200,112,58,0.4);flex-shrink:0}
+.nav-search{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:20px;padding:7px 14px;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;width:100%;max-width:220px;transition:border-color 0.2s}
+.nav-search:focus{border-color:var(--accent)}
+.nav-search::placeholder{color:var(--text3)}
+
+/* TABS */
+.tabs{display:flex;border-bottom:1px solid var(--border);background:var(--surface)}
+.tab{flex:1;padding:11px 8px;text-align:center;font-size:13px;font-weight:500;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;transition:color 0.2s}
+.tab.active{color:var(--accent2);border-bottom-color:var(--accent)}
+
+/* PAGES */
+.page{display:none;padding:14px}
+.page.active{display:block}
+
+/* FILTER BAR */
+.filter-bar{margin-bottom:12px}
+.filter-status{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:8px}
+.fb{background:var(--surface2);border:1px solid var(--border);color:var(--text2);padding:6px 13px;border-radius:20px;font-size:13px;cursor:pointer;white-space:nowrap;font-family:'DM Sans',sans-serif;transition:all 0.15s}
+.fb.active{background:var(--accent);border-color:var(--accent);color:#fff}
+
+/* FILTER PANEL */
+.filter-panel-toggle{display:flex;align-items:center;gap:6px;color:var(--text3);font-size:13px;cursor:pointer;margin-bottom:6px;user-select:none}
+.filter-panel-toggle .badge{background:var(--accent);color:#fff;border-radius:10px;font-size:11px;padding:1px 7px;display:none}
+.filter-panel-toggle .badge.show{display:inline}
+.filter-panel{display:none;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px}
+.filter-panel.open{display:block}
+.filter-groups{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.filter-group label{display:block;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:5px}
+.filter-select{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:7px 10px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none}
+.filter-select:focus{border-color:var(--accent)}
+.filter-clear{background:none;border:1px solid var(--border);color:var(--text3);border-radius:8px;padding:6px 12px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;margin-top:8px}
+
+/* RESULTS COUNT */
+.results-info{font-size:12px;color:var(--text3);margin-bottom:10px}
+
+/* CARDS */
+.coffee-list{display:flex;flex-direction:column;gap:10px}
+.coffee-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:15px;cursor:pointer}
+.coffee-card:active{background:var(--surface2)}
+.coffee-card.active-coffee{border-left:3px solid var(--green)}
+.coffee-card.finished-coffee{border-left:3px solid var(--text3);opacity:0.72}
+.card-header{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.coffee-name{font-family:'Playfair Display',serif;font-size:17px;line-height:1.2}
+.coffee-sub{font-size:12px;color:var(--accent);margin-top:2px;font-weight:500;text-transform:uppercase;letter-spacing:0.5px}
+.coffee-rating{display:flex;gap:1px;flex-shrink:0}
+.star{color:var(--text3);font-size:14px}
+.star.filled{color:var(--accent2)}
+.coffee-meta{display:flex;flex-wrap:wrap;gap:5px;margin-top:10px}
+.tag{background:var(--surface3);border:1px solid var(--border);color:var(--text2);padding:3px 9px;border-radius:20px;font-size:12px}
+.tag.price{color:var(--accent2);border-color:rgba(200,112,58,0.3);background:rgba(200,112,58,0.08)}
+.tag.status-open{color:var(--green);border-color:rgba(122,184,122,0.3);background:rgba(122,184,122,0.08)}
+.tag.status-done{color:var(--text3)}
+.coffee-notes{font-size:13px;color:var(--text2);margin-top:9px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.card-actions{display:flex;gap:7px;margin-top:11px}
+.btn-quick{border:1px solid var(--border);background:var(--surface2);color:var(--text2);border-radius:8px;padding:7px 12px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer}
+.btn-quick.open{border-color:rgba(122,184,122,0.4);color:var(--green)}
+.btn-quick.finish{border-color:rgba(200,112,58,0.4);color:var(--accent2)}
+.empty-state{text-align:center;padding:60px 20px;color:var(--text3)}
+.empty-icon{font-size:48px;margin-bottom:12px}
+.empty-state h3{color:var(--text2);font-family:'Playfair Display',serif;margin-bottom:6px}
+
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:15px}
+.stat-val{font-family:'Playfair Display',serif;font-size:28px;color:var(--accent2)}
+.stat-label{font-size:12px;color:var(--text3);margin-top:2px}
+.stats-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:15px;margin-bottom:10px}
+.stats-section h3{font-size:12px;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:12px}
+.bar-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.bar-label{font-size:13px;color:var(--text2);min-width:90px;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar-track{flex:1;background:var(--surface3);border-radius:4px;height:6px;overflow:hidden}
+.bar-fill{height:100%;background:var(--accent);border-radius:4px;transition:width 0.4s}
+.bar-cnt{font-size:12px;color:var(--text3);min-width:20px;text-align:right}
+
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.72);z-index:200;overflow-y:auto;padding:16px}
+.modal-overlay.open{display:block}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:18px;max-width:480px;margin:0 auto;padding:22px 18px}
+.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.modal-title{font-family:'Playfair Display',serif;font-size:20px;color:var(--accent2)}
+.modal-close{background:var(--surface3);border:none;color:var(--text2);width:32px;height:32px;border-radius:50%;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+
+/* FORM */
+.form-section{font-size:11px;font-weight:500;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin:14px 0 9px;border-bottom:1px solid var(--border);padding-bottom:5px}
+.form-group{margin-bottom:11px;position:relative}
+.form-label{display:block;font-size:12px;font-weight:500;color:var(--text3);margin-bottom:5px;text-transform:uppercase;letter-spacing:0.5px}
+.form-input{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:10px;padding:10px 13px;font-size:15px;font-family:'DM Sans',sans-serif;outline:none;transition:border-color 0.15s}
+.form-input:focus{border-color:var(--accent)}
+.form-input::placeholder{color:var(--text3)}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.form-textarea{resize:vertical;min-height:76px;font-family:'DM Sans',sans-serif}
+
+/* AUTOCOMPLETE */
+.ac-wrapper{position:relative}
+.ac-dropdown{display:none;position:absolute;top:calc(100% + 2px);left:0;right:0;background:var(--surface2);border:1px solid var(--accent);border-radius:10px;z-index:300;max-height:180px;overflow-y:auto}
+.ac-dropdown.open{display:block}
+.ac-item{padding:9px 13px;font-size:14px;cursor:pointer;color:var(--text)}
+.ac-item:hover,.ac-item.selected{background:var(--surface3)}
+.ac-item.new-entry{color:var(--accent2);font-style:italic}
+
+/* RATING */
+.rating-input{display:flex;gap:8px}
+.rating-star{font-size:28px;cursor:pointer;color:var(--text3);user-select:none}
+.rating-star.active{color:var(--accent2)}
+
+/* BUTTONS */
+.btn-primary{width:100%;background:var(--accent);color:#fff;border:none;border-radius:12px;padding:13px;font-size:16px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;margin-top:8px}
+.btn-row{display:flex;gap:8px;margin-top:8px}
+.btn-row .btn-primary{margin-top:0}
+.btn-danger{background:transparent;border:1px solid var(--red);color:var(--red);border-radius:12px;padding:10px;font-size:14px;font-family:'DM Sans',sans-serif;cursor:pointer;flex:1}
+.btn-secondary{background:transparent;border:1px solid var(--border);color:var(--text2);border-radius:12px;padding:10px;font-size:14px;font-family:'DM Sans',sans-serif;cursor:pointer}
+
+/* DETAIL */
+.detail-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--surface3)}
+.detail-label{font-size:13px;color:var(--text3)}
+.detail-val{font-size:14px;color:var(--text);text-align:right;max-width:60%}
+
+/* CATALOG */
+.catalog-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);margin-bottom:12px;overflow:hidden}
+.catalog-header{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;cursor:pointer;user-select:none}
+.catalog-header-left{display:flex;align-items:center;gap:8px}
+.catalog-title{font-weight:500;font-size:15px}
+.catalog-badge{background:var(--surface3);border:1px solid var(--border);color:var(--text3);border-radius:10px;font-size:11px;padding:2px 8px}
+.catalog-badge.has-orphans{background:rgba(200,112,58,0.15);border-color:rgba(200,112,58,0.3);color:var(--accent2)}
+.catalog-body{display:none;border-top:1px solid var(--border)}
+.catalog-body.open{display:block}
+.catalog-row{display:flex;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid var(--surface3)}
+.catalog-row:last-child{border-bottom:none}
+.catalog-row-name{flex:1;font-size:14px;color:var(--text)}
+.catalog-row-name.editing{display:none}
+.catalog-row-input{flex:1;background:var(--surface2);border:1px solid var(--accent);color:var(--text);border-radius:8px;padding:6px 10px;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;display:none}
+.catalog-count{font-size:12px;color:var(--text3);min-width:24px;text-align:right}
+.catalog-count.zero{color:var(--red)}
+.btn-icon{background:none;border:1px solid var(--border);color:var(--text3);width:30px;height:30px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.btn-icon:hover{border-color:var(--accent);color:var(--accent2)}
+.btn-icon.danger:hover{border-color:var(--red);color:var(--red)}
+.btn-icon.save{border-color:var(--green);color:var(--green)}
+.btn-purge-all{background:none;border:1px solid var(--border);color:var(--text3);border-radius:10px;padding:8px 14px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer}
+.btn-purge-all:hover{border-color:var(--accent);color:var(--accent2)}
+.catalog-purge{padding:10px 16px;border-top:1px solid var(--surface3)}
+.btn-purge{background:none;border:1px solid var(--border);color:var(--text3);border-radius:8px;padding:6px 12px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer}
+.btn-purge:hover{border-color:var(--red);color:var(--red)}
+.loading{text-align:center;padding:40px;color:var(--text3)}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--surface3);border:1px solid var(--border);color:var(--text);padding:10px 20px;border-radius:20px;font-size:14px;z-index:999;opacity:0;transition:opacity 0.3s;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-logo">Cafeteca <span>tu diario de café</span></div>
+  <div class="nav-right">
+    <input class="nav-search" id="search-input" placeholder="Buscar..." oninput="onSearch(this.value)">
+    <button class="nav-add" onclick="openAddModal()">+</button>
+  </div>
+</nav>
+
+<div class="tabs">
+  <div class="tab active" onclick="showPage('list',this)">☕ Cafés</div>
+  <div class="tab" onclick="showPage('stats',this)">📊 Stats</div>
+  <div class="tab" onclick="showPage('catalog',this)">🗂 Catálogos</div>
+</div>
+
+<!-- LIST PAGE -->
+<div class="page active" id="page-list">
+  <!-- Status filters -->
+  <div class="filter-bar">
+    <div class="filter-status">
+      <button class="fb active" onclick="setStatus('',this)">Todos</button>
+      <button class="fb" onclick="setStatus('active',this)">Abiertos</button>
+      <button class="fb" onclick="setStatus('pending',this)">Sin abrir</button>
+      <button class="fb" onclick="setStatus('finished',this)">Terminados</button>
+      <button class="fb" onclick="setStatus('unrated',this)">Sin valorar</button>
+    </div>
+    <!-- Advanced filter toggle -->
+    <div class="filter-panel-toggle" onclick="toggleFilterPanel()">
+      <span>⚙️ Filtros avanzados</span>
+      <span class="badge" id="filter-badge">0</span>
+      <span id="filter-arrow" style="margin-left:auto;color:var(--text3)">›</span>
+    </div>
+    <div class="filter-panel" id="filter-panel">
+      <div class="filter-groups">
+        <div class="filter-group">
+          <label>Tostador</label>
+          <select class="filter-select" id="f-filter-roaster" onchange="applyFilters()">
+            <option value="">Todos</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>Productor</label>
+          <select class="filter-select" id="f-filter-producer" onchange="applyFilters()">
+            <option value="">Todos</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>País origen</label>
+          <select class="filter-select" id="f-filter-origin" onchange="applyFilters()">
+            <option value="">Todos</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>Región</label>
+          <select class="filter-select" id="f-filter-region" onchange="applyFilters()">
+            <option value="">Todas</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>Proceso</label>
+          <select class="filter-select" id="f-filter-process" onchange="applyFilters()">
+            <option value="">Todos</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>Variedad</label>
+          <select class="filter-select" id="f-filter-variety" onchange="applyFilters()">
+            <option value="">Todas</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>Tienda</label>
+          <select class="filter-select" id="f-filter-shop" onchange="applyFilters()">
+            <option value="">Todas</option>
+          </select>
+        </div>
+      </div>
+      <button class="filter-clear" onclick="clearFilters()">✕ Limpiar filtros</button>
+    </div>
+  </div>
+
+  <div class="results-info" id="results-info"></div>
+  <div id="coffee-list" class="coffee-list"><div class="loading">Cargando...</div></div>
+</div>
+
+<!-- STATS PAGE -->
+<div class="page" id="page-stats">
+  <div class="stats-grid" id="stats-grid"><div class="loading">Cargando...</div></div>
+  <div id="stats-charts"></div>
+</div>
+
+<!-- CATALOG PAGE -->
+<div class="page" id="page-catalog">
+  <div style="margin-bottom:14px">
+    <div style="font-size:13px;color:var(--text2);line-height:1.6">
+      Gestiona los valores de referencia. Puedes renombrar cualquier entrada (actualizará todos los cafés que la usen) o eliminar las que no estén en uso.
+    </div>
+    <button class="btn-purge-all" onclick="purgeAll()" style="margin-top:10px">🧹 Eliminar todos los huérfanos</button>
+  </div>
+  <div id="catalog-content"><div class="loading">Cargando...</div></div>
+</div>
+<div class="modal-overlay" id="modal-form">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-title">Nuevo café</div>
+      <button class="modal-close" onclick="closeModal('modal-form')">✕</button>
+    </div>
+    <form onsubmit="submitForm(event)" id="coffee-form">
+      <input type="hidden" id="f-id">
+
+      <div class="form-section">Identificación</div>
+      <div class="form-group">
+        <label class="form-label">Nombre *</label>
+        <input class="form-input" id="f-name" placeholder="ej. Ethiopia Yirgacheffe" required>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Tostador</label>
+          <div class="ac-wrapper">
+            <input class="form-input" id="f-roaster" placeholder="ej. Ineffable" autocomplete="off" oninput="acInput(this,'roasters')" onfocus="acInput(this,'roasters')" onblur="acBlur('roasters')">
+            <div class="ac-dropdown" id="ac-roasters"></div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Productor</label>
+          <div class="ac-wrapper">
+            <input class="form-input" id="f-producer" placeholder="ej. Worka Sakaro" autocomplete="off" oninput="acInput(this,'producers')" onfocus="acInput(this,'producers')" onblur="acBlur('producers')">
+            <div class="ac-dropdown" id="ac-producers"></div>
+          </div>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Variedad</label>
+          <div class="ac-wrapper">
+            <input class="form-input" id="f-variety" placeholder="ej. Heirloom" autocomplete="off" oninput="acInput(this,'varieties')" onfocus="acInput(this,'varieties')" onblur="acBlur('varieties')">
+            <div class="ac-dropdown" id="ac-varieties"></div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Proceso</label>
+          <div class="ac-wrapper">
+            <input class="form-input" id="f-process" placeholder="ej. Natural" autocomplete="off" oninput="acInput(this,'processes')" onfocus="acInput(this,'processes')" onblur="acBlur('processes')">
+            <div class="ac-dropdown" id="ac-processes"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section">Origen</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">País</label>
+          <div class="ac-wrapper">
+            <input class="form-input" id="f-origin" placeholder="ej. Etiopía" autocomplete="off" oninput="acInput(this,'origins')" onfocus="acInput(this,'origins')" onblur="acBlur('origins')">
+            <div class="ac-dropdown" id="ac-origins"></div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Región</label>
+          <div class="ac-wrapper">
+            <input class="form-input" id="f-region" placeholder="ej. Yirgacheffe" autocomplete="off" oninput="acInput(this,'regions')" onfocus="acInput(this,'regions')" onblur="acBlur('regions')">
+            <div class="ac-dropdown" id="ac-regions"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section">Compra</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Tienda</label>
+          <div class="ac-wrapper">
+            <input class="form-input" id="f-shop" placeholder="ej. Web, local" autocomplete="off" oninput="acInput(this,'shops')" onfocus="acInput(this,'shops')" onblur="acBlur('shops')">
+            <div class="ac-dropdown" id="ac-shops"></div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Fecha compra</label>
+          <input class="form-input" id="f-purchase" type="date">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Cantidad (g)</label>
+          <input class="form-input" id="f-quantity" type="number" placeholder="250">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Precio/kg (€)</label>
+          <input class="form-input" id="f-price" type="number" step="0.01" placeholder="60.00">
+        </div>
+      </div>
+
+      <div class="form-section">Consumo</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Fecha tueste</label>
+          <input class="form-input" id="f-roast" type="date">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Abierto el</label>
+          <input class="form-input" id="f-opened" type="date">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Terminado el</label>
+          <input class="form-input" id="f-finished" type="date">
+        </div>
+        <div class="form-group"></div>
+      </div>
+
+      <div class="form-section">Valoración</div>
+      <div class="form-group">
+        <label class="form-label">Puntuación</label>
+        <div class="rating-input">
+          <span class="rating-star" data-val="1" onclick="setRating(1)">★</span>
+          <span class="rating-star" data-val="2" onclick="setRating(2)">★</span>
+          <span class="rating-star" data-val="3" onclick="setRating(3)">★</span>
+          <span class="rating-star" data-val="4" onclick="setRating(4)">★</span>
+          <span class="rating-star" data-val="5" onclick="setRating(5)">★</span>
+        </div>
+        <input type="hidden" id="f-rating">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notas de cata</label>
+        <textarea class="form-input form-textarea" id="f-notes" placeholder="Aromas, sabores, sensaciones..."></textarea>
+      </div>
+
+      <button type="submit" class="btn-primary">Guardar café</button>
+      <div class="btn-row" id="edit-actions" style="display:none">
+        <button type="button" class="btn-secondary" onclick="closeModal('modal-form')">Cancelar</button>
+        <button type="button" class="btn-danger" onclick="deleteCoffee()">Eliminar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- DETAIL MODAL -->
+<div class="modal-overlay" id="modal-detail">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="detail-title">Detalle</div>
+      <button class="modal-close" onclick="closeModal('modal-detail')">✕</button>
+    </div>
+    <div id="detail-content"></div>
+    <div class="btn-row" style="margin-top:16px">
+      <button class="btn-primary" style="margin-top:0" onclick="editCurrent()">✏️ Editar</button>
+      <button class="btn-secondary" id="unrate-btn" onclick="unrateCurrent()" style="display:none">☆ Sin valorar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ---------------------------------------------------------------------------
+// State
+// ---------------------------------------------------------------------------
+let allOptions = {};        // lookup data from /api/options
+let displayedCoffees = [];  // current rendered list
+let currentDetail = null;
+let activeFilters = {};     // {roaster_id: 1, origin_id: 2, ...}
+let activeStatus = '';
+let searchQuery = '';
+let searchTimer = null;
+
+// ---------------------------------------------------------------------------
+// API
+// ---------------------------------------------------------------------------
+async function api(path, opts={}) {
+  const r = await fetch('/api'+path, {headers:{'Content-Type':'application/json'}, ...opts});
+  return r.json();
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2200);
+}
+
+// ---------------------------------------------------------------------------
+// Init
+// ---------------------------------------------------------------------------
+async function init() {
+  await loadOptions();
+  await fetchAndRender();
+}
+
+async function loadOptions() {
+  allOptions = await api('/options');
+  populateFilterSelects();
+}
+
+function populateFilterSelects() {
+  const map = {
+    roasters:'f-filter-roaster', producers:'f-filter-producer',
+    origins:'f-filter-origin', regions:'f-filter-region',
+    processes:'f-filter-process', varieties:'f-filter-variety',
+    shops:'f-filter-shop'
+  };
+  for (const [table, selId] of Object.entries(map)) {
+    const sel = document.getElementById(selId);
+    const first = sel.options[0];
+    sel.innerHTML = '';
+    sel.appendChild(first);
+    (allOptions[table]||[]).forEach(o => {
+      const opt = document.createElement('option');
+      opt.value = o.id; opt.textContent = o.name;
+      sel.appendChild(opt);
+    });
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Fetch + render
+// ---------------------------------------------------------------------------
+async function fetchAndRender() {
+  const params = new URLSearchParams();
+  if (activeStatus) params.set('status', activeStatus);
+  if (searchQuery)  params.set('q', searchQuery);
+  for (const [k,v] of Object.entries(activeFilters)) {
+    if (v) params.set(k, v);
+  }
+  const qs = params.toString();
+  displayedCoffees = await api('/coffees' + (qs ? '?'+qs : ''));
+  renderList();
+}
+
+// ---------------------------------------------------------------------------
+// Render helpers
+// ---------------------------------------------------------------------------
+function stars(rating) {
+  const r = parseInt(rating, 10);
+  if (!r||r<1||r>5) return '<span style="color:var(--text3);font-size:13px">Sin valorar</span>';
+  return [1,2,3,4,5].map(i=>`<span class="star ${i<=r?'filled':''}">★</span>`).join('');
+}
+
+function fmtDate(d) {
+  if (!d) return null;
+  const [y,m,day] = d.split('-'); return `${day}/${m}/${y}`;
+}
+
+function fmtPrice(c) {
+  if (!c.price_kg||!c.quantity_g) return null;
+  return `${c.price_kg}€/kg · ${(c.quantity_g/1000*c.price_kg).toFixed(2)}€`;
+}
+
+function getStatus(c) {
+  if (c.finished_date) return {label:'Terminado',cls:'status-done'};
+  if (c.opened_date)   return {label:'Abierto',cls:'status-open'};
+  return {label:'Sin abrir',cls:''};
+}
+
+function renderList() {
+  const el = document.getElementById('coffee-list');
+  const info = document.getElementById('results-info');
+  const total = displayedCoffees.length;
+  info.textContent = total === 0 ? '' : `${total} café${total!==1?'s':''}`;
+
+  if (!total) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">☕</div><h3>Sin cafés aquí</h3><p>Prueba a cambiar los filtros o añade uno nuevo</p></div>`;
+    return;
+  }
+  el.innerHTML = displayedCoffees.map(c => {
+    const status = getStatus(c);
+    const finished = !!c.finished_date, opened = !!c.opened_date && !finished;
+    const origin = [c.origin, c.region].filter(Boolean).join(' · ');
+    const sub = [c.roaster, c.producer].filter(Boolean).join(' / ');
+    const actions = !finished ? `<div class="card-actions">
+      ${!c.opened_date?`<button class="btn-quick open" onclick="quickOpen(event,${c.id})">📦 Abrir hoy</button>`:''}
+      ${c.opened_date?`<button class="btn-quick finish" onclick="quickFinish(event,${c.id})">✅ Terminado hoy</button>`:''}
+    </div>` : '';
+    return `<div class="coffee-card ${finished?'finished-coffee':opened?'active-coffee':''}" onclick="showDetail(${c.id})">
+      <div class="card-header">
+        <div style="min-width:0">
+          <div class="coffee-name">${c.name}</div>
+          ${sub?`<div class="coffee-sub">${sub}</div>`:''}
+        </div>
+        <div class="coffee-rating">${stars(c.rating)}</div>
+      </div>
+      <div class="coffee-meta">
+        <span class="tag ${status.cls}">${status.label}</span>
+        ${origin?`<span class="tag">📍 ${origin}</span>`:''}
+        ${c.variety?`<span class="tag">🌱 ${c.variety}</span>`:''}
+        ${c.process?`<span class="tag">⚙️ ${c.process}</span>`:''}
+        ${c.quantity_g?`<span class="tag">⚖️ ${c.quantity_g}g</span>`:''}
+        ${fmtPrice(c)?`<span class="tag price">💰 ${fmtPrice(c)}</span>`:''}
+      </div>
+      ${c.notes?`<div class="coffee-notes">${c.notes}</div>`:''}
+      ${actions}
+    </div>`;
+  }).join('');
+}
+
+// ---------------------------------------------------------------------------
+// Filtering
+// ---------------------------------------------------------------------------
+function showPage(name, tab) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  tab.classList.add('active');
+  if (name==='stats') loadStats();
+  if (name==='catalog') loadCatalog();
+}
+
+function setStatus(s, btn) {
+  activeStatus = s;
+  document.querySelectorAll('.fb').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  fetchAndRender();
+}
+
+function onSearch(val) {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(()=>{ searchQuery = val.trim(); fetchAndRender(); }, 280);
+}
+
+function toggleFilterPanel() {
+  const p = document.getElementById('filter-panel');
+  const a = document.getElementById('filter-arrow');
+  p.classList.toggle('open');
+  a.textContent = p.classList.contains('open') ? '⌄' : '›';
+}
+
+function applyFilters() {
+  activeFilters = {
+    roaster_id:  document.getElementById('f-filter-roaster').value,
+    producer_id: document.getElementById('f-filter-producer').value,
+    origin_id:   document.getElementById('f-filter-origin').value,
+    region_id:   document.getElementById('f-filter-region').value,
+    process_id:  document.getElementById('f-filter-process').value,
+    variety_id:  document.getElementById('f-filter-variety').value,
+    shop_id:     document.getElementById('f-filter-shop').value,
+  };
+  // Update badge
+  const active = Object.values(activeFilters).filter(Boolean).length;
+  const badge = document.getElementById('filter-badge');
+  badge.textContent = active;
+  badge.classList.toggle('show', active > 0);
+  fetchAndRender();
+}
+
+function clearFilters() {
+  document.querySelectorAll('.filter-select').forEach(s=>s.value='');
+  activeFilters = {};
+  document.getElementById('filter-badge').classList.remove('show');
+  fetchAndRender();
+}
+
+// ---------------------------------------------------------------------------
+// Quick actions
+// ---------------------------------------------------------------------------
+async function quickOpen(e, id) {
+  e.stopPropagation();
+  const updated = await api('/coffees/'+id+'/open', {method:'POST'});
+  const i = displayedCoffees.findIndex(c=>c.id===id);
+  if (i!==-1) displayedCoffees[i]=updated;
+  if (currentDetail?.id===id) currentDetail=updated;
+  renderList(); showToast('📦 Marcado como abierto');
+  await loadOptions(); // refresh selects in case new entries appeared
+}
+
+async function quickFinish(e, id) {
+  e.stopPropagation();
+  const updated = await api('/coffees/'+id+'/finish', {method:'POST'});
+  const i = displayedCoffees.findIndex(c=>c.id===id);
+  if (i!==-1) displayedCoffees[i]=updated;
+  if (currentDetail?.id===id) currentDetail=updated;
+  renderList(); showToast('✅ Marcado como terminado');
+}
+
+// ---------------------------------------------------------------------------
+// Detail modal
+// ---------------------------------------------------------------------------
+function showDetail(id) {
+  const c = displayedCoffees.find(x=>x.id===id);
+  if (!c) return;
+  currentDetail = c;
+  document.getElementById('detail-title').textContent = c.name;
+  document.getElementById('unrate-btn').style.display = parseInt(c.rating,10)?'':'none';
+  const rows = [
+    ['Tostador',c.roaster],['Productor',c.producer],['Variedad',c.variety],
+    ['País',c.origin],['Región',c.region],['Proceso',c.process],['Tienda',c.shop],
+    ['Cantidad',c.quantity_g?c.quantity_g+'g':null],
+    ['Precio/kg',c.price_kg?c.price_kg+'€':null],['Coste total',fmtPrice(c)],
+    ['Compra',fmtDate(c.purchase_date)],['Tueste',fmtDate(c.roast_date)],
+    ['Abierto',fmtDate(c.opened_date)],['Terminado',fmtDate(c.finished_date)],
+  ].filter(([,v])=>v);
+  document.getElementById('detail-content').innerHTML = `
+    <div style="margin-bottom:12px">${stars(c.rating)}</div>
+    ${rows.map(([l,v])=>`<div class="detail-row"><span class="detail-label">${l}</span><span class="detail-val">${v}</span></div>`).join('')}
+    ${c.notes?`<div style="margin-top:14px;font-size:14px;color:var(--text2);line-height:1.6;font-style:italic">"${c.notes}"</div>`:''}
+  `;
+  document.getElementById('modal-detail').classList.add('open');
+}
+
+function editCurrent() { closeModal('modal-detail'); openEditModal(currentDetail); }
+
+async function unrateCurrent() {
+  if (!currentDetail) return;
+  const updated = await api('/coffees/'+currentDetail.id+'/unrate', {method:'POST'});
+  const i = displayedCoffees.findIndex(c=>c.id===currentDetail.id);
+  if (i!==-1) displayedCoffees[i]=updated;
+  currentDetail = updated;
+  showDetail(updated.id);
+  renderList();
+  showToast('☆ Valoración eliminada');
+}
+
+// ---------------------------------------------------------------------------
+// Autocomplete
+// ---------------------------------------------------------------------------
+let acTimers = {};
+
+function acInput(input, table) {
+  clearTimeout(acTimers[table]);
+  acTimers[table] = setTimeout(()=>renderAC(input, table), 80);
+}
+
+function renderAC(input, table) {
+  const val = input.value.trim().toLowerCase();
+  const dropdown = document.getElementById('ac-'+table);
+  const opts = (allOptions[table]||[]);
+  const matches = val ? opts.filter(o=>o.name.toLowerCase().includes(val)) : opts;
+
+  let html = matches.slice(0,10).map(o=>
+    `<div class="ac-item" onmousedown="acSelect('${input.id}','${table}','${o.name.replace(/'/g,"\\'")}')">
+      ${o.name}
+     </div>`).join('');
+
+  // "Crear nuevo" if typed value not in list
+  const exact = opts.some(o=>o.name.toLowerCase()===val);
+  if (val && !exact) {
+    html += `<div class="ac-item new-entry" onmousedown="acSelect('${input.id}','${table}','${input.value.trim().replace(/'/g,"\\'")}')">
+      + Añadir "${input.value.trim()}"
+    </div>`;
+  }
+  dropdown.innerHTML = html;
+  dropdown.classList.toggle('open', html.length > 0);
+}
+
+function acSelect(inputId, table, value) {
+  document.getElementById(inputId).value = value;
+  document.getElementById('ac-'+table).classList.remove('open');
+}
+
+function acBlur(table) {
+  // Small delay so mousedown fires first
+  setTimeout(()=>{ document.getElementById('ac-'+table).classList.remove('open'); }, 150);
+}
+
+// ---------------------------------------------------------------------------
+// Form
+// ---------------------------------------------------------------------------
+function setRating(val) {
+  document.getElementById('f-rating').value = val;
+  document.querySelectorAll('.rating-star').forEach(s=>s.classList.toggle('active', parseInt(s.dataset.val)<=val));
+}
+
+function resetForm() {
+  document.getElementById('coffee-form').reset();
+  document.getElementById('f-id').value='';
+  document.getElementById('f-rating').value='';
+  document.querySelectorAll('.rating-star').forEach(s=>s.classList.remove('active'));
+  document.getElementById('edit-actions').style.display='none';
+  document.getElementById('modal-title').textContent='Nuevo café';
+}
+
+function openAddModal() {
+  resetForm();
+  document.getElementById('f-purchase').value = new Date().toISOString().split('T')[0];
+  document.getElementById('modal-form').classList.add('open');
+}
+
+function openEditModal(c) {
+  resetForm();
+  document.getElementById('modal-title').textContent='Editar café';
+  document.getElementById('f-id').value=c.id;
+  document.getElementById('f-name').value=c.name||'';
+  document.getElementById('f-roaster').value=c.roaster||'';
+  document.getElementById('f-producer').value=c.producer||'';
+  document.getElementById('f-variety').value=c.variety||'';
+  document.getElementById('f-origin').value=c.origin||'';
+  document.getElementById('f-region').value=c.region||'';
+  document.getElementById('f-process').value=c.process||'';
+  document.getElementById('f-shop').value=c.shop||'';
+  document.getElementById('f-quantity').value=c.quantity_g||'';
+  document.getElementById('f-price').value=c.price_kg||'';
+  document.getElementById('f-purchase').value=c.purchase_date||'';
+  document.getElementById('f-roast').value=c.roast_date||'';
+  document.getElementById('f-opened').value=c.opened_date||'';
+  document.getElementById('f-finished').value=c.finished_date||'';
+  document.getElementById('f-notes').value=c.notes||'';
+  const r=parseInt(c.rating,10);
+  if (r>=1&&r<=5) setRating(r);
+  document.getElementById('edit-actions').style.display='flex';
+  document.getElementById('modal-form').classList.add('open');
+}
+
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+async function submitForm(e) {
+  e.preventDefault();
+  const id = document.getElementById('f-id').value;
+  const rv = document.getElementById('f-rating').value;
+  const data = {
+    name:          document.getElementById('f-name').value,
+    roaster:       document.getElementById('f-roaster').value||null,
+    producer:      document.getElementById('f-producer').value||null,
+    variety:       document.getElementById('f-variety').value||null,
+    origin:        document.getElementById('f-origin').value||null,
+    region:        document.getElementById('f-region').value||null,
+    process:       document.getElementById('f-process').value||null,
+    shop:          document.getElementById('f-shop').value||null,
+    quantity_g:    document.getElementById('f-quantity').value?parseInt(document.getElementById('f-quantity').value):null,
+    price_kg:      document.getElementById('f-price').value?parseFloat(document.getElementById('f-price').value):null,
+    purchase_date: document.getElementById('f-purchase').value||null,
+    roast_date:    document.getElementById('f-roast').value||null,
+    opened_date:   document.getElementById('f-opened').value||null,
+    finished_date: document.getElementById('f-finished').value||null,
+    rating:        rv?parseInt(rv):null,
+    notes:         document.getElementById('f-notes').value||null,
+  };
+  if (id) await api('/coffees/'+id, {method:'PUT', body:JSON.stringify(data)});
+  else    await api('/coffees',     {method:'POST',body:JSON.stringify(data)});
+  closeModal('modal-form');
+  showToast(id?'☕ Café actualizado':'☕ Café añadido');
+  await loadOptions();       // refresh autocomplete lists
+  populateFilterSelects();   // refresh filter dropdowns
+  await fetchAndRender();
+}
+
+async function deleteCoffee() {
+  const id = document.getElementById('f-id').value;
+  if (!id||!confirm('¿Eliminar este café?')) return;
+  await api('/coffees/'+id, {method:'DELETE'});
+  closeModal('modal-form');
+  showToast('Café eliminado');
+  await fetchAndRender();
+}
+
+// ---------------------------------------------------------------------------
+// Stats
+// ---------------------------------------------------------------------------
+async function loadStats() {
+  const s = await api('/stats');
+  document.getElementById('stats-grid').innerHTML = `
+    <div class="stat-card"><div class="stat-val">${s.total}</div><div class="stat-label">Registrados</div></div>
+    <div class="stat-card"><div class="stat-val">${s.active}</div><div class="stat-label">En uso</div></div>
+    <div class="stat-card"><div class="stat-val">${s.avg_rating?'⭐ '+s.avg_rating:'–'}</div><div class="stat-label">Valoración media</div></div>
+    <div class="stat-card"><div class="stat-val">${s.total_spent?s.total_spent+'€':'–'}</div><div class="stat-label">Gasto total</div></div>
+  `;
+
+  let charts = '';
+  if (s.top_roasters?.length) charts += buildBarChart('Tostadores más usados', s.top_roasters);
+  if (s.origins_breakdown?.length) charts += buildBarChart('Por país de origen', s.origins_breakdown);
+  if (s.processes_breakdown?.length) charts += buildBarChart('Por proceso', s.processes_breakdown);
+  document.getElementById('stats-charts').innerHTML = charts;
+}
+
+function buildBarChart(title, data) {
+  const max = Math.max(...data.map(r=>r.cnt));
+  const rows = data.map(r=>`
+    <div class="bar-row">
+      <span class="bar-label" title="${r.name}">${r.name}</span>
+      <div class="bar-track"><div class="bar-fill" style="width:${Math.round(r.cnt/max*100)}%"></div></div>
+      <span class="bar-cnt">${r.cnt}</span>
+    </div>`).join('');
+  return `<div class="stats-section"><h3>${title}</h3>${rows}</div>`;
+}
+
+// ---------------------------------------------------------------------------
+// Catalog management
+// ---------------------------------------------------------------------------
+const LOOKUP_TABLES = ['roasters','producers','shops','origins','regions','varieties','processes'];
+const CATALOG_LABELS = {
+  roasters:'Tostadores', producers:'Productores', shops:'Tiendas',
+  origins:'Países de origen', regions:'Regiones', varieties:'Variedades', processes:'Procesos'
+};
+
+async function loadCatalog() {
+  const el = document.getElementById('catalog-content');
+  el.innerHTML = '<div class="loading">Cargando...</div>';
+  const results = await Promise.all(
+    LOOKUP_TABLES.map(t => api('/lookup/'+t).then(data => ({table:t, data})))
+  );
+  el.innerHTML = results.map(({table, data}) => {
+    const orphans = data.filter(r => r.coffee_count === 0).length;
+    const badge = `<span class="catalog-badge ${orphans?'has-orphans':''}">${data.length} entrada${data.length!==1?'s':''}${orphans?' · '+orphans+' sin usar':''}</span>`;
+    const rows = data.map(r => `
+      <div class="catalog-row" id="crow-${table}-${r.id}">
+        <span class="catalog-row-name" id="cname-${table}-${r.id}">${r.name}</span>
+        <input class="catalog-row-input" id="cinput-${table}-${r.id}" value="${r.name.replace(/"/g,'&quot;')}"
+          onkeydown="catalogKeydown(event,'${table}',${r.id})" onfocus="this.select()">
+        <span class="catalog-count ${r.coffee_count===0?'zero':''}" title="${r.coffee_count} café(s)">
+          ${r.coffee_count===0?'✕':r.coffee_count}
+        </span>
+        <button class="btn-icon" id="cedit-${table}-${r.id}" onclick="catalogStartEdit('${table}',${r.id})" title="Renombrar">✏️</button>
+        <button class="btn-icon save" id="csave-${table}-${r.id}" style="display:none" onclick="catalogSave('${table}',${r.id})" title="Guardar">✓</button>
+        <button class="btn-icon" id="ccancel-${table}-${r.id}" style="display:none" onclick="catalogCancelEdit('${table}',${r.id})" title="Cancelar">✕</button>
+        <button class="btn-icon danger" onclick="catalogDelete('${table}',${r.id},${r.coffee_count})" title="Eliminar" ${r.coffee_count>0?'disabled style="opacity:0.3;cursor:not-allowed"':''}>🗑</button>
+      </div>`).join('');
+    const purgeBtn = orphans ? `<div class="catalog-purge"><button class="btn-purge" onclick="catalogPurge('${table}')">🧹 Eliminar ${orphans} huérfano${orphans!==1?'s':''}</button></div>` : '';
+    return `<div class="catalog-section">
+      <div class="catalog-header" onclick="toggleCatalogSection('${table}')">
+        <div class="catalog-header-left">
+          <span class="catalog-title">${CATALOG_LABELS[table]}</span>
+          ${badge}
+        </div>
+        <span id="cat-arrow-${table}" style="color:var(--text3)">›</span>
+      </div>
+      <div class="catalog-body" id="catbody-${table}">
+        ${rows || '<div style="padding:14px 16px;color:var(--text3);font-size:13px">Sin entradas</div>'}
+        ${purgeBtn}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleCatalogSection(table) {
+  const body = document.getElementById('catbody-'+table);
+  const arrow = document.getElementById('cat-arrow-'+table);
+  body.classList.toggle('open');
+  arrow.textContent = body.classList.contains('open') ? '⌄' : '›';
+}
+
+function catalogStartEdit(table, id) {
+  document.getElementById('cname-'+table+'-'+id).style.display = 'none';
+  document.getElementById('cinput-'+table+'-'+id).style.display = 'block';
+  document.getElementById('cedit-'+table+'-'+id).style.display = 'none';
+  document.getElementById('csave-'+table+'-'+id).style.display = 'flex';
+  document.getElementById('ccancel-'+table+'-'+id).style.display = 'flex';
+  document.getElementById('cinput-'+table+'-'+id).focus();
+}
+
+function catalogCancelEdit(table, id) {
+  const nameEl = document.getElementById('cname-'+table+'-'+id);
+  document.getElementById('cinput-'+table+'-'+id).value = nameEl.textContent;
+  nameEl.style.display = '';
+  document.getElementById('cinput-'+table+'-'+id).style.display = 'none';
+  document.getElementById('cedit-'+table+'-'+id).style.display = '';
+  document.getElementById('csave-'+table+'-'+id).style.display = 'none';
+  document.getElementById('ccancel-'+table+'-'+id).style.display = 'none';
+}
+
+function catalogKeydown(e, table, id) {
+  if (e.key === 'Enter') catalogSave(table, id);
+  if (e.key === 'Escape') catalogCancelEdit(table, id);
+}
+
+async function catalogSave(table, id) {
+  const input = document.getElementById('cinput-'+table+'-'+id);
+  const newName = input.value.trim();
+  if (!newName) return;
+  const r = await api('/lookup/'+table+'/'+id, {method:'PUT', body:JSON.stringify({name:newName})});
+  if (r.error) { showToast('⚠️ '+r.error); return; }
+  // Update name in UI without full reload
+  document.getElementById('cname-'+table+'-'+id).textContent = newName;
+  catalogCancelEdit(table, id);
+  // Refresh autocomplete options
+  await loadOptions();
+  populateFilterSelects();
+  showToast('✓ Renombrado correctamente');
+}
+
+async function catalogDelete(table, id, count) {
+  if (count > 0) return;
+  if (!confirm('¿Eliminar esta entrada?')) return;
+  const r = await api('/lookup/'+table+'/'+id, {method:'DELETE'});
+  if (r.error) { showToast('⚠️ '+r.error); return; }
+  document.getElementById('crow-'+table+'-'+id).remove();
+  await loadOptions();
+  populateFilterSelects();
+  showToast('🗑 Entrada eliminada');
+}
+
+async function catalogPurge(table) {
+  const r = await api('/lookup/'+table+'/purge', {method:'POST'});
+  showToast(`🧹 ${r.deleted} entrada${r.deleted!==1?'s':''} eliminada${r.deleted!==1?'s':''}`);
+  await loadOptions();
+  populateFilterSelects();
+  await loadCatalog();
+}
+
+async function purgeAll() {
+  if (!confirm('¿Eliminar todos los valores de referencia sin usar?')) return;
+  let total = 0;
+  for (const t of LOOKUP_TABLES) {
+    const r = await api('/lookup/'+t+'/purge', {method:'POST'});
+    total += r.deleted || 0;
+  }
+  showToast(`🧹 ${total} entrada${total!==1?'s':''} eliminada${total!==1?'s':''}`);
+  await loadOptions();
+  populateFilterSelects();
+  await loadCatalog();
+}
+document.querySelectorAll('.modal-overlay').forEach(m=>{
+  m.addEventListener('click', e=>{ if(e.target===m) m.classList.remove('open'); });
+});
+
+init();
+</script>
+</body>
+</html>
