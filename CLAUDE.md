@@ -15,22 +15,64 @@ App web personal para registrar cafés de especialidad. Flask + SQLite + HTML/CS
 
 ## Arquitectura de datos
 
-SQLite con 7 tablas de referencia normalizadas (roasters, producers, varieties, origins, regions, processes, shops) referenciadas desde `coffees` mediante FKs opcionales. La función `get_or_create(conn, table, name)` en `app.py` gestiona la creación automática de entradas al guardar un café.
+SQLite con 7 tablas de referencia normalizadas (roasters, producers, varieties, origins, regions, processes, shops).
 
-El frontend siempre envía los campos de lookup como **strings** (ej. `roaster: "Ineffable"`). El backend los resuelve a IDs con `resolve_ids()`. Las respuestas devuelven tanto el ID como el nombre resuelto (via JOIN en `COFFEE_SELECT`).
+### Relaciones
+
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| `coffees.roaster_id` | FK directa | N-1 con roasters |
+| `coffees.producer_id` | FK directa | N-1 con producers |
+| `coffees.origin_id` | FK directa | N-1 con origins (países) |
+| `coffees.region_id` | FK directa | N-1 con regions |
+| `coffees.shop_id` | FK directa | N-1 con shops |
+| `coffee_varieties` | tabla de unión | M-N entre coffees y varieties |
+| `coffee_processes` | tabla de unión | M-N entre coffees y processes |
+| `regions.origin_id` | FK directa | N-1 con origins — cada región pertenece a un país |
+
+### Dos categorías de lookup tables
+
+- **`LOOKUP_FK`** — relación directa con FK en `coffees`: `roasters`, `producers`, `origins`, `regions`, `shops`
+- **`JUNCTION_TABLES`** — relación M2M vía tabla de unión: `varieties` → `coffee_varieties`, `processes` → `coffee_processes`
+
+Los endpoints de lookup (`/api/lookup/<table>`) y las funciones de conteo/borrado/purga distinguen ambas categorías internamente.
+
+### Helpers clave en app.py
+
+- `get_or_create(conn, table, name)` — crea o reutiliza una entrada en cualquier lookup table
+- `resolve_ids(conn, data)` — resuelve strings de lookup a IDs y auto-vincula región→país
+- `set_m2m(conn, coffee_id, values, ...)` — reemplaza todas las relaciones M2M de un café
+- `row_to_coffee(row)` — convierte una fila SQLite a dict con arrays `varieties` y `processes`
+- `COFFEE_SELECT` — query base con subconsultas GROUP_CONCAT para variedades y procesos
+
+### Formato del API
+
+- Campos de lookup simples: el frontend envía strings (`roaster: "Ineffable"`), el backend los resuelve con `resolve_ids()`
+- Variedades y procesos: el frontend envía **arrays** (`varieties: ["Heirloom", "SL28"]`), el backend los gestiona con `set_m2m()`
+- Las respuestas incluyen `varieties: [...]`, `variety_ids: [...]`, `processes: [...]`, `process_ids: [...]`
+- `/api/options` devuelve regiones con `origin_id` para que el frontend pueda filtrar por país
 
 ## Convenciones importantes
 
 - La BD vive en `/data/coffee.db` (variable `DB` en `app.py`)
-- `init_db()` se llama al arrancar y es idempotente — incluye la migración automática de columnas de texto antiguas
+- `init_db()` se llama al arrancar y es idempotente — incluye todas las migraciones
+- Hay dos fases de migración: `migrate_v1()` (texto→FK, legado) y `migrate_v2()` (FK→M2M + link región-país)
+- Añadir un nuevo cambio de esquema: crear `migrate_v3()` y llamarla desde `init_db()`
 - Todos los endpoints de lookup comprueban que `table` esté en `LOOKUP_TABLES` antes de ejecutar
 - Las fechas se guardan como TEXT en formato `YYYY-MM-DD`
 - `rating NULL` = sin valorar (nunca se guarda 0)
-- El frontend define `LOOKUP_TABLES` como array JS — debe mantenerse sincronizado con el Python si se añaden tablas
+- El frontend define `LOOKUP_TABLES` como array JS — se sincroniza automáticamente desde `/api/options`
+
+## Frontend — convenciones JS
+
+- **Chip input** para variedades y procesos: estado en `selectedVarieties` / `selectedProcesses` (arrays), gestionado por `addChip()`, `removeChip()`, `renderChips()`
+- `CHIP_FIELDS` — mapa que conecta tabla lookup con su estado y elementos DOM de chips
+- **Cascada región→país**: `onOriginChange()` actualiza el hint de región en el formulario; `onFilterOriginChange()` filtra el desplegable de región en el panel de filtros avanzados
+- `renderAC()` filtra automáticamente los chips ya seleccionados y las regiones por país
 
 ## Estado actual
 
-La aplicación está en uso con datos reales. Cualquier cambio de esquema debe ir acompañado de migración en `init_db()` / `migrate()`.
+La aplicación está en uso con datos reales. Cualquier cambio de esquema debe ir acompañado de una nueva función `migrate_vN()` llamada desde `init_db()`.
 
 ## Cómo probar localmente
 
