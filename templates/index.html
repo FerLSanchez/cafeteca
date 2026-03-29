@@ -167,6 +167,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--surface3);border:1px solid var(--border);color:var(--text);padding:10px 20px;border-radius:20px;font-size:14px;z-index:999;opacity:0;transition:opacity 0.3s;pointer-events:none;white-space:nowrap}
 .toast.show{opacity:1}
 .tag.fresh-warning{color:#e8c84a;border-color:rgba(232,200,74,0.35);background:rgba(232,200,74,0.08)}
+.tag.milk{color:#7ab8d4;border-color:rgba(122,184,212,0.3);background:rgba(122,184,212,0.08)}
 .fresh-warning-banner{background:rgba(232,200,74,0.08);border:1px solid rgba(232,200,74,0.35);color:#e8c84a;border-radius:10px;padding:9px 13px;font-size:13px;margin-bottom:12px;line-height:1.4}
 .bar-cnt{font-size:12px;color:var(--text3);min-width:70px;text-align:right}
 .sort-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
@@ -507,6 +508,20 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
         <textarea class="form-input form-textarea" id="f-notes" placeholder="Aromas, sabores, sensaciones..."></textarea>
       </div>
 
+      <div class="form-section">Con leche vegetal</div>
+      <div class="form-group">
+        <label class="form-label">Funciona bien con</label>
+        <div class="ac-wrapper">
+          <div class="chip-wrapper" onclick="document.getElementById('f-milk-input').focus()">
+            <div id="milk-chips"></div>
+            <input class="chip-text-input" id="f-milk-input" placeholder="Avena, Arroz..." autocomplete="off"
+              oninput="acInput(this,'milk_types')" onfocus="acInput(this,'milk_types')" onblur="acBlur('milk_types')"
+              onkeydown="chipKeydown(event,'milk_types')">
+          </div>
+          <div class="ac-dropdown" id="ac-milk_types"></div>
+        </div>
+      </div>
+
       <button type="submit" class="btn-primary">Guardar café</button>
       <div class="btn-row" id="edit-actions" style="display:none">
         <button type="button" class="btn-secondary" onclick="closeModal('modal-form')">Cancelar</button>
@@ -586,9 +601,11 @@ let currentSort = 'created_desc';
 // Multi-select chip state for m2m fields
 let selectedVarieties = [];
 let selectedProcesses = [];
+let selectedMilkTypes = [];
 const CHIP_FIELDS = {
-  varieties: { state: () => selectedVarieties, set: v => { selectedVarieties = v; }, inputId: 'f-variety-input', chipsId: 'varieties-chips' },
-  processes: { state: () => selectedProcesses, set: v => { selectedProcesses = v; }, inputId: 'f-process-input', chipsId: 'processes-chips' },
+  varieties:  { state: () => selectedVarieties,  set: v => { selectedVarieties = v; },  inputId: 'f-variety-input', chipsId: 'varieties-chips' },
+  processes:  { state: () => selectedProcesses,  set: v => { selectedProcesses = v; },  inputId: 'f-process-input', chipsId: 'processes-chips' },
+  milk_types: { state: () => selectedMilkTypes,  set: v => { selectedMilkTypes = v; },  inputId: 'f-milk-input',    chipsId: 'milk-chips' },
 };
 
 // Pagination
@@ -809,6 +826,7 @@ function renderList() {
         ${origin?`<span class="tag">📍 ${origin}</span>`:''}
         ${c.varieties&&c.varieties.length?`<span class="tag">🌱 ${c.varieties.map(esc).join(', ')}</span>`:''}
         ${c.processes&&c.processes.length?`<span class="tag">⚙️ ${c.processes.map(esc).join(', ')}</span>`:''}
+        ${c.milk_types&&c.milk_types.length?`<span class="tag milk">🥛 ${c.milk_types.map(esc).join(', ')}</span>`:''}
         ${c.quantity_g?`<span class="tag">⚖️ ${c.quantity_g}g</span>`:''}
         ${price?`<span class="tag price">💰 ${price}</span>`:''}
       </div>
@@ -937,7 +955,9 @@ function showDetail(id) {
     ['Tostador',c.roaster],['Productor',c.producer],
     ['Variedad',c.varieties&&c.varieties.length?c.varieties.join(', '):null],
     ['País',c.origin],['Región',c.region],['Altitud',c.altitude?c.altitude+' m':null],
-    ['Proceso',c.processes&&c.processes.length?c.processes.join(', '):null],['Tienda',c.shop],
+    ['Proceso',c.processes&&c.processes.length?c.processes.join(', '):null],
+    ['🥛 Con leche vegetal',c.milk_types&&c.milk_types.length?c.milk_types.join(', '):null],
+    ['Tienda',c.shop],
     ['Cantidad',c.quantity_g?c.quantity_g+'g':null],
     ['Precio/kg',c.price_kg?c.price_kg+'€':null],['Coste total',fmtPrice(c)],
     ['Compra',fmtDate(c.purchase_date)],['Tueste',fmtDate(c.roast_date)],
@@ -969,9 +989,10 @@ function duplicateCurrent() {
   document.getElementById('f-origin').value = c.origin || '';
   document.getElementById('f-region').value = c.region || '';
   document.getElementById('f-shop').value = c.shop || '';
-  selectedVarieties = Array.isArray(c.varieties) ? [...c.varieties] : [];
-  selectedProcesses = Array.isArray(c.processes) ? [...c.processes] : [];
-  renderChips('varieties'); renderChips('processes');
+  selectedVarieties = Array.isArray(c.varieties)  ? [...c.varieties]  : [];
+  selectedProcesses = Array.isArray(c.processes)  ? [...c.processes]  : [];
+  selectedMilkTypes = Array.isArray(c.milk_types) ? [...c.milk_types] : [];
+  renderChips('varieties'); renderChips('processes'); renderChips('milk_types');
   onOriginChange();
   document.getElementById('f-quantity').value = c.quantity_g || '';
   document.getElementById('f-price').value = c.price_kg || '';
@@ -1184,6 +1205,7 @@ function resetForm() {
   // Reset chip fields
   selectedVarieties = []; renderChips('varieties');
   selectedProcesses = []; renderChips('processes');
+  selectedMilkTypes = []; renderChips('milk_types');
   if (document.getElementById('region-hint')) document.getElementById('region-hint').textContent='';
 }
 
@@ -1204,9 +1226,10 @@ function openEditModal(c) {
   document.getElementById('f-region').value=c.region||'';
   document.getElementById('f-shop').value=c.shop||'';
   // Chip fields
-  selectedVarieties = Array.isArray(c.varieties) ? [...c.varieties] : [];
-  selectedProcesses = Array.isArray(c.processes) ? [...c.processes] : [];
-  renderChips('varieties'); renderChips('processes');
+  selectedVarieties = Array.isArray(c.varieties)   ? [...c.varieties]   : [];
+  selectedProcesses = Array.isArray(c.processes)   ? [...c.processes]   : [];
+  selectedMilkTypes = Array.isArray(c.milk_types)  ? [...c.milk_types]  : [];
+  renderChips('varieties'); renderChips('processes'); renderChips('milk_types');
   onOriginChange();
   document.getElementById('f-quantity').value=c.quantity_g||'';
   document.getElementById('f-price').value=c.price_kg||'';
@@ -1236,6 +1259,7 @@ async function submitForm(e) {
     origin:        document.getElementById('f-origin').value||null,
     region:        document.getElementById('f-region').value||null,
     processes:     selectedProcesses.length ? [...selectedProcesses] : [],
+    milk_types:    selectedMilkTypes.length  ? [...selectedMilkTypes]  : [],
     shop:          document.getElementById('f-shop').value||null,
     quantity_g:    document.getElementById('f-quantity').value?parseInt(document.getElementById('f-quantity').value):null,
     price_kg:      document.getElementById('f-price').value?parseFloat(document.getElementById('f-price').value):null,
@@ -1409,7 +1433,8 @@ function renderCalendar() {
 let LOOKUP_TABLES = [];  // populated from /api/options on init
 const CATALOG_LABELS = {
   roasters:'Tostadores', producers:'Productores', shops:'Tiendas',
-  origins:'Países de origen', regions:'Regiones', varieties:'Variedades', processes:'Procesos'
+  origins:'Países de origen', regions:'Regiones', varieties:'Variedades', processes:'Procesos',
+  milk_types:'Leches vegetales'
 };
 
 async function loadCatalog() {
