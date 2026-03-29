@@ -375,6 +375,13 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
           </div>
         </div>
       </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Altitud (m)</label>
+          <input class="form-input" id="f-altitude" type="number" placeholder="ej. 1800" min="0">
+        </div>
+        <div class="form-group"></div>
+      </div>
 
       <div class="form-section">Compra</div>
       <div class="form-row">
@@ -504,8 +511,19 @@ let calCoffees = [];
 // API
 // ---------------------------------------------------------------------------
 async function api(path, opts={}) {
-  const r = await fetch('/api'+path, {headers:{'Content-Type':'application/json'}, ...opts});
-  return r.json();
+  let r;
+  try {
+    r = await fetch('/api'+path, {headers:{'Content-Type':'application/json'}, ...opts});
+  } catch {
+    showToast('⚠️ Error de red: sin conexión con el servidor');
+    throw new Error('network error');
+  }
+  const data = await r.json();
+  if (!r.ok) {
+    showToast('⚠️ ' + (data.error || `Error ${r.status}`));
+    throw Object.assign(new Error(data.error || `Error ${r.status}`), {status: r.status});
+  }
+  return data;
 }
 
 function showToast(msg) {
@@ -556,6 +574,7 @@ async function init() {
 
 async function loadOptions() {
   allOptions = await api('/options');
+  LOOKUP_TABLES = Object.keys(allOptions);  // stay in sync with server
   populateFilterSelects();
 }
 
@@ -568,6 +587,7 @@ function populateFilterSelects() {
   };
   for (const [table, selId] of Object.entries(map)) {
     const sel = document.getElementById(selId);
+    const currentVal = sel.value;  // preserve active filter selection
     const first = sel.options[0];
     sel.innerHTML = '';
     sel.appendChild(first);
@@ -576,6 +596,7 @@ function populateFilterSelects() {
       opt.value = o.id; opt.textContent = o.name;
       sel.appendChild(opt);
     });
+    sel.value = currentVal;  // restore
   }
 }
 
@@ -651,6 +672,7 @@ function renderList() {
       ? `<span class="tag fresh-warning">⏳ Reposo: ${14 - roastDays} días más</span>` : '';
     const daysOpen = opened ? Math.floor((new Date() - new Date(c.opened_date)) / 86400000) : null;
     const daysOpenTag = daysOpen !== null ? `<span class="tag">📅 ${daysOpen} día${daysOpen!==1?'s':''} abierto</span>` : '';
+    const price = fmtPrice(c);
     const actions = !finished ? `<div class="card-actions" id="actions-${c.id}">
       ${!c.opened_date?`<button class="btn-quick open" onclick="showOpenDatePicker(event,${c.id})">📦 Abrir hoy</button>`:''}
       ${c.opened_date?`<button class="btn-quick finish" onclick="quickFinish(event,${c.id})">✅ Terminado hoy</button>`:''}
@@ -671,7 +693,7 @@ function renderList() {
         ${c.variety?`<span class="tag">🌱 ${esc(c.variety)}</span>`:''}
         ${c.process?`<span class="tag">⚙️ ${esc(c.process)}</span>`:''}
         ${c.quantity_g?`<span class="tag">⚖️ ${c.quantity_g}g</span>`:''}
-        ${fmtPrice(c)?`<span class="tag price">💰 ${fmtPrice(c)}</span>`:''}
+        ${price?`<span class="tag price">💰 ${price}</span>`:''}
       </div>
       ${c.notes?`<div class="coffee-notes">${esc(c.notes)}</div>`:''}
       ${actions}
@@ -742,7 +764,9 @@ function applyFilters() {
 }
 
 function clearFilters() {
+  const sortVal = document.getElementById('sort-select').value;
   document.querySelectorAll('.filter-select').forEach(s=>s.value='');
+  document.getElementById('sort-select').value = sortVal;  // don't reset sort
   activeFilters = {};
   document.getElementById('filter-badge').classList.remove('show');
   fetchAndRender();
@@ -793,7 +817,7 @@ function showDetail(id) {
   document.getElementById('unrate-btn').style.display = parseInt(c.rating,10)?'':'none';
   const rows = [
     ['Tostador',c.roaster],['Productor',c.producer],['Variedad',c.variety],
-    ['País',c.origin],['Región',c.region],['Proceso',c.process],['Tienda',c.shop],
+    ['País',c.origin],['Región',c.region],['Altitud',c.altitude?c.altitude+' m':null],['Proceso',c.process],['Tienda',c.shop],
     ['Cantidad',c.quantity_g?c.quantity_g+'g':null],
     ['Precio/kg',c.price_kg?c.price_kg+'€':null],['Coste total',fmtPrice(c)],
     ['Compra',fmtDate(c.purchase_date)],['Tueste',fmtDate(c.roast_date)],
@@ -909,6 +933,7 @@ function openEditModal(c) {
   document.getElementById('f-opened').value=c.opened_date||'';
   document.getElementById('f-finished').value=c.finished_date||'';
   document.getElementById('f-notes').value=c.notes||'';
+  document.getElementById('f-altitude').value=c.altitude||'';
   const r=parseInt(c.rating,10);
   if (r>=1&&r<=5) setRating(r);
   document.getElementById('edit-actions').style.display='flex';
@@ -938,6 +963,7 @@ async function submitForm(e) {
     finished_date: document.getElementById('f-finished').value||null,
     rating:        rv?parseInt(rv):null,
     notes:         document.getElementById('f-notes').value||null,
+    altitude:      document.getElementById('f-altitude').value?parseInt(document.getElementById('f-altitude').value):null,
   };
   if (id) await api('/coffees/'+id, {method:'PUT', body:JSON.stringify(data)});
   else    await api('/coffees',     {method:'POST',body:JSON.stringify(data)});
@@ -1011,6 +1037,12 @@ function calNav(delta) {
   calMonth += delta;
   if (calMonth < 0)  { calMonth = 11; calYear--; }
   if (calMonth > 11) { calMonth = 0;  calYear++; }
+  // Don't navigate beyond current month
+  const now = new Date();
+  if (calYear > now.getFullYear() || (calYear === now.getFullYear() && calMonth > now.getMonth())) {
+    calYear = now.getFullYear();
+    calMonth = now.getMonth();
+  }
   renderCalendar();
 }
 
@@ -1081,7 +1113,7 @@ function renderCalendar() {
 // ---------------------------------------------------------------------------
 // Catalog management
 // ---------------------------------------------------------------------------
-const LOOKUP_TABLES = ['roasters','producers','shops','origins','regions','varieties','processes'];
+let LOOKUP_TABLES = [];  // populated from /api/options on init
 const CATALOG_LABELS = {
   roasters:'Tostadores', producers:'Productores', shops:'Tiendas',
   origins:'Países de origen', regions:'Regiones', varieties:'Variedades', processes:'Procesos'

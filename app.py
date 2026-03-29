@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify, send_from_directory
 import sqlite3, os
 from datetime import datetime
+from contextlib import contextmanager
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
 DB = '/data/coffee.db'
@@ -14,6 +15,19 @@ def get_db():
     conn.row_factory = sqlite3.Row
     conn.execute('PRAGMA foreign_keys = ON')
     return conn
+
+@contextmanager
+def db_conn():
+    """Context manager that commits on success, rolls back on error, and always closes."""
+    conn = get_db()
+    try:
+        yield conn
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
 
 def col_exists(conn, table, col):
     cols = [r[1] for r in conn.execute(f'PRAGMA table_info({table})').fetchall()]
@@ -47,8 +61,10 @@ def get_or_create(conn, table, name):
 # ---------------------------------------------------------------------------
 
 def init_db():
-    os.makedirs('/data', exist_ok=True)
-    with get_db() as conn:
+    db_dir = os.path.dirname(DB)
+    if db_dir:
+        os.makedirs(db_dir, exist_ok=True)
+    with db_conn() as conn:
         create_lookup_tables(conn)
         conn.execute('''CREATE TABLE IF NOT EXISTS coffees (
             id            INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -68,10 +84,12 @@ def init_db():
             finished_date TEXT,
             rating        INTEGER,
             notes         TEXT,
+            altitude      INTEGER,
             created_at    TEXT DEFAULT CURRENT_TIMESTAMP
         )''')
         migrate(conn)
-        conn.commit()
+        if not col_exists(conn, 'coffees', 'altitude'):
+            conn.execute('ALTER TABLE coffees ADD COLUMN altitude INTEGER')
 
 def migrate(conn):
     old_map = {
@@ -121,7 +139,8 @@ def _rebuild_table(conn):
         shop_id INTEGER REFERENCES shops(id),
         quantity_g INTEGER, price_kg REAL,
         purchase_date TEXT, roast_date TEXT, opened_date TEXT, finished_date TEXT,
-        rating INTEGER, notes TEXT, created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        rating INTEGER, notes TEXT, altitude INTEGER,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP
     )''')
     conn.execute('''INSERT INTO coffees
         (id,name,roaster_id,producer_id,variety_id,origin_id,region_id,process_id,shop_id,
@@ -136,7 +155,7 @@ def _rebuild_table(conn):
 # ---------------------------------------------------------------------------
 
 COFFEE_SELECT = '''
-    SELECT c.id, c.name, c.quantity_g, c.price_kg,
+    SELECT c.id, c.name, c.quantity_g, c.price_kg, c.altitude,
            c.purchase_date, c.roast_date, c.opened_date, c.finished_date,
            c.rating, c.notes, c.created_at,
            c.roaster_id,  ro.name AS roaster,
@@ -167,8 +186,29 @@ def resolve_ids(conn, data):
         'shop_id':     get_or_create(conn, 'shops',     data.get('shop')),
     }
 
-SCALAR_FIELDS = ['name','quantity_g','price_kg','purchase_date','roast_date',
-                 'opened_date','finished_date','rating','notes']
+SCALAR_FIELDS = ['name', 'quantity_g', 'price_kg', 'purchase_date', 'roast_date',
+                 'opened_date', 'finished_date', 'rating', 'notes', 'altitude']
+
+# ---------------------------------------------------------------------------
+# Validation
+# ---------------------------------------------------------------------------
+
+def validate_coffee(data):
+    if not str(data.get('name', '')).strip():
+        return 'El campo "nombre" es requerido'
+    r = data.get('rating')
+    if r is not None and (not isinstance(r, int) or not 1 <= r <= 5):
+        return 'La valoración debe estar entre 1 y 5'
+    q = data.get('quantity_g')
+    if q is not None and (not isinstance(q, int) or q <= 0):
+        return 'La cantidad debe ser un número entero positivo'
+    p = data.get('price_kg')
+    if p is not None and p <= 0:
+        return 'El precio debe ser un valor positivo'
+    a = data.get('altitude')
+    if a is not None and (not isinstance(a, int) or a < 0):
+        return 'La altitud debe ser un número entero no negativo'
+    return None
 
 # ---------------------------------------------------------------------------
 # Routes
@@ -179,9 +219,15 @@ def index():
     return send_from_directory('templates', 'index.html')
 
 
+@app.route('/api/lookup-tables')
+def get_lookup_tables():
+    """Exposes the canonical list of lookup tables so the frontend stays in sync."""
+    return jsonify(LOOKUP_TABLES)
+
+
 @app.route('/api/options')
 def options():
-    with get_db() as conn:
+    with db_conn() as conn:
         result = {}
         for t in LOOKUP_TABLES:
             rows = conn.execute(f'SELECT id, name FROM {t} ORDER BY name COLLATE NOCASE').fetchall()
@@ -193,7 +239,7 @@ def options():
 def list_coffees():
     args = request.args
     where, vals = [], []
-    for fk in ['roaster_id','producer_id','variety_id','origin_id','region_id','process_id','shop_id']:
+    for fk in ['roaster_id', 'producer_id', 'variety_id', 'origin_id', 'region_id', 'process_id', 'shop_id']:
         if args.get(fk):
             where.append(f'c.{fk}=?')
             vals.append(int(args[fk]))
@@ -207,10 +253,11 @@ def list_coffees():
     elif status == 'unrated':
         where.append('c.rating IS NULL')
     if args.get('q'):
-        where.append('c.name LIKE ?')
-        vals.append(f'%{args["q"].strip()}%')
+        q = f'%{args["q"].strip()}%'
+        where.append('(c.name LIKE ? OR ro.name LIKE ? OR c.notes LIKE ? OR o.name LIKE ?)')
+        vals.extend([q, q, q, q])
     sql = COFFEE_SELECT + (' WHERE ' + ' AND '.join(where) if where else '') + ' ORDER BY c.created_at DESC'
-    with get_db() as conn:
+    with db_conn() as conn:
         rows = conn.execute(sql, vals).fetchall()
     return jsonify([dict(r) for r in rows])
 
@@ -218,72 +265,72 @@ def list_coffees():
 @app.route('/api/coffees', methods=['POST'])
 def add_coffee():
     data = request.json
-    with get_db() as conn:
+    err = validate_coffee(data)
+    if err:
+        return jsonify({'error': err}), 400
+    with db_conn() as conn:
         ids = resolve_ids(conn, data)
         fields = list(ids.keys()) + SCALAR_FIELDS
         vals   = list(ids.values()) + [data.get(f) for f in SCALAR_FIELDS]
         cur = conn.execute(
             f"INSERT INTO coffees ({','.join(fields)}) VALUES ({','.join(['?']*len(fields))})", vals)
-        conn.commit()
-        row = conn.execute(COFFEE_SELECT + ' WHERE c.id=?', (cur.lastrowid,)).fetchone()
-    return jsonify(dict(row)), 201
+        row = dict(conn.execute(COFFEE_SELECT + ' WHERE c.id=?', (cur.lastrowid,)).fetchone())
+    return jsonify(row), 201
 
 
 @app.route('/api/coffees/<int:cid>', methods=['PUT'])
 def update_coffee(cid):
     data = request.json
-    with get_db() as conn:
-        ids   = resolve_ids(conn, data)
+    err = validate_coffee(data)
+    if err:
+        return jsonify({'error': err}), 400
+    with db_conn() as conn:
+        ids    = resolve_ids(conn, data)
         fields = list(ids.keys()) + SCALAR_FIELDS
         vals   = list(ids.values()) + [data.get(f) for f in SCALAR_FIELDS] + [cid]
         sets   = ', '.join(f'{f}=?' for f in fields)
         conn.execute(f'UPDATE coffees SET {sets} WHERE id=?', vals)
-        conn.commit()
-        row = conn.execute(COFFEE_SELECT + ' WHERE c.id=?', (cid,)).fetchone()
-    return jsonify(dict(row))
+        row = dict(conn.execute(COFFEE_SELECT + ' WHERE c.id=?', (cid,)).fetchone())
+    return jsonify(row)
 
 
 @app.route('/api/coffees/<int:cid>/open', methods=['POST'])
 def open_coffee(cid):
     data = request.json or {}
     date = data.get('date') or datetime.now().strftime('%Y-%m-%d')
-    with get_db() as conn:
+    with db_conn() as conn:
         conn.execute('UPDATE coffees SET opened_date=? WHERE id=?', (date, cid))
-        conn.commit()
-        row = conn.execute(COFFEE_SELECT + ' WHERE c.id=?', (cid,)).fetchone()
-    return jsonify(dict(row))
+        row = dict(conn.execute(COFFEE_SELECT + ' WHERE c.id=?', (cid,)).fetchone())
+    return jsonify(row)
 
 
 @app.route('/api/coffees/<int:cid>/finish', methods=['POST'])
 def finish_coffee(cid):
     today = datetime.now().strftime('%Y-%m-%d')
-    with get_db() as conn:
+    with db_conn() as conn:
         conn.execute('UPDATE coffees SET finished_date=? WHERE id=?', (today, cid))
-        conn.commit()
-        row = conn.execute(COFFEE_SELECT + ' WHERE c.id=?', (cid,)).fetchone()
-    return jsonify(dict(row))
+        row = dict(conn.execute(COFFEE_SELECT + ' WHERE c.id=?', (cid,)).fetchone())
+    return jsonify(row)
 
 
 @app.route('/api/coffees/<int:cid>/unrate', methods=['POST'])
 def unrate_coffee(cid):
-    with get_db() as conn:
+    with db_conn() as conn:
         conn.execute('UPDATE coffees SET rating=NULL WHERE id=?', (cid,))
-        conn.commit()
-        row = conn.execute(COFFEE_SELECT + ' WHERE c.id=?', (cid,)).fetchone()
-    return jsonify(dict(row))
+        row = dict(conn.execute(COFFEE_SELECT + ' WHERE c.id=?', (cid,)).fetchone())
+    return jsonify(row)
 
 
 @app.route('/api/coffees/<int:cid>', methods=['DELETE'])
 def delete_coffee(cid):
-    with get_db() as conn:
+    with db_conn() as conn:
         conn.execute('DELETE FROM coffees WHERE id=?', (cid,))
-        conn.commit()
     return jsonify({'ok': True})
 
 
 @app.route('/api/stats')
 def stats():
-    with get_db() as conn:
+    with db_conn() as conn:
         total    = conn.execute('SELECT COUNT(*) FROM coffees').fetchone()[0]
         finished = conn.execute("SELECT COUNT(*) FROM coffees WHERE finished_date IS NOT NULL AND finished_date!=''").fetchone()[0]
         active   = conn.execute("SELECT COUNT(*) FROM coffees WHERE opened_date IS NOT NULL AND opened_date!='' AND (finished_date IS NULL OR finished_date='')").fetchone()[0]
@@ -330,7 +377,7 @@ def lookup_list(table):
     if table not in LOOKUP_TABLES:
         return jsonify({'error': 'Unknown table'}), 404
     fk = LOOKUP_FK[table]
-    with get_db() as conn:
+    with db_conn() as conn:
         rows = conn.execute(f'''
             SELECT t.id, t.name, COUNT(c.id) AS coffee_count
             FROM {table} t LEFT JOIN coffees c ON c.{fk}=t.id
@@ -345,13 +392,11 @@ def lookup_rename(table, lid):
     name = (request.json or {}).get('name', '').strip()
     if not name:
         return jsonify({'error': 'Name required'}), 400
-    with get_db() as conn:
-        # Check for name collision
+    with db_conn() as conn:
         existing = conn.execute(f'SELECT id FROM {table} WHERE name=? COLLATE NOCASE AND id!=?', (name, lid)).fetchone()
         if existing:
             return jsonify({'error': 'Ya existe una entrada con ese nombre'}), 409
         conn.execute(f'UPDATE {table} SET name=? WHERE id=?', (name, lid))
-        conn.commit()
     return jsonify({'ok': True})
 
 @app.route('/api/lookup/<table>/<int:lid>', methods=['DELETE'])
@@ -359,12 +404,11 @@ def lookup_delete(table, lid):
     if table not in LOOKUP_TABLES:
         return jsonify({'error': 'Unknown table'}), 404
     fk = LOOKUP_FK[table]
-    with get_db() as conn:
+    with db_conn() as conn:
         count = conn.execute(f'SELECT COUNT(*) FROM coffees WHERE {fk}=?', (lid,)).fetchone()[0]
         if count > 0:
             return jsonify({'error': f'En uso por {count} café(s)'}), 409
         conn.execute(f'DELETE FROM {table} WHERE id=?', (lid,))
-        conn.commit()
     return jsonify({'ok': True})
 
 @app.route('/api/lookup/<table>/purge', methods=['POST'])
@@ -373,10 +417,10 @@ def lookup_purge(table):
     if table not in LOOKUP_TABLES:
         return jsonify({'error': 'Unknown table'}), 404
     fk = LOOKUP_FK[table]
-    with get_db() as conn:
+    with db_conn() as conn:
         cur = conn.execute(f'DELETE FROM {table} WHERE id NOT IN (SELECT DISTINCT {fk} FROM coffees WHERE {fk} IS NOT NULL)')
-        conn.commit()
-    return jsonify({'deleted': cur.rowcount})
+        deleted = cur.rowcount
+    return jsonify({'deleted': deleted})
 
 
 if __name__ == '__main__':
