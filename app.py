@@ -485,6 +485,11 @@ def index():
     return send_from_directory('templates', 'index.html')
 
 
+@app.route('/sw.js')
+def service_worker():
+    return send_from_directory('static', 'sw.js', mimetype='application/javascript')
+
+
 # ---------------------------------------------------------------------------
 # Auth
 # ---------------------------------------------------------------------------

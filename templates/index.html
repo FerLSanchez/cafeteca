@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Cafeteca</title>
+<link rel="manifest" href="/static/manifest.json">
+<meta name="theme-color" content="#c8703a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Cafeteca">
+<link rel="apple-touch-icon" href="/static/icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;1,500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
@@ -1645,6 +1651,10 @@ async function startup() {
 }
 
 startup();
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js');
+}
 </script>
 </body>
 </html>
