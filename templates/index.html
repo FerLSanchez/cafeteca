@@ -196,6 +196,16 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
 .cal-bar{position:absolute;top:0;height:100%;border-radius:4px;overflow:hidden;display:flex;align-items:center;padding:0 5px;min-width:3px}
 .cal-bar-label{font-size:10px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cal-empty{font-size:13px;color:var(--text3);padding:12px 0}
+
+/* CHIP INPUT (multi-select) */
+.chip-wrapper{display:flex;flex-wrap:wrap;gap:5px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:6px 8px;min-height:42px;align-items:center;transition:border-color 0.15s;cursor:text}
+.chip-wrapper:focus-within{border-color:var(--accent)}
+.chip{display:inline-flex;align-items:center;gap:4px;background:var(--surface3);border:1px solid var(--border);color:var(--text2);padding:3px 8px 3px 10px;border-radius:20px;font-size:13px;white-space:nowrap}
+.chip-x{background:none;border:none;color:var(--text3);cursor:pointer;padding:0;font-size:15px;line-height:1;display:flex;align-items:center}
+.chip-x:hover{color:var(--red)}
+.chip-text-input{background:transparent;border:none;color:var(--text);font-size:14px;font-family:'DM Sans',sans-serif;outline:none;min-width:80px;flex:1;padding:3px 4px}
+.chip-text-input::placeholder{color:var(--text3)}
+.region-hint{font-size:11px;color:var(--text3);margin-top:3px}
 </style>
 </head>
 <body>
@@ -257,7 +267,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
         </div>
         <div class="filter-group">
           <label>País origen</label>
-          <select class="filter-select" id="f-filter-origin" onchange="applyFilters()">
+          <select class="filter-select" id="f-filter-origin" onchange="onFilterOriginChange();applyFilters()">
             <option value="">Todos</option>
           </select>
         </div>
@@ -343,16 +353,26 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
       </div>
       <div class="form-row">
         <div class="form-group">
-          <label class="form-label">Variedad</label>
+          <label class="form-label">Variedad(es)</label>
           <div class="ac-wrapper">
-            <input class="form-input" id="f-variety" placeholder="ej. Heirloom" autocomplete="off" oninput="acInput(this,'varieties')" onfocus="acInput(this,'varieties')" onblur="acBlur('varieties')">
+            <div class="chip-wrapper" onclick="document.getElementById('f-variety-input').focus()">
+              <div id="varieties-chips"></div>
+              <input class="chip-text-input" id="f-variety-input" placeholder="Añadir..." autocomplete="off"
+                oninput="acInput(this,'varieties')" onfocus="acInput(this,'varieties')" onblur="acBlur('varieties')"
+                onkeydown="chipKeydown(event,'varieties')">
+            </div>
             <div class="ac-dropdown" id="ac-varieties"></div>
           </div>
         </div>
         <div class="form-group">
-          <label class="form-label">Proceso</label>
+          <label class="form-label">Proceso(s)</label>
           <div class="ac-wrapper">
-            <input class="form-input" id="f-process" placeholder="ej. Natural" autocomplete="off" oninput="acInput(this,'processes')" onfocus="acInput(this,'processes')" onblur="acBlur('processes')">
+            <div class="chip-wrapper" onclick="document.getElementById('f-process-input').focus()">
+              <div id="processes-chips"></div>
+              <input class="chip-text-input" id="f-process-input" placeholder="Añadir..." autocomplete="off"
+                oninput="acInput(this,'processes')" onfocus="acInput(this,'processes')" onblur="acBlur('processes')"
+                onkeydown="chipKeydown(event,'processes')">
+            </div>
             <div class="ac-dropdown" id="ac-processes"></div>
           </div>
         </div>
@@ -373,6 +393,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
             <input class="form-input" id="f-region" placeholder="ej. Yirgacheffe" autocomplete="off" oninput="acInput(this,'regions')" onfocus="acInput(this,'regions')" onblur="acBlur('regions')">
             <div class="ac-dropdown" id="ac-regions"></div>
           </div>
+          <div class="region-hint" id="region-hint"></div>
         </div>
       </div>
       <div class="form-row">
@@ -496,6 +517,14 @@ let searchQuery = '';
 let searchTimer = null;
 let currentSort = 'created_desc';
 
+// Multi-select chip state for m2m fields
+let selectedVarieties = [];
+let selectedProcesses = [];
+const CHIP_FIELDS = {
+  varieties: { state: () => selectedVarieties, set: v => { selectedVarieties = v; }, inputId: 'f-variety-input', chipsId: 'varieties-chips' },
+  processes: { state: () => selectedProcesses, set: v => { selectedProcesses = v; }, inputId: 'f-process-input', chipsId: 'processes-chips' },
+};
+
 // Pagination
 const PAGE_SIZE = 15;
 let visibleCount = PAGE_SIZE;
@@ -587,9 +616,10 @@ function populateFilterSelects() {
   };
   for (const [table, selId] of Object.entries(map)) {
     const sel = document.getElementById(selId);
+    if (!sel) continue;
     const currentVal = sel.value;  // preserve active filter selection
     const first = sel.options[0];
-    sel.innerHTML = '';
+    sel.textContent = '';
     sel.appendChild(first);
     (allOptions[table]||[]).forEach(o => {
       const opt = document.createElement('option');
@@ -598,6 +628,27 @@ function populateFilterSelects() {
     });
     sel.value = currentVal;  // restore
   }
+  // Re-apply region cascade after repopulating
+  onFilterOriginChange();
+}
+
+function onFilterOriginChange() {
+  const originSel = document.getElementById('f-filter-origin');
+  const regionSel = document.getElementById('f-filter-region');
+  if (!originSel || !regionSel) return;
+  const originId = originSel.value ? parseInt(originSel.value) : null;
+  const currentRegion = regionSel.value;
+  // Remove all region options except first placeholder
+  while (regionSel.options.length > 1) regionSel.remove(1);
+  const regions = (allOptions.regions || []).filter(r => !originId || !r.origin_id || r.origin_id === originId);
+  regions.forEach(r => {
+    const opt = document.createElement('option');
+    opt.value = r.id;
+    opt.textContent = r.name;
+    regionSel.appendChild(opt);
+  });
+  // Restore selection if still valid
+  regionSel.value = regions.some(r => String(r.id) === currentRegion) ? currentRegion : '';
 }
 
 // ---------------------------------------------------------------------------
@@ -690,8 +741,8 @@ function renderList() {
         ${freshTag}
         ${daysOpenTag}
         ${origin?`<span class="tag">📍 ${origin}</span>`:''}
-        ${c.variety?`<span class="tag">🌱 ${esc(c.variety)}</span>`:''}
-        ${c.process?`<span class="tag">⚙️ ${esc(c.process)}</span>`:''}
+        ${c.varieties&&c.varieties.length?`<span class="tag">🌱 ${c.varieties.map(esc).join(', ')}</span>`:''}
+        ${c.processes&&c.processes.length?`<span class="tag">⚙️ ${c.processes.map(esc).join(', ')}</span>`:''}
         ${c.quantity_g?`<span class="tag">⚖️ ${c.quantity_g}g</span>`:''}
         ${price?`<span class="tag price">💰 ${price}</span>`:''}
       </div>
@@ -767,6 +818,7 @@ function clearFilters() {
   const sortVal = document.getElementById('sort-select').value;
   document.querySelectorAll('.filter-select').forEach(s=>s.value='');
   document.getElementById('sort-select').value = sortVal;  // don't reset sort
+  onFilterOriginChange();
   activeFilters = {};
   document.getElementById('filter-badge').classList.remove('show');
   fetchAndRender();
@@ -816,8 +868,10 @@ function showDetail(id) {
   document.getElementById('detail-title').textContent = c.name;
   document.getElementById('unrate-btn').style.display = parseInt(c.rating,10)?'':'none';
   const rows = [
-    ['Tostador',c.roaster],['Productor',c.producer],['Variedad',c.variety],
-    ['País',c.origin],['Región',c.region],['Altitud',c.altitude?c.altitude+' m':null],['Proceso',c.process],['Tienda',c.shop],
+    ['Tostador',c.roaster],['Productor',c.producer],
+    ['Variedad',c.varieties&&c.varieties.length?c.varieties.join(', '):null],
+    ['País',c.origin],['Región',c.region],['Altitud',c.altitude?c.altitude+' m':null],
+    ['Proceso',c.processes&&c.processes.length?c.processes.join(', '):null],['Tienda',c.shop],
     ['Cantidad',c.quantity_g?c.quantity_g+'g':null],
     ['Precio/kg',c.price_kg?c.price_kg+'€':null],['Coste total',fmtPrice(c)],
     ['Compra',fmtDate(c.purchase_date)],['Tueste',fmtDate(c.roast_date)],
@@ -861,34 +915,138 @@ function acInput(input, table) {
 function renderAC(input, table) {
   const val = input.value.trim().toLowerCase();
   const dropdown = document.getElementById('ac-'+table);
-  const opts = (allOptions[table]||[]);
+  const chipField = CHIP_FIELDS[table];
+  let opts = (allOptions[table]||[]);
+
+  // For chip fields: hide already-selected values
+  if (chipField) opts = opts.filter(o => !chipField.state().includes(o.name));
+
+  // For regions: filter by currently typed country
+  if (table === 'regions') {
+    const originName = (document.getElementById('f-origin')||{}).value||'';
+    if (originName.trim()) {
+      const origin = (allOptions.origins||[]).find(o => o.name.toLowerCase() === originName.trim().toLowerCase());
+      if (origin) opts = opts.filter(o => !o.origin_id || o.origin_id === origin.id);
+    }
+  }
+
   const matches = val ? opts.filter(o=>o.name.toLowerCase().includes(val)) : opts;
+  dropdown.textContent = '';
 
-  let html = matches.slice(0,10).map(o=>
-    `<div class="ac-item" onmousedown="acSelect('${input.id}','${table}',${JSON.stringify(o.name)})">
-      ${esc(o.name)}
-     </div>`).join('');
+  matches.slice(0,10).forEach(o => {
+    const div = document.createElement('div');
+    div.className = 'ac-item';
+    div.textContent = o.name;
+    div.addEventListener('mousedown', e => {
+      e.preventDefault();
+      if (chipField) addChip(table, o.name);
+      else acSelect(input.id, table, o.name);
+    });
+    dropdown.appendChild(div);
+  });
 
-  // "Crear nuevo" if typed value not in list
-  const exact = opts.some(o=>o.name.toLowerCase()===val);
+  const exact = (allOptions[table]||[]).some(o => o.name.toLowerCase() === val);
   if (val && !exact) {
     const trimmed = input.value.trim();
-    html += `<div class="ac-item new-entry" onmousedown="acSelect('${input.id}','${table}',${JSON.stringify(trimmed)})">
-      + Añadir "${esc(trimmed)}"
-    </div>`;
+    const div = document.createElement('div');
+    div.className = 'ac-item new-entry';
+    div.textContent = '+ Añadir "' + trimmed + '"';
+    div.addEventListener('mousedown', e => {
+      e.preventDefault();
+      if (chipField) addChip(table, trimmed);
+      else acSelect(input.id, table, trimmed);
+    });
+    dropdown.appendChild(div);
   }
-  dropdown.innerHTML = html;
-  dropdown.classList.toggle('open', html.length > 0);
+
+  dropdown.classList.toggle('open', dropdown.children.length > 0);
 }
 
 function acSelect(inputId, table, value) {
   document.getElementById(inputId).value = value;
   document.getElementById('ac-'+table).classList.remove('open');
+  if (table === 'origins') onOriginChange();
 }
 
 function acBlur(table) {
   // Small delay so mousedown fires first
   setTimeout(()=>{ document.getElementById('ac-'+table).classList.remove('open'); }, 150);
+  if (table === 'origins') setTimeout(onOriginChange, 160);
+}
+
+// ---------------------------------------------------------------------------
+// Chip input management (multi-select for varieties / processes)
+// ---------------------------------------------------------------------------
+function addChip(table, name) {
+  const cf = CHIP_FIELDS[table];
+  if (!cf) return;
+  const n = name.trim();
+  if (!n || cf.state().includes(n)) return;
+  cf.set([...cf.state(), n]);
+  renderChips(table);
+  const inp = document.getElementById(cf.inputId);
+  inp.value = '';
+  document.getElementById('ac-'+table).classList.remove('open');
+  inp.focus();
+}
+
+function removeChip(table, idx) {
+  const cf = CHIP_FIELDS[table];
+  if (!cf) return;
+  const arr = [...cf.state()];
+  arr.splice(idx, 1);
+  cf.set(arr);
+  renderChips(table);
+}
+
+function renderChips(table) {
+  const cf = CHIP_FIELDS[table];
+  if (!cf) return;
+  const el = document.getElementById(cf.chipsId);
+  el.textContent = '';
+  cf.state().forEach((v, i) => {
+    const chip = document.createElement('span');
+    chip.className = 'chip';
+    const txt = document.createElement('span');
+    txt.textContent = v;
+    const btn = document.createElement('button');
+    btn.className = 'chip-x';
+    btn.type = 'button';
+    btn.textContent = '×';
+    btn.addEventListener('mousedown', e => { e.preventDefault(); removeChip(table, i); });
+    chip.appendChild(txt);
+    chip.appendChild(btn);
+    el.appendChild(chip);
+  });
+}
+
+function chipKeydown(e, table) {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    const val = e.target.value.trim();
+    if (val) addChip(table, val);
+  } else if (e.key === 'Backspace' && !e.target.value) {
+    const cf = CHIP_FIELDS[table];
+    if (cf && cf.state().length > 0) removeChip(table, cf.state().length - 1);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Region ↔ Country cascade
+// ---------------------------------------------------------------------------
+function onOriginChange() {
+  const originName = (document.getElementById('f-origin')||{}).value||'';
+  const hint = document.getElementById('region-hint');
+  if (!hint) return;
+  if (originName.trim()) {
+    const origin = (allOptions.origins||[]).find(o => o.name.toLowerCase() === originName.trim().toLowerCase());
+    if (origin) {
+      const count = (allOptions.regions||[]).filter(r => r.origin_id === origin.id).length;
+      hint.textContent = count ? count + ' región' + (count!==1?'es':'') + ' disponible' + (count!==1?'s':'') : '';
+      return;
+    }
+  }
+  hint.textContent = '';
 }
 
 // ---------------------------------------------------------------------------
@@ -906,6 +1064,10 @@ function resetForm() {
   document.querySelectorAll('.rating-star').forEach(s=>s.classList.remove('active'));
   document.getElementById('edit-actions').style.display='none';
   document.getElementById('modal-title').textContent='Nuevo café';
+  // Reset chip fields
+  selectedVarieties = []; renderChips('varieties');
+  selectedProcesses = []; renderChips('processes');
+  if (document.getElementById('region-hint')) document.getElementById('region-hint').textContent='';
 }
 
 function openAddModal() {
@@ -921,11 +1083,14 @@ function openEditModal(c) {
   document.getElementById('f-name').value=c.name||'';
   document.getElementById('f-roaster').value=c.roaster||'';
   document.getElementById('f-producer').value=c.producer||'';
-  document.getElementById('f-variety').value=c.variety||'';
   document.getElementById('f-origin').value=c.origin||'';
   document.getElementById('f-region').value=c.region||'';
-  document.getElementById('f-process').value=c.process||'';
   document.getElementById('f-shop').value=c.shop||'';
+  // Chip fields
+  selectedVarieties = Array.isArray(c.varieties) ? [...c.varieties] : [];
+  selectedProcesses = Array.isArray(c.processes) ? [...c.processes] : [];
+  renderChips('varieties'); renderChips('processes');
+  onOriginChange();
   document.getElementById('f-quantity').value=c.quantity_g||'';
   document.getElementById('f-price').value=c.price_kg||'';
   document.getElementById('f-purchase').value=c.purchase_date||'';
@@ -950,10 +1115,10 @@ async function submitForm(e) {
     name:          document.getElementById('f-name').value,
     roaster:       document.getElementById('f-roaster').value||null,
     producer:      document.getElementById('f-producer').value||null,
-    variety:       document.getElementById('f-variety').value||null,
+    varieties:     selectedVarieties.length ? [...selectedVarieties] : [],
     origin:        document.getElementById('f-origin').value||null,
     region:        document.getElementById('f-region').value||null,
-    process:       document.getElementById('f-process').value||null,
+    processes:     selectedProcesses.length ? [...selectedProcesses] : [],
     shop:          document.getElementById('f-shop').value||null,
     quantity_g:    document.getElementById('f-quantity').value?parseInt(document.getElementById('f-quantity').value):null,
     price_kg:      document.getElementById('f-price').value?parseFloat(document.getElementById('f-price').value):null,
@@ -1009,11 +1174,12 @@ async function loadStats() {
 
   renderCalendar();
 
-  let charts = '';
-  if (s.top_roasters?.length) charts += buildBarChart('Tostadores más usados', s.top_roasters);
-  if (s.origins_breakdown?.length) charts += buildBarChart('Por país de origen', s.origins_breakdown);
-  if (s.processes_breakdown?.length) charts += buildBarChart('Por proceso', s.processes_breakdown);
-  document.getElementById('stats-charts').innerHTML = charts;
+  const chartsEl = document.getElementById('stats-charts');
+  chartsEl.textContent = '';
+  if (s.top_roasters?.length) chartsEl.insertAdjacentHTML('beforeend', buildBarChart('Tostadores más usados', s.top_roasters));
+  if (s.origins_breakdown?.length) chartsEl.insertAdjacentHTML('beforeend', buildBarChart('Por país de origen', s.origins_breakdown));
+  if (s.processes_breakdown?.length) chartsEl.insertAdjacentHTML('beforeend', buildBarChart('Por proceso', s.processes_breakdown));
+  if (s.varieties_breakdown?.length) chartsEl.insertAdjacentHTML('beforeend', buildBarChart('Por variedad', s.varieties_breakdown));
 }
 
 function buildBarChart(title, data) {
