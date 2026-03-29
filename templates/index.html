@@ -166,6 +166,8 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
 .loading{text-align:center;padding:40px;color:var(--text3)}
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--surface3);border:1px solid var(--border);color:var(--text);padding:10px 20px;border-radius:20px;font-size:14px;z-index:999;opacity:0;transition:opacity 0.3s;pointer-events:none;white-space:nowrap}
 .toast.show{opacity:1}
+.tag.fresh-warning{color:#e8c84a;border-color:rgba(232,200,74,0.35);background:rgba(232,200,74,0.08)}
+.fresh-warning-banner{background:rgba(232,200,74,0.08);border:1px solid rgba(232,200,74,0.35);color:#e8c84a;border-radius:10px;padding:9px 13px;font-size:13px;margin-bottom:12px;line-height:1.4}
 </style>
 </head>
 <body>
@@ -521,6 +523,13 @@ function getStatus(c) {
   return {label:'Sin abrir',cls:''};
 }
 
+function daysFromRoast(roastDate) {
+  if (!roastDate) return null;
+  const roast = new Date(roastDate); roast.setHours(0,0,0,0);
+  const today = new Date(); today.setHours(0,0,0,0);
+  return Math.floor((today - roast) / 86400000);
+}
+
 function renderList() {
   const el = document.getElementById('coffee-list');
   const info = document.getElementById('results-info');
@@ -536,6 +545,9 @@ function renderList() {
     const finished = !!c.finished_date, opened = !!c.opened_date && !finished;
     const origin = [c.origin, c.region].filter(Boolean).join(' · ');
     const sub = [c.roaster, c.producer].filter(Boolean).join(' / ');
+    const roastDays = daysFromRoast(c.roast_date);
+    const freshTag = !finished && roastDays !== null && roastDays < 14
+      ? `<span class="tag fresh-warning">⏳ Reposo: ${14 - roastDays} días más</span>` : '';
     const actions = !finished ? `<div class="card-actions">
       ${!c.opened_date?`<button class="btn-quick open" onclick="quickOpen(event,${c.id})">📦 Abrir hoy</button>`:''}
       ${c.opened_date?`<button class="btn-quick finish" onclick="quickFinish(event,${c.id})">✅ Terminado hoy</button>`:''}
@@ -550,6 +562,7 @@ function renderList() {
       </div>
       <div class="coffee-meta">
         <span class="tag ${status.cls}">${status.label}</span>
+        ${freshTag}
         ${origin?`<span class="tag">📍 ${origin}</span>`:''}
         ${c.variety?`<span class="tag">🌱 ${c.variety}</span>`:''}
         ${c.process?`<span class="tag">⚙️ ${c.process}</span>`:''}
@@ -657,7 +670,11 @@ function showDetail(id) {
     ['Compra',fmtDate(c.purchase_date)],['Tueste',fmtDate(c.roast_date)],
     ['Abierto',fmtDate(c.opened_date)],['Terminado',fmtDate(c.finished_date)],
   ].filter(([,v])=>v);
+  const roastDays = daysFromRoast(c.roast_date);
+  const freshBanner = roastDays !== null && roastDays < 14 && !c.finished_date
+    ? `<div class="fresh-warning-banner">⏳ Aún en reposo — faltan <strong>${14 - roastDays} días</strong> para las dos semanas desde el tueste (${roastDays} días de ${14}).</div>` : '';
   document.getElementById('detail-content').innerHTML = `
+    ${freshBanner}
     <div style="margin-bottom:12px">${stars(c.rating)}</div>
     ${rows.map(([l,v])=>`<div class="detail-row"><span class="detail-label">${l}</span><span class="detail-val">${v}</span></div>`).join('')}
     ${c.notes?`<div style="margin-top:14px;font-size:14px;color:var(--text2);line-height:1.6;font-style:italic">"${c.notes}"</div>`:''}
