@@ -245,9 +245,10 @@ def update_coffee(cid):
 
 @app.route('/api/coffees/<int:cid>/open', methods=['POST'])
 def open_coffee(cid):
-    today = datetime.now().strftime('%Y-%m-%d')
+    data = request.json or {}
+    date = data.get('date') or datetime.now().strftime('%Y-%m-%d')
     with get_db() as conn:
-        conn.execute('UPDATE coffees SET opened_date=? WHERE id=?', (today, cid))
+        conn.execute('UPDATE coffees SET opened_date=? WHERE id=?', (date, cid))
         conn.commit()
         row = conn.execute(COFFEE_SELECT + ' WHERE c.id=?', (cid,)).fetchone()
     return jsonify(dict(row))
@@ -288,19 +289,33 @@ def stats():
         active   = conn.execute("SELECT COUNT(*) FROM coffees WHERE opened_date IS NOT NULL AND opened_date!='' AND (finished_date IS NULL OR finished_date='')").fetchone()[0]
         avg_r    = conn.execute('SELECT AVG(rating) FROM coffees WHERE rating IS NOT NULL').fetchone()[0]
         spent    = conn.execute('SELECT SUM(quantity_g/1000.0*price_kg) FROM coffees WHERE price_kg IS NOT NULL AND quantity_g IS NOT NULL').fetchone()[0]
-        top_roasters = conn.execute('''SELECT ro.name, COUNT(*) cnt FROM coffees c
-            JOIN roasters ro ON c.roaster_id=ro.id GROUP BY ro.id ORDER BY cnt DESC LIMIT 5''').fetchall()
-        origins_bd = conn.execute('''SELECT o.name, COUNT(*) cnt FROM coffees c
-            JOIN origins o ON c.origin_id=o.id GROUP BY o.id ORDER BY cnt DESC LIMIT 8''').fetchall()
-        processes_bd = conn.execute('''SELECT pr.name, COUNT(*) cnt FROM coffees c
-            JOIN processes pr ON c.process_id=pr.id GROUP BY pr.id ORDER BY cnt DESC LIMIT 6''').fetchall()
+        days_per_kg = conn.execute('''
+            SELECT AVG((julianday(finished_date) - julianday(opened_date)) / (quantity_g / 1000.0))
+            FROM coffees
+            WHERE finished_date IS NOT NULL AND finished_date != ''
+              AND opened_date   IS NOT NULL AND opened_date   != ''
+              AND quantity_g    IS NOT NULL AND quantity_g    > 0
+        ''').fetchone()[0]
+        top_roasters = conn.execute('''
+            SELECT ro.name, COUNT(*) cnt, AVG(c.rating) avg_rating
+            FROM coffees c JOIN roasters ro ON c.roaster_id=ro.id
+            GROUP BY ro.id ORDER BY cnt DESC LIMIT 5''').fetchall()
+        origins_bd = conn.execute('''
+            SELECT o.name, COUNT(*) cnt, AVG(c.rating) avg_rating
+            FROM coffees c JOIN origins o ON c.origin_id=o.id
+            GROUP BY o.id ORDER BY cnt DESC LIMIT 8''').fetchall()
+        processes_bd = conn.execute('''
+            SELECT pr.name, COUNT(*) cnt, AVG(c.rating) avg_rating
+            FROM coffees c JOIN processes pr ON c.process_id=pr.id
+            GROUP BY pr.id ORDER BY cnt DESC LIMIT 6''').fetchall()
     return jsonify({
         'total': total, 'finished': finished, 'active': active,
         'avg_rating': round(avg_r, 1) if avg_r else None,
         'total_spent': round(spent, 2) if spent else 0,
-        'top_roasters': [dict(r) for r in top_roasters],
-        'origins_breakdown': [dict(r) for r in origins_bd],
-        'processes_breakdown': [dict(r) for r in processes_bd],
+        'days_per_kg': round(days_per_kg, 1) if days_per_kg else None,
+        'top_roasters': [{'name': r['name'], 'cnt': r['cnt'], 'avg_rating': round(r['avg_rating'], 1) if r['avg_rating'] else None} for r in top_roasters],
+        'origins_breakdown': [{'name': r['name'], 'cnt': r['cnt'], 'avg_rating': round(r['avg_rating'], 1) if r['avg_rating'] else None} for r in origins_bd],
+        'processes_breakdown': [{'name': r['name'], 'cnt': r['cnt'], 'avg_rating': round(r['avg_rating'], 1) if r['avg_rating'] else None} for r in processes_bd],
     })
 
 
