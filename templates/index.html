@@ -526,7 +526,8 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
     <div id="detail-content"></div>
     <div class="btn-row" style="margin-top:16px">
       <button class="btn-primary" style="margin-top:0" onclick="editCurrent()">✏️ Editar</button>
-      <button class="btn-secondary" id="unrate-btn" onclick="unrateCurrent()" style="display:none">☆ Sin valorar</button>
+      <button class="btn-secondary" onclick="duplicateCurrent()">⧉ Nueva bolsa</button>
+      <button class="btn-secondary" id="unrate-btn" onclick="unrateCurrent()" style="display:none">☆ Quitar valoración</button>
     </div>
   </div>
 </div>
@@ -956,6 +957,31 @@ function showDetail(id) {
 
 function editCurrent() { closeModal('modal-detail'); openEditModal(currentDetail); }
 
+function duplicateCurrent() {
+  if (!currentDetail) return;
+  const c = currentDetail;
+  closeModal('modal-detail');
+  resetForm();
+  document.getElementById('modal-title').textContent = 'Nueva bolsa';
+  document.getElementById('f-name').value = c.name || '';
+  document.getElementById('f-roaster').value = c.roaster || '';
+  document.getElementById('f-producer').value = c.producer || '';
+  document.getElementById('f-origin').value = c.origin || '';
+  document.getElementById('f-region').value = c.region || '';
+  document.getElementById('f-shop').value = c.shop || '';
+  selectedVarieties = Array.isArray(c.varieties) ? [...c.varieties] : [];
+  selectedProcesses = Array.isArray(c.processes) ? [...c.processes] : [];
+  renderChips('varieties'); renderChips('processes');
+  onOriginChange();
+  document.getElementById('f-quantity').value = c.quantity_g || '';
+  document.getElementById('f-price').value = c.price_kg || '';
+  document.getElementById('f-altitude').value = c.altitude || '';
+  document.getElementById('f-notes').value = c.notes || '';
+  document.getElementById('f-purchase').value = new Date().toISOString().split('T')[0];
+  // leave roast_date, opened_date, finished_date, rating blank (new bag)
+  document.getElementById('modal-form').classList.add('open');
+}
+
 async function unrateCurrent() {
   if (!currentDetail) return;
   const updated = await api('/coffees/'+currentDetail.id+'/unrate', {method:'POST'});
@@ -1031,12 +1057,17 @@ function acSelect(inputId, table, value) {
   document.getElementById(inputId).value = value;
   document.getElementById('ac-'+table).classList.remove('open');
   if (table === 'origins') onOriginChange();
+  if (table === 'regions') onRegionSelect(value);
 }
 
 function acBlur(table) {
   // Small delay so mousedown fires first
   setTimeout(()=>{ document.getElementById('ac-'+table).classList.remove('open'); }, 150);
   if (table === 'origins') setTimeout(onOriginChange, 160);
+  if (table === 'regions') {
+    const inp = document.getElementById('f-region');
+    if (inp) setTimeout(() => onRegionSelect(inp.value), 160);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -1099,6 +1130,19 @@ function chipKeydown(e, table) {
 // ---------------------------------------------------------------------------
 // Region ↔ Country cascade
 // ---------------------------------------------------------------------------
+function onRegionSelect(regionName) {
+  if (!regionName || !regionName.trim()) return;
+  const region = (allOptions.regions||[]).find(r => r.name.toLowerCase() === regionName.trim().toLowerCase());
+  if (!region || !region.origin_id) return;
+  const origin = (allOptions.origins||[]).find(o => o.id === region.origin_id);
+  if (!origin) return;
+  const originInput = document.getElementById('f-origin');
+  if (originInput) {
+    originInput.value = origin.name;
+    onOriginChange();
+  }
+}
+
 function onOriginChange() {
   const originName = (document.getElementById('f-origin')||{}).value||'';
   const hint = document.getElementById('region-hint');
@@ -1358,7 +1402,7 @@ async function loadCatalog() {
   );
   el.innerHTML = results.map(({table, data}) => {
     const orphans = data.filter(r => r.coffee_count === 0).length;
-    const badge = `<span class="catalog-badge ${orphans?'has-orphans':''}">${data.length} entrada${data.length!==1?'s':''}${orphans?' · '+orphans+' sin usar':''}</span>`;
+    const badge = `<span class="catalog-badge ${orphans?'has-orphans':''}" id="cat-badge-${table}">${data.length} entrada${data.length!==1?'s':''}${orphans?' · '+orphans+' sin usar':''}</span>`;
     const rows = data.map(r => `
       <div class="catalog-row" id="crow-${table}-${r.id}">
         <span class="catalog-row-name" id="cname-${table}-${r.id}">${esc(r.name)}</span>
@@ -1447,6 +1491,21 @@ function catalogDelete(table, id, count) {
       if (r.error) { showToast('⚠️ '+r.error); return; }
       document.getElementById('crow-'+table+'-'+id).remove();
       await loadOptions(); populateFilterSelects();
+      // Update section badge without full reload
+      const rows = document.querySelectorAll(`#catbody-${table} .catalog-row`);
+      const orphanCounts = document.querySelectorAll(`#catbody-${table} .catalog-count.zero`);
+      const total = rows.length, orphans = orphanCounts.length;
+      const badge = document.getElementById('cat-badge-'+table);
+      if (badge) {
+        badge.className = `catalog-badge${orphans?' has-orphans':''}`;
+        badge.textContent = `${total} entrada${total!==1?'s':''}${orphans?' · '+orphans+' sin usar':''}`;
+      }
+      const purgeEl = document.querySelector(`#catbody-${table} .catalog-purge`);
+      if (!orphans && purgeEl) purgeEl.remove();
+      else if (orphans && purgeEl) {
+        const btn = purgeEl.querySelector('.btn-purge');
+        if (btn) btn.textContent = `🧹 Eliminar ${orphans} huérfano${orphans!==1?'s':''}`;
+      }
       showToast('🗑 Entrada eliminada');
     }
   });
