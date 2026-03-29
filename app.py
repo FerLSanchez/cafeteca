@@ -1,10 +1,32 @@
 from flask import Flask, request, jsonify, send_from_directory
-import sqlite3, os
+import sqlite3, os, re
 from datetime import datetime
 from contextlib import contextmanager
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
+app.config['MAX_CONTENT_LENGTH'] = 1 * 1024 * 1024  # 1 MB request size limit
 DB = '/data/coffee.db'
+
+DATE_RE = re.compile(r'^\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01])$')
+
+
+@app.after_request
+def add_security_headers(response):
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'DENY'
+    response.headers['Referrer-Policy'] = 'same-origin'
+    response.headers['Content-Security-Policy'] = (
+        "default-src 'self'; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "font-src https://fonts.gstatic.com; "
+        "script-src 'self' 'unsafe-inline'; "
+        "connect-src 'self'; "
+        "img-src 'self' data:; "
+        "object-src 'none'; "
+        "base-uri 'self'; "
+        "form-action 'self'"
+    )
+    return response
 
 # ---------------------------------------------------------------------------
 # DB helpers
@@ -194,20 +216,36 @@ SCALAR_FIELDS = ['name', 'quantity_g', 'price_kg', 'purchase_date', 'roast_date'
 # ---------------------------------------------------------------------------
 
 def validate_coffee(data):
-    if not str(data.get('name', '')).strip():
+    if not data or not isinstance(data, dict):
+        return 'Datos inválidos'
+    name = str(data.get('name', '')).strip()
+    if not name:
         return 'El campo "nombre" es requerido'
+    if len(name) > 200:
+        return 'El nombre no puede superar los 200 caracteres'
     r = data.get('rating')
-    if r is not None and (not isinstance(r, int) or not 1 <= r <= 5):
+    if r is not None and (not isinstance(r, int) or isinstance(r, bool) or not 1 <= r <= 5):
         return 'La valoración debe estar entre 1 y 5'
     q = data.get('quantity_g')
-    if q is not None and (not isinstance(q, int) or q <= 0):
+    if q is not None and (not isinstance(q, int) or isinstance(q, bool) or q <= 0):
         return 'La cantidad debe ser un número entero positivo'
     p = data.get('price_kg')
-    if p is not None and p <= 0:
+    if p is not None and (not isinstance(p, (int, float)) or isinstance(p, bool) or p <= 0):
         return 'El precio debe ser un valor positivo'
     a = data.get('altitude')
-    if a is not None and (not isinstance(a, int) or a < 0):
+    if a is not None and (not isinstance(a, int) or isinstance(a, bool) or a < 0):
         return 'La altitud debe ser un número entero no negativo'
+    for field in ['purchase_date', 'roast_date', 'opened_date', 'finished_date']:
+        val = data.get(field)
+        if val is not None and (not isinstance(val, str) or not DATE_RE.match(val)):
+            return f'Formato de fecha inválido para "{field}" (esperado YYYY-MM-DD)'
+    for field in ['roaster', 'producer', 'variety', 'origin', 'region', 'process', 'shop']:
+        val = data.get(field)
+        if val and len(str(val)) > 200:
+            return f'El campo "{field}" no puede superar los 200 caracteres'
+    notes = data.get('notes')
+    if notes and len(str(notes)) > 5000:
+        return 'Las notas no pueden superar los 5000 caracteres'
     return None
 
 # ---------------------------------------------------------------------------
@@ -241,8 +279,11 @@ def list_coffees():
     where, vals = [], []
     for fk in ['roaster_id', 'producer_id', 'variety_id', 'origin_id', 'region_id', 'process_id', 'shop_id']:
         if args.get(fk):
-            where.append(f'c.{fk}=?')
-            vals.append(int(args[fk]))
+            try:
+                where.append(f'c.{fk}=?')
+                vals.append(int(args[fk]))
+            except (ValueError, TypeError):
+                return jsonify({'error': f'Valor de filtro inválido: {fk}'}), 400
     status = args.get('status')
     if status == 'active':
         where.append("c.opened_date IS NOT NULL AND c.opened_date!='' AND (c.finished_date IS NULL OR c.finished_date='')")
@@ -264,7 +305,7 @@ def list_coffees():
 
 @app.route('/api/coffees', methods=['POST'])
 def add_coffee():
-    data = request.json
+    data = request.get_json(silent=True)
     err = validate_coffee(data)
     if err:
         return jsonify({'error': err}), 400
@@ -280,7 +321,7 @@ def add_coffee():
 
 @app.route('/api/coffees/<int:cid>', methods=['PUT'])
 def update_coffee(cid):
-    data = request.json
+    data = request.get_json(silent=True)
     err = validate_coffee(data)
     if err:
         return jsonify({'error': err}), 400
@@ -296,8 +337,10 @@ def update_coffee(cid):
 
 @app.route('/api/coffees/<int:cid>/open', methods=['POST'])
 def open_coffee(cid):
-    data = request.json or {}
+    data = request.get_json(silent=True) or {}
     date = data.get('date') or datetime.now().strftime('%Y-%m-%d')
+    if not isinstance(date, str) or not DATE_RE.match(date):
+        return jsonify({'error': 'Formato de fecha inválido (esperado YYYY-MM-DD)'}), 400
     with db_conn() as conn:
         conn.execute('UPDATE coffees SET opened_date=? WHERE id=?', (date, cid))
         row = dict(conn.execute(COFFEE_SELECT + ' WHERE c.id=?', (cid,)).fetchone())
