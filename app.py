@@ -81,12 +81,13 @@ def col_exists(conn, table, col):
 # Lookup tables
 # ---------------------------------------------------------------------------
 
-LOOKUP_TABLES = ['roasters', 'producers', 'shops', 'origins', 'regions', 'varieties', 'processes']
+LOOKUP_TABLES = ['roasters', 'producers', 'shops', 'origins', 'regions', 'varieties', 'processes', 'milk_types']
 
 # Tables where the coffee relationship is many-to-many (junction table)
 JUNCTION_TABLES = {
-    'varieties': ('coffee_varieties', 'variety_id'),
-    'processes': ('coffee_processes', 'process_id'),
+    'varieties':  ('coffee_varieties',   'variety_id'),
+    'processes':  ('coffee_processes',   'process_id'),
+    'milk_types': ('coffee_milk_types',  'milk_type_id'),
 }
 
 # Tables with a direct FK on coffees
@@ -114,6 +115,11 @@ def create_lookup_tables(conn):
         coffee_id  INTEGER NOT NULL REFERENCES coffees(id) ON DELETE CASCADE,
         process_id INTEGER NOT NULL REFERENCES processes(id),
         PRIMARY KEY (coffee_id, process_id)
+    )''')
+    conn.execute('''CREATE TABLE IF NOT EXISTS coffee_milk_types (
+        coffee_id    INTEGER NOT NULL REFERENCES coffees(id) ON DELETE CASCADE,
+        milk_type_id INTEGER NOT NULL REFERENCES milk_types(id),
+        PRIMARY KEY (coffee_id, milk_type_id)
     )''')
 
 def get_or_create(conn, table, name):
@@ -182,6 +188,7 @@ def init_db():
         )''')
         migrate_v1(conn)
         migrate_v2(conn)
+        migrate_v3(conn)
         if not col_exists(conn, 'coffees', 'altitude'):
             conn.execute('ALTER TABLE coffees ADD COLUMN altitude INTEGER')
 
@@ -280,6 +287,12 @@ def migrate_v2(conn):
 
     print('[migration v2] Done.')
 
+def migrate_v3(conn):
+    """Phase 3: add milk_types M2M and pre-populate default values."""
+    # Junction table is created in create_lookup_tables; just seed defaults
+    for name in ['Avena', 'Arroz', 'Almendras', 'Soja', 'Coco', 'Avellanas']:
+        conn.execute("INSERT OR IGNORE INTO milk_types (name) VALUES (?)", (name,))
+
 def _rebuild_table_v1(conn):
     """Rebuild coffees without old text columns (SQLite < 3.35)."""
     conn.execute('ALTER TABLE coffees RENAME TO coffees_old')
@@ -352,7 +365,13 @@ COFFEE_SELECT = '''
             WHERE cp.coffee_id=c.id) AS processes_str,
            (SELECT GROUP_CONCAT(pr.id)
             FROM coffee_processes cp JOIN processes pr ON cp.process_id=pr.id
-            WHERE cp.coffee_id=c.id) AS process_ids_str
+            WHERE cp.coffee_id=c.id) AS process_ids_str,
+           (SELECT GROUP_CONCAT(mt.name, '|||')
+            FROM coffee_milk_types cmt JOIN milk_types mt ON cmt.milk_type_id=mt.id
+            WHERE cmt.coffee_id=c.id) AS milk_types_str,
+           (SELECT GROUP_CONCAT(mt.id)
+            FROM coffee_milk_types cmt JOIN milk_types mt ON cmt.milk_type_id=mt.id
+            WHERE cmt.coffee_id=c.id) AS milk_type_ids_str
     FROM coffees c
     LEFT JOIN roasters  ro ON c.roaster_id  = ro.id
     LEFT JOIN producers p  ON c.producer_id = p.id
@@ -363,14 +382,18 @@ COFFEE_SELECT = '''
 
 def row_to_coffee(row):
     d = dict(row)
-    vs  = d.pop('varieties_str')   or ''
-    vis = d.pop('variety_ids_str') or ''
-    ps  = d.pop('processes_str')   or ''
-    pis = d.pop('process_ids_str') or ''
-    d['varieties']   = [v for v in vs.split('|||')  if v]
-    d['variety_ids'] = [int(i) for i in vis.split(',') if i]
-    d['processes']   = [p for p in ps.split('|||')  if p]
-    d['process_ids'] = [int(i) for i in pis.split(',') if i]
+    vs  = d.pop('varieties_str')    or ''
+    vis = d.pop('variety_ids_str')  or ''
+    ps  = d.pop('processes_str')    or ''
+    pis = d.pop('process_ids_str')  or ''
+    mts = d.pop('milk_types_str')   or ''
+    mtis= d.pop('milk_type_ids_str')or ''
+    d['varieties']    = [v for v in vs.split('|||')   if v]
+    d['variety_ids']  = [int(i) for i in vis.split(',')  if i]
+    d['processes']    = [p for p in ps.split('|||')   if p]
+    d['process_ids']  = [int(i) for i in pis.split(',')  if i]
+    d['milk_types']   = [m for m in mts.split('|||')  if m]
+    d['milk_type_ids']= [int(i) for i in mtis.split(',') if i]
     return d
 
 def set_m2m(conn, coffee_id, values, lookup_table, junction_table, fk_col):
@@ -440,7 +463,7 @@ def validate_coffee(data):
         val = data.get(field)
         if val and len(str(val)) > 200:
             return f'El campo "{field}" no puede superar los 200 caracteres'
-    for field in ['varieties', 'processes']:
+    for field in ['varieties', 'processes', 'milk_types']:
         val = data.get(field)
         if val is not None:
             if not isinstance(val, list):
@@ -580,8 +603,9 @@ def add_coffee():
         cur = conn.execute(
             f"INSERT INTO coffees ({','.join(fields)}) VALUES ({','.join(['?']*len(fields))})", vals)
         cid = cur.lastrowid
-        set_m2m(conn, cid, data.get('varieties'), 'varieties', 'coffee_varieties', 'variety_id')
-        set_m2m(conn, cid, data.get('processes'), 'processes', 'coffee_processes', 'process_id')
+        set_m2m(conn, cid, data.get('varieties'),  'varieties',  'coffee_varieties',   'variety_id')
+        set_m2m(conn, cid, data.get('processes'),  'processes',  'coffee_processes',   'process_id')
+        set_m2m(conn, cid, data.get('milk_types'), 'milk_types', 'coffee_milk_types',  'milk_type_id')
         row = row_to_coffee(conn.execute(COFFEE_SELECT + ' WHERE c.id=?', (cid,)).fetchone())
     return jsonify(row), 201
 
@@ -599,8 +623,9 @@ def update_coffee(cid):
         vals   = list(ids.values()) + [data.get(f) for f in SCALAR_FIELDS] + [cid]
         sets   = ', '.join(f'{f}=?' for f in fields)
         conn.execute(f'UPDATE coffees SET {sets} WHERE id=?', vals)
-        set_m2m(conn, cid, data.get('varieties'), 'varieties', 'coffee_varieties', 'variety_id')
-        set_m2m(conn, cid, data.get('processes'), 'processes', 'coffee_processes', 'process_id')
+        set_m2m(conn, cid, data.get('varieties'),  'varieties',  'coffee_varieties',   'variety_id')
+        set_m2m(conn, cid, data.get('processes'),  'processes',  'coffee_processes',   'process_id')
+        set_m2m(conn, cid, data.get('milk_types'), 'milk_types', 'coffee_milk_types',  'milk_type_id')
         row = row_to_coffee(conn.execute(COFFEE_SELECT + ' WHERE c.id=?', (cid,)).fetchone())
     return jsonify(row)
 
