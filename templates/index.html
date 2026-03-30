@@ -12,230 +12,10 @@
 <link rel="apple-touch-icon" href="/static/icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;1,500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
-<style>
-:root {
-  --bg:#0f0b08; --surface:#1a1410; --surface2:#241c15; --surface3:#2e2419;
-  --border:#3d2f22; --accent:#c8703a; --accent2:#e8a96a;
-  --text:#f0e8df; --text2:#a8998c; --text3:#6b5d52;
-  --green:#7ab87a; --red:#c87070; --r:14px;
-}
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:15px;min-height:100vh}
-
-/* NAV */
-.nav{position:sticky;top:0;z-index:100;background:rgba(15,11,8,0.93);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:13px 18px;display:flex;align-items:center;justify-content:space-between;gap:10px}
-.nav-logo{font-family:'Playfair Display',serif;font-size:20px;color:var(--accent2);white-space:nowrap}
-.nav-logo span{color:var(--text3);font-style:italic;font-size:12px;display:block;font-family:'DM Sans',sans-serif;margin-top:-3px}
-.nav-right{display:flex;gap:8px;align-items:center}
-.nav-add{background:var(--accent);color:#fff;border:none;width:36px;height:36px;border-radius:50%;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 12px rgba(200,112,58,0.4);flex-shrink:0}
-.nav-search{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:20px;padding:7px 14px;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;width:100%;max-width:220px;transition:border-color 0.2s}
-.nav-search:focus{border-color:var(--accent)}
-.nav-search::placeholder{color:var(--text3)}
-
-/* TABS */
-.tabs{display:flex;border-bottom:1px solid var(--border);background:var(--surface)}
-.tab{flex:1;padding:11px 8px;text-align:center;font-size:13px;font-weight:500;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;transition:color 0.2s}
-.tab.active{color:var(--accent2);border-bottom-color:var(--accent)}
-
-/* PAGES */
-.page{display:none;padding:14px}
-.page.active{display:block}
-
-/* FILTER BAR */
-.filter-bar{margin-bottom:12px}
-.filter-status{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px}
-.fb{background:var(--surface2);border:1px solid var(--border);color:var(--text2);padding:5px 10px;border-radius:20px;font-size:12px;cursor:pointer;white-space:nowrap;font-family:'DM Sans',sans-serif;transition:all 0.15s}
-.fb.active{background:var(--accent);border-color:var(--accent);color:#fff}
-
-/* FILTER PANEL */
-.filter-panel-toggle{display:flex;align-items:center;gap:6px;color:var(--text3);font-size:13px;cursor:pointer;margin-bottom:6px;user-select:none}
-.filter-panel-toggle .badge{background:var(--accent);color:#fff;border-radius:10px;font-size:11px;padding:1px 7px;display:none}
-.filter-panel-toggle .badge.show{display:inline}
-.filter-panel{display:none;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px}
-.filter-panel.open{display:block}
-.filter-groups{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.filter-group label{display:block;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:5px}
-.filter-select{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:7px 10px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none}
-.filter-select:focus{border-color:var(--accent)}
-.filter-clear{background:none;border:1px solid var(--border);color:var(--text3);border-radius:8px;padding:6px 12px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;margin-top:8px}
-
-/* RESULTS COUNT */
-.results-info{font-size:12px;color:var(--text3);margin-bottom:10px}
-
-/* CARDS */
-.coffee-list{display:flex;flex-direction:column;gap:10px}
-.coffee-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:15px;cursor:pointer}
-.coffee-card:active{background:var(--surface2)}
-.coffee-card.active-coffee{border-left:3px solid var(--green)}
-.coffee-card.finished-coffee{border-left:3px solid var(--text3);opacity:0.72}
-.card-header{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
-.coffee-name{font-family:'Playfair Display',serif;font-size:17px;line-height:1.2}
-.coffee-sub{font-size:12px;color:var(--accent);margin-top:2px;font-weight:500;text-transform:uppercase;letter-spacing:0.5px}
-.coffee-rating{display:flex;gap:1px;flex-shrink:0}
-.star{color:var(--text3);font-size:14px}
-.star.filled{color:var(--accent2)}
-.coffee-meta{display:flex;flex-wrap:wrap;gap:5px;margin-top:10px}
-.tag{background:var(--surface3);border:1px solid var(--border);color:var(--text2);padding:3px 9px;border-radius:20px;font-size:12px}
-.tag.price{color:var(--accent2);border-color:rgba(200,112,58,0.3);background:rgba(200,112,58,0.08)}
-.tag.status-open{color:var(--green);border-color:rgba(122,184,122,0.3);background:rgba(122,184,122,0.08)}
-.tag.status-done{color:var(--text3)}
-.coffee-notes{font-size:13px;color:var(--text2);margin-top:9px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.card-actions{display:flex;gap:7px;margin-top:11px}
-.btn-quick{border:1px solid var(--border);background:var(--surface2);color:var(--text2);border-radius:8px;padding:7px 12px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer}
-.btn-quick.open{border-color:rgba(122,184,122,0.4);color:var(--green)}
-.btn-quick.finish{border-color:rgba(200,112,58,0.4);color:var(--accent2)}
-.btn-consume{border:2px solid var(--accent);background:rgba(200,112,58,0.12);color:var(--accent2);border-radius:10px;padding:10px 18px;font-size:15px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer;width:100%;margin-top:12px;margin-bottom:4px;transition:background 0.15s}
-.btn-consume:active{background:rgba(200,112,58,0.25)}
-.btn-inline-edit{background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;padding:0 4px;vertical-align:middle;line-height:1}
-.remaining-edit-row{display:flex;align-items:center;gap:8px;flex:1}
-.remaining-input{width:72px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:4px 8px;font-size:14px;font-family:'DM Sans',sans-serif;outline:none}
-.remaining-input:focus{border-color:var(--accent)}
-.empty-state{text-align:center;padding:60px 20px;color:var(--text3)}
-.empty-icon{font-size:48px;margin-bottom:12px}
-.empty-state h3{color:var(--text2);font-family:'Playfair Display',serif;margin-bottom:6px}
-
-/* STATS */
-.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
-.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:15px}
-.stat-val{font-family:'Playfair Display',serif;font-size:28px;color:var(--accent2)}
-.stat-label{font-size:12px;color:var(--text3);margin-top:2px}
-.stat-sub{font-size:13px;color:var(--text2);margin-top:4px;font-weight:500}
-.stats-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:15px;margin-bottom:10px}
-.stats-section h3{font-size:12px;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:12px}
-.bar-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
-.bar-label{font-size:13px;color:var(--text2);min-width:90px;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.bar-track{flex:1;background:var(--surface3);border-radius:4px;height:6px;overflow:hidden}
-.bar-fill{height:100%;background:var(--accent);border-radius:4px;transition:width 0.4s}
-/* .bar-cnt overridden below */
-
-/* MODAL */
-.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.72);z-index:200;overflow-y:auto;padding:16px}
-.modal-overlay.open{display:block}
-.modal{background:var(--surface);border:1px solid var(--border);border-radius:18px;max-width:480px;margin:0 auto;padding:22px 18px}
-.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
-.modal-title{font-family:'Playfair Display',serif;font-size:20px;color:var(--accent2)}
-.modal-close{background:var(--surface3);border:none;color:var(--text2);width:32px;height:32px;border-radius:50%;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center}
-
-/* FORM */
-.form-section{font-size:11px;font-weight:500;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin:14px 0 9px;border-bottom:1px solid var(--border);padding-bottom:5px}
-.form-group{margin-bottom:11px;position:relative}
-.form-label{display:block;font-size:12px;font-weight:500;color:var(--text3);margin-bottom:5px;text-transform:uppercase;letter-spacing:0.5px}
-.form-input{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:10px;padding:10px 13px;font-size:15px;font-family:'DM Sans',sans-serif;outline:none;transition:border-color 0.15s}
-.form-input:focus{border-color:var(--accent)}
-.form-input::placeholder{color:var(--text3)}
-.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.form-textarea{resize:vertical;min-height:76px;font-family:'DM Sans',sans-serif}
-
-/* AUTOCOMPLETE */
-.ac-wrapper{position:relative}
-.ac-dropdown{display:none;position:absolute;top:calc(100% + 2px);left:0;right:0;background:var(--surface2);border:1px solid var(--accent);border-radius:10px;z-index:300;max-height:180px;overflow-y:auto}
-.ac-dropdown.open{display:block}
-.ac-item{padding:9px 13px;font-size:14px;cursor:pointer;color:var(--text)}
-.ac-item:hover,.ac-item.selected{background:var(--surface3)}
-.ac-item.new-entry{color:var(--accent2);font-style:italic}
-
-/* RATING */
-.rating-input{display:flex;gap:8px}
-.rating-star{font-size:28px;cursor:pointer;color:var(--text3);user-select:none}
-.rating-star.active{color:var(--accent2)}
-
-/* BUTTONS */
-.btn-primary{width:100%;background:var(--accent);color:#fff;border:none;border-radius:12px;padding:13px;font-size:16px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;margin-top:8px}
-.btn-row{display:flex;gap:8px;margin-top:8px}
-.btn-row .btn-primary{margin-top:0}
-.btn-danger{background:transparent;border:1px solid var(--red);color:var(--red);border-radius:12px;padding:10px;font-size:14px;font-family:'DM Sans',sans-serif;cursor:pointer;flex:1}
-.btn-secondary{background:transparent;border:1px solid var(--border);color:var(--text2);border-radius:12px;padding:10px;font-size:14px;font-family:'DM Sans',sans-serif;cursor:pointer}
-
-/* DETAIL */
-.detail-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--surface3)}
-.detail-label{font-size:13px;color:var(--text3)}
-.detail-val{font-size:14px;color:var(--text);text-align:right;max-width:60%}
-
-/* CATALOG */
-.catalog-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);margin-bottom:12px;overflow:hidden}
-.catalog-header{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;cursor:pointer;user-select:none}
-.catalog-header-left{display:flex;align-items:center;gap:8px}
-.catalog-title{font-weight:500;font-size:15px}
-.catalog-badge{background:var(--surface3);border:1px solid var(--border);color:var(--text3);border-radius:10px;font-size:11px;padding:2px 8px}
-.catalog-badge.has-orphans{background:rgba(200,112,58,0.15);border-color:rgba(200,112,58,0.3);color:var(--accent2)}
-.catalog-body{display:none;border-top:1px solid var(--border)}
-.catalog-body.open{display:block}
-.catalog-row{display:flex;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid var(--surface3)}
-.catalog-row:last-child{border-bottom:none}
-.catalog-row-name{flex:1;font-size:14px;color:var(--text)}
-.catalog-row-name.editing{display:none}
-.catalog-row-input{flex:1;background:var(--surface2);border:1px solid var(--accent);color:var(--text);border-radius:8px;padding:6px 10px;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;display:none}
-.catalog-count{font-size:12px;color:var(--text3);min-width:24px;text-align:right}
-.catalog-count.zero{color:var(--red)}
-.btn-icon{background:none;border:1px solid var(--border);color:var(--text3);width:30px;height:30px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
-.btn-icon:hover{border-color:var(--accent);color:var(--accent2)}
-.btn-icon.danger:hover{border-color:var(--red);color:var(--red)}
-.btn-icon.save{border-color:var(--green);color:var(--green)}
-.btn-purge-all{background:none;border:1px solid var(--border);color:var(--text3);border-radius:10px;padding:8px 14px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer}
-.btn-purge-all:hover{border-color:var(--accent);color:var(--accent2)}
-.catalog-purge{padding:10px 16px;border-top:1px solid var(--surface3)}
-.btn-purge{background:none;border:1px solid var(--border);color:var(--text3);border-radius:8px;padding:6px 12px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer}
-.btn-purge:hover{border-color:var(--red);color:var(--red)}
-.loading{text-align:center;padding:40px;color:var(--text3)}
-.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--surface3);border:1px solid var(--border);color:var(--text);padding:10px 20px;border-radius:20px;font-size:14px;z-index:999;opacity:0;transition:opacity 0.3s;pointer-events:none;white-space:nowrap}
-.toast.show{opacity:1}
-.tag.fresh-warning{color:#e8c84a;border-color:rgba(232,200,74,0.35);background:rgba(232,200,74,0.08)}
-.tag.milk{color:#7ab8d4;border-color:rgba(122,184,212,0.3);background:rgba(122,184,212,0.08)}
-.fresh-warning-banner{background:rgba(232,200,74,0.08);border:1px solid rgba(232,200,74,0.35);color:#e8c84a;border-radius:10px;padding:9px 13px;font-size:13px;margin-bottom:12px;line-height:1.4}
-.bar-cnt{font-size:12px;color:var(--text3);min-width:70px;text-align:right}
-.sort-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
-.sort-row label{font-size:12px;color:var(--text3);white-space:nowrap}
-.open-date-row{display:flex;align-items:center;gap:6px;margin-top:4px}
-.open-date-row input{flex:1;padding:6px 10px;font-size:13px}
-.modal-confirm-inner{max-width:320px;text-align:center}
-.confirm-icon{font-size:28px;margin-bottom:8px}
-.confirm-msg{font-size:14px;color:var(--text2);margin-bottom:20px;line-height:1.5}
-
-/* LOAD MORE */
-.btn-load-more{width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text2);border-radius:12px;padding:12px;font-size:14px;font-family:'DM Sans',sans-serif;cursor:pointer;margin-top:4px;text-align:center;transition:border-color 0.15s}
-.btn-load-more:active{background:var(--surface2)}
-.btn-load-more span{color:var(--text3);font-size:12px}
-
-/* CALENDAR */
-.cal-nav-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
-.cal-title-text{font-family:'Playfair Display',serif;font-size:17px;color:var(--accent2)}
-.cal-nav-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text2);width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:20px;line-height:1;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.cal-nav-btn:disabled{opacity:0.3;cursor:default;pointer-events:none}
-.cal-layout{display:flex;align-items:flex-start;gap:0}
-.cal-names-col{flex-shrink:0;width:85px;display:flex;flex-direction:column;gap:5px;margin-top:25px}
-.cal-name{font-size:11px;color:var(--text2);height:18px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;align-items:center}
-.cal-tracks-col{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px}
-.cal-days-header{height:20px;position:relative;flex-shrink:0;margin-bottom:0}
-.cal-day-tick{position:absolute;font-size:9px;color:var(--text3);transform:translateX(-50%);line-height:20px}
-.cal-track{height:18px;position:relative;background:var(--surface2);border-radius:4px}
-.cal-bar{position:absolute;top:0;height:100%;border-radius:4px;overflow:hidden;display:flex;align-items:center;padding:0 5px;min-width:3px}
-.cal-bar-label{font-size:10px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.cal-empty{font-size:13px;color:var(--text3);padding:12px 0}
-
-/* CHIP INPUT (multi-select) */
-.chip-wrapper{display:flex;flex-wrap:wrap;gap:5px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:6px 8px;min-height:42px;align-items:center;transition:border-color 0.15s;cursor:text}
-.chip-wrapper:focus-within{border-color:var(--accent)}
-.chip{display:inline-flex;align-items:center;gap:4px;background:var(--surface3);border:1px solid var(--border);color:var(--text2);padding:3px 8px 3px 10px;border-radius:20px;font-size:13px;white-space:nowrap}
-.chip-x{background:none;border:none;color:var(--text3);cursor:pointer;padding:0;font-size:15px;line-height:1;display:flex;align-items:center}
-.chip-x:hover{color:var(--red)}
-.chip-text-input{background:transparent;border:none;color:var(--text);font-size:14px;font-family:'DM Sans',sans-serif;outline:none;min-width:80px;flex:1;padding:3px 4px}
-.chip-text-input::placeholder{color:var(--text3)}
-.region-hint{font-size:11px;color:var(--text3);margin-top:3px}
-
-/* PIN LOCK */
-.pin-lock{position:fixed;inset:0;background:var(--bg);z-index:1000;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px}
-.pin-dots{display:flex;gap:18px;margin-bottom:12px}
-.pin-dot{width:14px;height:14px;border-radius:50%;border:2px solid var(--border);background:transparent;transition:background 0.15s,border-color 0.15s}
-.pin-dot.filled{background:var(--accent);border-color:var(--accent)}
-.pin-error{color:var(--red);font-size:14px;height:20px;margin-bottom:16px;text-align:center}
-.pin-pad{display:grid;grid-template-columns:repeat(3,72px);gap:10px}
-.pin-btn{background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:50%;width:72px;height:72px;font-size:22px;font-family:'DM Sans',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.1s}
-.pin-btn:active{background:var(--surface3)}
-.pin-btn.del{font-size:20px;color:var(--text3)}
-.pin-btn.empty{background:transparent;border-color:transparent;cursor:default}
-.btn-icon-nav{background:var(--surface2);border:1px solid var(--border);color:var(--text2);width:36px;height:36px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
-.btn-icon-nav:active{background:var(--surface3)}
-</style>
+<link rel="stylesheet" href="/static/css/variables.css">
+<link rel="stylesheet" href="/static/css/reset.css">
+<link rel="stylesheet" href="/static/css/components.css">
+<link rel="stylesheet" href="/static/css/pages.css">
 </head>
 <body>
 
@@ -270,20 +50,19 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
   <div class="nav-logo">Cafeteca <span>tu diario de café</span></div>
   <div class="nav-right">
     <input class="nav-search" id="search-input" placeholder="Buscar..." oninput="onSearch(this.value)">
-    <button class="btn-icon-nav" onclick="openSettings()" title="Ajustes">⚙️</button>
-    <button class="nav-add" onclick="openAddModal()">+</button>
+    <button class="btn-icon-nav" onclick="_openSettings()" title="Ajustes">⚙️</button>
+    <button class="nav-add" onclick="_openAddModal()">+</button>
   </div>
 </nav>
 
 <div class="tabs">
-  <div class="tab active" onclick="showPage('list',this)">☕ Cafés</div>
-  <div class="tab" onclick="showPage('stats',this)">📊 Stats</div>
-  <div class="tab" onclick="showPage('catalog',this)">🗂 Catálogos</div>
+  <div class="tab active" onclick="_showPage('list',this)">☕ Cafés</div>
+  <div class="tab" onclick="_showPage('stats',this)">📊 Stats</div>
+  <div class="tab" onclick="_showPage('catalog',this)">🗂 Catálogos</div>
 </div>
 
 <!-- LIST PAGE -->
 <div class="page active" id="page-list">
-  <!-- Status filters -->
   <div class="filter-bar">
     <div class="filter-status">
       <button class="fb active" onclick="setStatus('',this)">Todos</button>
@@ -303,7 +82,6 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
         <option value="name_asc">Nombre A→Z</option>
       </select>
     </div>
-    <!-- Advanced filter toggle -->
     <div class="filter-panel-toggle" onclick="toggleFilterPanel()">
       <span>⚙️ Filtros avanzados</span>
       <span class="badge" id="filter-badge">0</span>
@@ -311,53 +89,17 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
     </div>
     <div class="filter-panel" id="filter-panel">
       <div class="filter-groups">
-        <div class="filter-group">
-          <label>Tostador</label>
-          <select class="filter-select" id="f-filter-roaster" onchange="applyFilters()">
-            <option value="">Todos</option>
-          </select>
-        </div>
-        <div class="filter-group">
-          <label>Productor</label>
-          <select class="filter-select" id="f-filter-producer" onchange="applyFilters()">
-            <option value="">Todos</option>
-          </select>
-        </div>
-        <div class="filter-group">
-          <label>País origen</label>
-          <select class="filter-select" id="f-filter-origin" onchange="onFilterOriginChange();applyFilters()">
-            <option value="">Todos</option>
-          </select>
-        </div>
-        <div class="filter-group">
-          <label>Región</label>
-          <select class="filter-select" id="f-filter-region" onchange="applyFilters()">
-            <option value="">Todas</option>
-          </select>
-        </div>
-        <div class="filter-group">
-          <label>Proceso</label>
-          <select class="filter-select" id="f-filter-process" onchange="applyFilters()">
-            <option value="">Todos</option>
-          </select>
-        </div>
-        <div class="filter-group">
-          <label>Variedad</label>
-          <select class="filter-select" id="f-filter-variety" onchange="applyFilters()">
-            <option value="">Todas</option>
-          </select>
-        </div>
-        <div class="filter-group">
-          <label>Tienda</label>
-          <select class="filter-select" id="f-filter-shop" onchange="applyFilters()">
-            <option value="">Todas</option>
-          </select>
-        </div>
+        <div class="filter-group"><label>Tostador</label><select class="filter-select" id="f-filter-roaster" onchange="applyFilters()"><option value="">Todos</option></select></div>
+        <div class="filter-group"><label>Productor</label><select class="filter-select" id="f-filter-producer" onchange="applyFilters()"><option value="">Todos</option></select></div>
+        <div class="filter-group"><label>País origen</label><select class="filter-select" id="f-filter-origin" onchange="onFilterOriginChange();applyFilters()"><option value="">Todos</option></select></div>
+        <div class="filter-group"><label>Región</label><select class="filter-select" id="f-filter-region" onchange="applyFilters()"><option value="">Todas</option></select></div>
+        <div class="filter-group"><label>Proceso</label><select class="filter-select" id="f-filter-process" onchange="applyFilters()"><option value="">Todos</option></select></div>
+        <div class="filter-group"><label>Variedad</label><select class="filter-select" id="f-filter-variety" onchange="applyFilters()"><option value="">Todas</option></select></div>
+        <div class="filter-group"><label>Tienda</label><select class="filter-select" id="f-filter-shop" onchange="applyFilters()"><option value="">Todas</option></select></div>
       </div>
       <button class="filter-clear" onclick="clearFilters()">✕ Limpiar filtros</button>
     </div>
   </div>
-
   <div class="results-info" id="results-info"></div>
   <div id="coffee-list" class="coffee-list"><div class="loading">Cargando...</div></div>
 </div>
@@ -372,27 +114,23 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
 <!-- CATALOG PAGE -->
 <div class="page" id="page-catalog">
   <div style="margin-bottom:14px">
-    <div style="font-size:13px;color:var(--text2);line-height:1.6">
-      Gestiona los valores de referencia. Puedes renombrar cualquier entrada (actualizará todos los cafés que la usen) o eliminar las que no estén en uso.
-    </div>
-    <button class="btn-purge-all" onclick="purgeAll()" style="margin-top:10px">🧹 Eliminar todos los huérfanos</button>
+    <div style="font-size:13px;color:var(--text2);line-height:1.6">Gestiona los valores de referencia. Puedes renombrar cualquier entrada (actualizará todos los cafés que la usen) o eliminar las que no estén en uso.</div>
+    <button class="btn-purge-all" onclick="_purgeAll()" style="margin-top:10px">🧹 Eliminar todos los huérfanos</button>
   </div>
   <div id="catalog-content"><div class="loading">Cargando...</div></div>
 </div>
+
+<!-- FORM MODAL -->
 <div class="modal-overlay" id="modal-form">
   <div class="modal">
     <div class="modal-header">
       <div class="modal-title" id="modal-title">Nuevo café</div>
-      <button class="modal-close" onclick="closeModal('modal-form')">✕</button>
+      <button class="modal-close" onclick="_closeModal('modal-form')">✕</button>
     </div>
     <form onsubmit="submitForm(event)" id="coffee-form">
       <input type="hidden" id="f-id">
-
       <div class="form-section">Identificación</div>
-      <div class="form-group">
-        <label class="form-label">Nombre *</label>
-        <input class="form-input" id="f-name" placeholder="ej. Ethiopia Yirgacheffe" required>
-      </div>
+      <div class="form-group"><label class="form-label">Nombre *</label><input class="form-input" id="f-name" placeholder="ej. Ethiopia Yirgacheffe" required></div>
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">Tostador</label>
@@ -415,9 +153,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
           <div class="ac-wrapper">
             <div class="chip-wrapper" onclick="document.getElementById('f-variety-input').focus()">
               <div id="varieties-chips"></div>
-              <input class="chip-text-input" id="f-variety-input" placeholder="Añadir..." autocomplete="off"
-                oninput="acInput(this,'varieties')" onfocus="acInput(this,'varieties')" onblur="acBlur('varieties')"
-                onkeydown="chipKeydown(event,'varieties')">
+              <input class="chip-text-input" id="f-variety-input" placeholder="Añadir..." autocomplete="off" oninput="acInput(this,'varieties')" onfocus="acInput(this,'varieties')" onblur="acBlur('varieties')" onkeydown="chipKeydown(event,'varieties')">
             </div>
             <div class="ac-dropdown" id="ac-varieties"></div>
           </div>
@@ -427,15 +163,12 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
           <div class="ac-wrapper">
             <div class="chip-wrapper" onclick="document.getElementById('f-process-input').focus()">
               <div id="processes-chips"></div>
-              <input class="chip-text-input" id="f-process-input" placeholder="Añadir..." autocomplete="off"
-                oninput="acInput(this,'processes')" onfocus="acInput(this,'processes')" onblur="acBlur('processes')"
-                onkeydown="chipKeydown(event,'processes')">
+              <input class="chip-text-input" id="f-process-input" placeholder="Añadir..." autocomplete="off" oninput="acInput(this,'processes')" onfocus="acInput(this,'processes')" onblur="acBlur('processes')" onkeydown="chipKeydown(event,'processes')">
             </div>
             <div class="ac-dropdown" id="ac-processes"></div>
           </div>
         </div>
       </div>
-
       <div class="form-section">Origen</div>
       <div class="form-row">
         <div class="form-group">
@@ -455,13 +188,9 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
         </div>
       </div>
       <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">Altitud (m)</label>
-          <input class="form-input" id="f-altitude" type="number" placeholder="ej. 1800" min="0">
-        </div>
+        <div class="form-group"><label class="form-label">Altitud (m)</label><input class="form-input" id="f-altitude" type="number" placeholder="ej. 1800" min="0"></div>
         <div class="form-group"></div>
       </div>
-
       <div class="form-section">Compra</div>
       <div class="form-row">
         <div class="form-group">
@@ -471,41 +200,21 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
             <div class="ac-dropdown" id="ac-shops"></div>
           </div>
         </div>
-        <div class="form-group">
-          <label class="form-label">Fecha compra</label>
-          <input class="form-input" id="f-purchase" type="date">
-        </div>
+        <div class="form-group"><label class="form-label">Fecha compra</label><input class="form-input" id="f-purchase" type="date"></div>
       </div>
       <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">Cantidad (g)</label>
-          <input class="form-input" id="f-quantity" type="number" placeholder="250">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Precio/kg (€)</label>
-          <input class="form-input" id="f-price" type="number" step="0.01" placeholder="60.00">
-        </div>
+        <div class="form-group"><label class="form-label">Cantidad (g)</label><input class="form-input" id="f-quantity" type="number" placeholder="250"></div>
+        <div class="form-group"><label class="form-label">Precio/kg (€)</label><input class="form-input" id="f-price" type="number" step="0.01" placeholder="60.00"></div>
       </div>
-
       <div class="form-section">Consumo</div>
       <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">Fecha tueste</label>
-          <input class="form-input" id="f-roast" type="date">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Abierto el</label>
-          <input class="form-input" id="f-opened" type="date">
-        </div>
+        <div class="form-group"><label class="form-label">Fecha tueste</label><input class="form-input" id="f-roast" type="date"></div>
+        <div class="form-group"><label class="form-label">Abierto el</label><input class="form-input" id="f-opened" type="date"></div>
       </div>
       <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">Terminado el</label>
-          <input class="form-input" id="f-finished" type="date">
-        </div>
+        <div class="form-group"><label class="form-label">Terminado el</label><input class="form-input" id="f-finished" type="date"></div>
         <div class="form-group"></div>
       </div>
-
       <div class="form-section">Valoración</div>
       <div class="form-group">
         <label class="form-label">Puntuación</label>
@@ -518,28 +227,21 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
         </div>
         <input type="hidden" id="f-rating">
       </div>
-      <div class="form-group">
-        <label class="form-label">Notas de cata</label>
-        <textarea class="form-input form-textarea" id="f-notes" placeholder="Aromas, sabores, sensaciones..."></textarea>
-      </div>
-
+      <div class="form-group"><label class="form-label">Notas de cata</label><textarea class="form-input form-textarea" id="f-notes" placeholder="Aromas, sabores, sensaciones..."></textarea></div>
       <div class="form-section">Con leche vegetal</div>
       <div class="form-group">
         <label class="form-label">Funciona bien con</label>
         <div class="ac-wrapper">
           <div class="chip-wrapper" onclick="document.getElementById('f-milk-input').focus()">
             <div id="milk-chips"></div>
-            <input class="chip-text-input" id="f-milk-input" placeholder="Avena, Arroz..." autocomplete="off"
-              oninput="acInput(this,'milk_types')" onfocus="acInput(this,'milk_types')" onblur="acBlur('milk_types')"
-              onkeydown="chipKeydown(event,'milk_types')">
+            <input class="chip-text-input" id="f-milk-input" placeholder="Avena, Arroz..." autocomplete="off" oninput="acInput(this,'milk_types')" onfocus="acInput(this,'milk_types')" onblur="acBlur('milk_types')" onkeydown="chipKeydown(event,'milk_types')">
           </div>
           <div class="ac-dropdown" id="ac-milk_types"></div>
         </div>
       </div>
-
       <button type="submit" class="btn-primary">Guardar café</button>
       <div class="btn-row" id="edit-actions" style="display:none">
-        <button type="button" class="btn-secondary" onclick="closeModal('modal-form')">Cancelar</button>
+        <button type="button" class="btn-secondary" onclick="_closeModal('modal-form')">Cancelar</button>
         <button type="button" class="btn-danger" onclick="deleteCoffee()">Eliminar</button>
       </div>
     </form>
@@ -551,13 +253,13 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
   <div class="modal">
     <div class="modal-header">
       <div class="modal-title" id="detail-title">Detalle</div>
-      <button class="modal-close" onclick="closeModal('modal-detail')">✕</button>
+      <button class="modal-close" onclick="_closeModal('modal-detail')">✕</button>
     </div>
     <div id="detail-content"></div>
     <div class="btn-row" style="margin-top:16px">
-      <button class="btn-primary" style="margin-top:0" onclick="editCurrent()">✏️ Editar</button>
-      <button class="btn-secondary" onclick="duplicateCurrent()">⧉ Nueva bolsa</button>
-      <button class="btn-secondary" id="unrate-btn" onclick="unrateCurrent()" style="display:none">☆ Quitar valoración</button>
+      <button class="btn-primary" style="margin-top:0" onclick="_editCurrent()">✏️ Editar</button>
+      <button class="btn-secondary" onclick="_duplicateCurrent()">⧉ Nueva bolsa</button>
+      <button class="btn-secondary" id="unrate-btn" onclick="_unrateCurrent()" style="display:none">☆ Quitar valoración</button>
     </div>
   </div>
 </div>
@@ -569,7 +271,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
     <div class="modal-title" id="confirm-title" style="margin-bottom:8px">¿Confirmar?</div>
     <div class="confirm-msg" id="confirm-msg"></div>
     <div class="btn-row">
-      <button class="btn-secondary" onclick="closeModal('modal-confirm')">Cancelar</button>
+      <button class="btn-secondary" onclick="_closeModal('modal-confirm')">Cancelar</button>
       <button class="btn-danger" id="confirm-action-btn">Eliminar</button>
     </div>
   </div>
@@ -580,7 +282,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
   <div class="modal" style="max-width:360px">
     <div class="modal-header">
       <div class="modal-title">⚙️ Ajustes</div>
-      <button class="modal-close" onclick="closeModal('modal-settings')">✕</button>
+      <button class="modal-close" onclick="_closeModal('modal-settings')">✕</button>
     </div>
     <div class="form-section">Consumo</div>
     <div class="form-group">
@@ -590,1208 +292,15 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
     </div>
     <button class="btn-primary" onclick="saveSettings()" style="margin-bottom:18px">Guardar ajustes</button>
     <div class="form-section">Seguridad</div>
-    <div class="form-group">
-      <label class="form-label">PIN actual</label>
-      <input class="form-input" id="cp-current" type="password" inputmode="numeric" maxlength="4" placeholder="••••">
-    </div>
-    <div class="form-group">
-      <label class="form-label">Nuevo PIN (4 dígitos)</label>
-      <input class="form-input" id="cp-new" type="password" inputmode="numeric" maxlength="4" placeholder="••••">
-    </div>
-    <div class="form-group">
-      <label class="form-label">Confirmar nuevo PIN</label>
-      <input class="form-input" id="cp-confirm" type="password" inputmode="numeric" maxlength="4" placeholder="••••">
-    </div>
+    <div class="form-group"><label class="form-label">PIN actual</label><input class="form-input" id="cp-current" type="password" inputmode="numeric" maxlength="4" placeholder="••••"></div>
+    <div class="form-group"><label class="form-label">Nuevo PIN (4 dígitos)</label><input class="form-input" id="cp-new" type="password" inputmode="numeric" maxlength="4" placeholder="••••"></div>
+    <div class="form-group"><label class="form-label">Confirmar nuevo PIN</label><input class="form-input" id="cp-confirm" type="password" inputmode="numeric" maxlength="4" placeholder="••••"></div>
     <button class="btn-primary" onclick="changePinSubmit()">Cambiar PIN</button>
   </div>
 </div>
 
 <div class="toast" id="toast"></div>
 
-<script>
-// ---------------------------------------------------------------------------
-// State
-// ---------------------------------------------------------------------------
-let allOptions = {};        // lookup data from /api/options
-let displayedCoffees = [];  // current rendered list
-let currentDetail = null;
-let activeFilters = {};     // {roaster_id: 1, origin_id: 2, ...}
-let activeStatus = '';
-let searchQuery = '';
-let searchTimer = null;
-let currentSort = 'smart';
-let gramsPerShot = 17;      // loaded from /api/settings
-
-// Multi-select chip state for m2m fields
-let selectedVarieties = [];
-let selectedProcesses = [];
-let selectedMilkTypes = [];
-const CHIP_FIELDS = {
-  varieties:  { state: () => selectedVarieties,  set: v => { selectedVarieties = v; },  inputId: 'f-variety-input', chipsId: 'varieties-chips' },
-  processes:  { state: () => selectedProcesses,  set: v => { selectedProcesses = v; },  inputId: 'f-process-input', chipsId: 'processes-chips' },
-  milk_types: { state: () => selectedMilkTypes,  set: v => { selectedMilkTypes = v; },  inputId: 'f-milk-input',    chipsId: 'milk-chips' },
-};
-
-// Pagination
-const PAGE_SIZE = 15;
-let visibleCount = PAGE_SIZE;
-
-// Calendar
-const MONTH_NAMES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
-                     'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-let calYear  = new Date().getFullYear();
-let calMonth = new Date().getMonth(); // 0-based
-let calCoffees = [];
-
-// ---------------------------------------------------------------------------
-// API
-// ---------------------------------------------------------------------------
-async function api(path, opts={}) {
-  let r;
-  try {
-    r = await fetch('/api'+path, {headers:{'Content-Type':'application/json'}, ...opts});
-  } catch {
-    showToast('⚠️ Error de red: sin conexión con el servidor');
-    throw new Error('network error');
-  }
-  const data = await r.json();
-  if (!r.ok) {
-    showToast('⚠️ ' + (data.error || `Error ${r.status}`));
-    throw Object.assign(new Error(data.error || `Error ${r.status}`), {status: r.status});
-  }
-  return data;
-}
-
-function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg; t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'), 2200);
-}
-
-function esc(str) {
-  if (!str) return '';
-  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-}
-
-function showConfirm({icon='🗑', title='¿Confirmar?', msg='', btnLabel='Eliminar', btnClass='btn-danger', onConfirm}) {
-  document.getElementById('confirm-icon').textContent = icon;
-  document.getElementById('confirm-title').textContent = title;
-  document.getElementById('confirm-msg').textContent = msg;
-  const btn = document.getElementById('confirm-action-btn');
-  btn.textContent = btnLabel; btn.className = btnClass;
-  btn.onclick = () => { closeModal('modal-confirm'); onConfirm(); };
-  document.getElementById('modal-confirm').classList.add('open');
-}
-
-function onSortChange() {
-  currentSort = document.getElementById('sort-select').value;
-  visibleCount = PAGE_SIZE;
-  renderList();
-}
-
-function sortedCoffees() {
-  const arr = [...displayedCoffees];
-  switch (currentSort) {
-    case 'smart': return arr.sort((a, b) => {
-      // 0=abierto, 1=sin abrir, 2=terminado
-      const statusOrder = c => c.finished_date ? 2 : c.opened_date ? 0 : 1;
-      const sa = statusOrder(a), sb = statusOrder(b);
-      if (sa !== sb) return sa - sb;
-      // abiertos y sin abrir: tueste más antiguo primero
-      if (sa < 2) return (a.roast_date || '').localeCompare(b.roast_date || '');
-      // terminados: más reciente primero
-      return (b.finished_date || '').localeCompare(a.finished_date || '');
-    });
-    case 'roast_desc':  return arr.sort((a,b)=>(b.roast_date||'').localeCompare(a.roast_date||''));
-    case 'roast_asc':   return arr.sort((a,b)=>(a.roast_date||'').localeCompare(b.roast_date||''));
-    case 'rating_desc': return arr.sort((a,b)=>(b.rating||0)-(a.rating||0));
-    case 'name_asc':    return arr.sort((a,b)=>a.name.localeCompare(b.name));
-    default:            return arr; // created_desc: server already returns this order
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Init
-// ---------------------------------------------------------------------------
-async function init() {
-  const [, settings] = await Promise.all([loadOptions(), api('/settings')]);
-  gramsPerShot = settings.grams_per_shot || 17;
-  await fetchAndRender();
-}
-
-async function loadOptions() {
-  allOptions = await api('/options');
-  LOOKUP_TABLES = Object.keys(allOptions);  // stay in sync with server
-  populateFilterSelects();
-}
-
-function populateFilterSelects() {
-  const map = {
-    roasters:'f-filter-roaster', producers:'f-filter-producer',
-    origins:'f-filter-origin', regions:'f-filter-region',
-    processes:'f-filter-process', varieties:'f-filter-variety',
-    shops:'f-filter-shop'
-  };
-  for (const [table, selId] of Object.entries(map)) {
-    const sel = document.getElementById(selId);
-    if (!sel) continue;
-    const currentVal = sel.value;  // preserve active filter selection
-    const first = sel.options[0];
-    sel.textContent = '';
-    sel.appendChild(first);
-    (allOptions[table]||[]).forEach(o => {
-      const opt = document.createElement('option');
-      opt.value = o.id; opt.textContent = o.name;
-      sel.appendChild(opt);
-    });
-    sel.value = currentVal;  // restore
-  }
-  // Re-apply region cascade after repopulating
-  onFilterOriginChange();
-}
-
-function onFilterOriginChange() {
-  const originSel = document.getElementById('f-filter-origin');
-  const regionSel = document.getElementById('f-filter-region');
-  if (!originSel || !regionSel) return;
-  const originId = originSel.value ? parseInt(originSel.value) : null;
-  const currentRegion = regionSel.value;
-  // Remove all region options except first placeholder
-  while (regionSel.options.length > 1) regionSel.remove(1);
-  const regions = (allOptions.regions || []).filter(r => !originId || !r.origin_id || r.origin_id === originId);
-  regions.forEach(r => {
-    const opt = document.createElement('option');
-    opt.value = r.id;
-    opt.textContent = r.name;
-    regionSel.appendChild(opt);
-  });
-  // Restore selection if still valid
-  regionSel.value = regions.some(r => String(r.id) === currentRegion) ? currentRegion : '';
-}
-
-// ---------------------------------------------------------------------------
-// Fetch + render
-// ---------------------------------------------------------------------------
-async function fetchAndRender() {
-  visibleCount = PAGE_SIZE;
-  const params = new URLSearchParams();
-  if (activeStatus) params.set('status', activeStatus);
-  if (searchQuery)  params.set('q', searchQuery);
-  for (const [k,v] of Object.entries(activeFilters)) {
-    if (v) params.set(k, v);
-  }
-  const qs = params.toString();
-  displayedCoffees = await api('/coffees' + (qs ? '?'+qs : ''));
-  renderList();
-}
-
-// ---------------------------------------------------------------------------
-// Render helpers
-// ---------------------------------------------------------------------------
-function stars(rating) {
-  const r = parseInt(rating, 10);
-  if (!r||r<1||r>5) return '<span style="color:var(--text3);font-size:13px">Sin valorar</span>';
-  return [1,2,3,4,5].map(i=>`<span class="star ${i<=r?'filled':''}">★</span>`).join('');
-}
-
-function fmtDate(d) {
-  if (!d) return null;
-  const [y,m,day] = d.split('-'); return `${day}/${m}/${y}`;
-}
-
-function fmtWeight(g) {
-  if (!g) return '0g';
-  return g >= 1000 ? (g / 1000).toFixed(1) + 'kg' : g + 'g';
-}
-
-function fmtPrice(c) {
-  if (!c.price_kg||!c.quantity_g) return null;
-  return `${c.price_kg}€/kg · ${(c.quantity_g/1000*c.price_kg).toFixed(2)}€`;
-}
-
-function getStatus(c) {
-  if (c.finished_date) return {label:'Terminado',cls:'status-done'};
-  if (c.opened_date)   return {label:'Abierto',cls:'status-open'};
-  return {label:'Sin abrir',cls:''};
-}
-
-function daysFromRoast(roastDate) {
-  if (!roastDate) return null;
-  const roast = new Date(roastDate); roast.setHours(0,0,0,0);
-  const today = new Date(); today.setHours(0,0,0,0);
-  return Math.floor((today - roast) / 86400000);
-}
-
-function renderList() {
-  const el = document.getElementById('coffee-list');
-  const info = document.getElementById('results-info');
-  const total = displayedCoffees.length;
-  if (total === 0) {
-    info.textContent = '';
-    el.innerHTML = `<div class="empty-state"><div class="empty-icon">☕</div><h3>Sin cafés aquí</h3><p>Prueba a cambiar los filtros o añade uno nuevo</p></div>`;
-    return;
-  }
-  const sorted = sortedCoffees();
-  const showing = Math.min(visibleCount, total);
-  info.textContent = showing < total ? `${showing} de ${total} cafés` : `${total} café${total!==1?'s':''}`;
-
-  const visible = sorted.slice(0, showing);
-  el.innerHTML = visible.map(c => {
-    const status = getStatus(c);
-    const finished = !!c.finished_date, opened = !!c.opened_date && !finished;
-    const origin = [c.origin, c.region].filter(Boolean).map(esc).join(' · ');
-    const sub = [c.roaster, c.producer].filter(Boolean).map(esc).join(' / ');
-    const roastDays = daysFromRoast(c.roast_date);
-    const freshTag = !finished && roastDays !== null && roastDays < 14
-      ? `<span class="tag fresh-warning">⏳ Reposo: ${14 - roastDays} días más</span>` : '';
-    const daysOpen = opened ? Math.floor((new Date() - new Date(c.opened_date)) / 86400000) : null;
-    const daysOpenTag = daysOpen !== null ? `<span class="tag">📅 ${daysOpen} día${daysOpen!==1?'s':''} abierto</span>` : '';
-    const price = fmtPrice(c);
-    const actions = !finished ? `<div class="card-actions" id="actions-${c.id}">
-      ${!c.opened_date?`<button class="btn-quick open" onclick="showOpenDatePicker(event,${c.id})">📦 Abrir hoy</button>`:''}
-      ${c.opened_date?`<button class="btn-quick finish" onclick="quickFinish(event,${c.id})">✅ Terminado hoy</button>`:''}
-    </div>` : '';
-    return `<div class="coffee-card ${finished?'finished-coffee':opened?'active-coffee':''}" onclick="showDetail(${c.id})">
-      <div class="card-header">
-        <div style="min-width:0">
-          <div class="coffee-name">${esc(c.name)}</div>
-          ${sub?`<div class="coffee-sub">${sub}</div>`:''}
-        </div>
-        <div class="coffee-rating">${stars(c.rating)}</div>
-      </div>
-      <div class="coffee-meta">
-        <span class="tag ${status.cls}">${status.label}</span>
-        ${freshTag}
-        ${daysOpenTag}
-        ${origin?`<span class="tag">📍 ${origin}</span>`:''}
-        ${c.varieties&&c.varieties.length?`<span class="tag">🌱 ${c.varieties.map(esc).join(', ')}</span>`:''}
-        ${c.processes&&c.processes.length?`<span class="tag">⚙️ ${c.processes.map(esc).join(', ')}</span>`:''}
-        ${c.milk_types&&c.milk_types.length?`<span class="tag milk">🥛 ${c.milk_types.map(esc).join(', ')}</span>`:''}
-        ${c.quantity_g?`<span class="tag">⚖️ ${c.quantity_g}g</span>`:''}
-        ${price?`<span class="tag price">💰 ${price}</span>`:''}
-      </div>
-      ${c.notes?`<div class="coffee-notes">${esc(c.notes)}</div>`:''}
-      ${actions}
-    </div>`;
-  }).join('');
-
-  if (showing < total) {
-    const remaining = total - showing;
-    const next = Math.min(PAGE_SIZE, remaining);
-    el.innerHTML += `<button class="btn-load-more" onclick="loadMore()">
-      Mostrar ${next} más <span>(${remaining} restantes)</span>
-    </button>`;
-  }
-}
-
-function loadMore() {
-  visibleCount += PAGE_SIZE;
-  renderList();
-}
-
-// ---------------------------------------------------------------------------
-// Filtering
-// ---------------------------------------------------------------------------
-function showPage(name, tab) {
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  document.getElementById('page-'+name).classList.add('active');
-  tab.classList.add('active');
-  if (name==='stats') loadStats();
-  if (name==='catalog') loadCatalog();
-}
-
-function setStatus(s, btn) {
-  activeStatus = s;
-  document.querySelectorAll('.fb').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-  fetchAndRender();
-}
-
-function onSearch(val) {
-  clearTimeout(searchTimer);
-  searchTimer = setTimeout(()=>{ searchQuery = val.trim(); fetchAndRender(); }, 280);
-}
-
-function toggleFilterPanel() {
-  const p = document.getElementById('filter-panel');
-  const a = document.getElementById('filter-arrow');
-  p.classList.toggle('open');
-  a.textContent = p.classList.contains('open') ? '⌄' : '›';
-}
-
-function applyFilters() {
-  activeFilters = {
-    roaster_id:  document.getElementById('f-filter-roaster').value,
-    producer_id: document.getElementById('f-filter-producer').value,
-    origin_id:   document.getElementById('f-filter-origin').value,
-    region_id:   document.getElementById('f-filter-region').value,
-    process_id:  document.getElementById('f-filter-process').value,
-    variety_id:  document.getElementById('f-filter-variety').value,
-    shop_id:     document.getElementById('f-filter-shop').value,
-  };
-  // Update badge
-  const active = Object.values(activeFilters).filter(Boolean).length;
-  const badge = document.getElementById('filter-badge');
-  badge.textContent = active;
-  badge.classList.toggle('show', active > 0);
-  fetchAndRender();
-}
-
-function clearFilters() {
-  const sortVal = document.getElementById('sort-select').value;
-  document.querySelectorAll('.filter-select').forEach(s=>s.value='');
-  document.getElementById('sort-select').value = sortVal;  // don't reset sort
-  onFilterOriginChange();
-  activeFilters = {};
-  document.getElementById('filter-badge').classList.remove('show');
-  fetchAndRender();
-}
-
-// ---------------------------------------------------------------------------
-// Quick actions
-// ---------------------------------------------------------------------------
-function showOpenDatePicker(e, id) {
-  e.stopPropagation();
-  const today = new Date().toISOString().split('T')[0];
-  document.getElementById('actions-'+id).innerHTML = `
-    <div class="open-date-row" onclick="event.stopPropagation()">
-      <input type="date" class="form-input" id="open-date-${id}" value="${today}">
-      <button class="btn-quick open" onclick="confirmOpen(event,${id})">✓ Confirmar</button>
-      <button class="btn-quick" onclick="event.stopPropagation();renderList()">✕</button>
-    </div>`;
-}
-
-async function confirmOpen(e, id) {
-  e.stopPropagation();
-  const date = document.getElementById('open-date-'+id)?.value || new Date().toISOString().split('T')[0];
-  const updated = await api('/coffees/'+id+'/open', {method:'POST', body:JSON.stringify({date})});
-  const i = displayedCoffees.findIndex(c=>c.id===id);
-  if (i!==-1) displayedCoffees[i]=updated;
-  if (currentDetail?.id===id) currentDetail=updated;
-  renderList(); showToast('📦 Marcado como abierto');
-  await loadOptions();
-}
-
-async function quickFinish(e, id) {
-  e.stopPropagation();
-  const updated = await api('/coffees/'+id+'/finish', {method:'POST'});
-  const i = displayedCoffees.findIndex(c=>c.id===id);
-  if (i!==-1) displayedCoffees[i]=updated;
-  if (currentDetail?.id===id) currentDetail=updated;
-  renderList(); showToast('✅ Marcado como terminado');
-}
-
-// ---------------------------------------------------------------------------
-// Detail modal
-// ---------------------------------------------------------------------------
-function showDetail(id) {
-  const c = displayedCoffees.find(x=>x.id===id);
-  if (!c) return;
-  currentDetail = c;
-  document.getElementById('detail-title').textContent = c.name;
-  document.getElementById('unrate-btn').style.display = parseInt(c.rating,10)?'':'none';
-  const rows = [
-    ['Tostador',c.roaster],['Productor',c.producer],
-    ['Variedad',c.varieties&&c.varieties.length?c.varieties.join(', '):null],
-    ['País',c.origin],['Región',c.region],['Altitud',c.altitude?c.altitude+' m':null],
-    ['Proceso',c.processes&&c.processes.length?c.processes.join(', '):null],
-    ['🥛 Con leche vegetal',c.milk_types&&c.milk_types.length?c.milk_types.join(', '):null],
-    ['Tienda',c.shop],
-    ['Cantidad',c.quantity_g?c.quantity_g+'g':null],
-    ['Precio/kg',c.price_kg?c.price_kg+'€':null],['Coste total',fmtPrice(c)],
-    ['Compra',fmtDate(c.purchase_date)],['Tueste',fmtDate(c.roast_date)],
-    ['Abierto',fmtDate(c.opened_date)],['Terminado',fmtDate(c.finished_date)],
-  ].filter(([,v])=>v);
-  const roastDays = daysFromRoast(c.roast_date);
-  const freshBanner = roastDays !== null && roastDays < 14 && !c.finished_date
-    ? `<div class="fresh-warning-banner">⏳ Aún en reposo — faltan <strong>${14 - roastDays} días</strong> para las dos semanas desde el tueste (${roastDays} días de ${14}).</div>` : '';
-
-  // Remaining coffee row (editable)
-  const remainingRow = c.quantity_g != null ? `
-    <div class="detail-row" id="remaining-display-row">
-      <span class="detail-label">☕ Restante</span>
-      <span class="detail-val" style="display:flex;align-items:center;gap:6px">
-        <span id="remaining-display">${c.remaining_g != null ? c.remaining_g + 'g' : '—'}</span>
-        <button class="btn-inline-edit" onclick="editRemainingInline(${c.id})" title="Editar">✏️</button>
-      </span>
-    </div>
-    <div class="detail-row" id="remaining-edit-row" style="display:none">
-      <span class="detail-label">☕ Restante</span>
-      <span class="detail-val">
-        <span class="remaining-edit-row">
-          <input class="remaining-input" type="number" id="remaining-input" value="${c.remaining_g ?? ''}" min="0" onkeydown="if(event.key==='Enter')saveRemaining(${c.id});if(event.key==='Escape')cancelEditRemaining()">
-          <span style="color:var(--text3);font-size:13px">g</span>
-          <button class="btn-quick" onclick="saveRemaining(${c.id})" style="padding:4px 10px;font-size:12px">✓</button>
-          <button class="btn-quick" onclick="cancelEditRemaining()" style="padding:4px 10px;font-size:12px">✕</button>
-        </span>
-      </span>
-    </div>` : '';
-
-  // Consume button (only if not finished)
-  const consumeBtn = !c.finished_date ? `<button class="btn-consume" onclick="consumeCoffee()">☕ Consumir una toma (−${gramsPerShot}g)</button>` : '';
-
-  document.getElementById('detail-content').innerHTML = `
-    ${freshBanner}
-    <div style="margin-bottom:12px">${stars(c.rating)}</div>
-    ${rows.map(([l,v])=>`<div class="detail-row"><span class="detail-label">${esc(l)}</span><span class="detail-val">${esc(String(v))}</span></div>`).join('')}
-    ${remainingRow}
-    ${c.notes?`<div style="margin-top:14px;font-size:14px;color:var(--text2);line-height:1.6;font-style:italic">"${esc(c.notes)}"</div>`:''}
-    ${consumeBtn}
-  `;
-  document.getElementById('modal-detail').classList.add('open');
-}
-
-function editCurrent() { closeModal('modal-detail'); openEditModal(currentDetail); }
-
-function duplicateCurrent() {
-  if (!currentDetail) return;
-  const c = currentDetail;
-  closeModal('modal-detail');
-  resetForm();
-  document.getElementById('modal-title').textContent = 'Nueva bolsa';
-  document.getElementById('f-name').value = c.name || '';
-  document.getElementById('f-roaster').value = c.roaster || '';
-  document.getElementById('f-producer').value = c.producer || '';
-  document.getElementById('f-origin').value = c.origin || '';
-  document.getElementById('f-region').value = c.region || '';
-  document.getElementById('f-shop').value = c.shop || '';
-  selectedVarieties = Array.isArray(c.varieties)  ? [...c.varieties]  : [];
-  selectedProcesses = Array.isArray(c.processes)  ? [...c.processes]  : [];
-  selectedMilkTypes = Array.isArray(c.milk_types) ? [...c.milk_types] : [];
-  renderChips('varieties'); renderChips('processes'); renderChips('milk_types');
-  onOriginChange();
-  document.getElementById('f-quantity').value = c.quantity_g || '';
-  document.getElementById('f-price').value = c.price_kg || '';
-  document.getElementById('f-altitude').value = c.altitude || '';
-  document.getElementById('f-notes').value = c.notes || '';
-  document.getElementById('f-purchase').value = new Date().toISOString().split('T')[0];
-  // leave roast_date, opened_date, finished_date, rating blank (new bag)
-  document.getElementById('modal-form').classList.add('open');
-}
-
-async function unrateCurrent() {
-  if (!currentDetail) return;
-  const updated = await api('/coffees/'+currentDetail.id+'/unrate', {method:'POST'});
-  const i = displayedCoffees.findIndex(c=>c.id===currentDetail.id);
-  if (i!==-1) displayedCoffees[i]=updated;
-  currentDetail = updated;
-  showDetail(updated.id);
-  renderList();
-  showToast('☆ Valoración eliminada');
-}
-
-// ---------------------------------------------------------------------------
-// Consumo de café
-// ---------------------------------------------------------------------------
-async function consumeCoffee() {
-  if (!currentDetail) return;
-  const result = await api('/coffees/'+currentDetail.id+'/consume', {method:'POST'});
-  const updated = result.coffee;
-  const i = displayedCoffees.findIndex(c=>c.id===updated.id);
-  if (i!==-1) displayedCoffees[i]=updated;
-  currentDetail = updated;
-  showDetail(updated.id);
-  renderList();
-  if (result.remaining_g <= 0) {
-    showConfirm({
-      icon: '☕',
-      title: '¿Marcar como terminado?',
-      msg: `"${updated.name}" se ha quedado sin café restante. ¿Marcarlo como terminado con la fecha de hoy?`,
-      btnLabel: 'Marcar como terminado',
-      btnClass: 'btn-primary',
-      onConfirm: async () => {
-        const finished = await api('/coffees/'+updated.id+'/finish', {method:'POST'});
-        const j = displayedCoffees.findIndex(c=>c.id===finished.id);
-        if (j!==-1) displayedCoffees[j]=finished;
-        currentDetail = finished;
-        showDetail(finished.id);
-        renderList();
-        showToast('✅ Café terminado');
-      }
-    });
-  } else {
-    showToast(`☕ −${result.consumed_g}g · Quedan ${result.remaining_g}g`);
-  }
-}
-
-function editRemainingInline(id) {
-  document.getElementById('remaining-display-row').style.display = 'none';
-  document.getElementById('remaining-edit-row').style.display = '';
-  const inp = document.getElementById('remaining-input');
-  inp.focus(); inp.select();
-}
-
-function cancelEditRemaining() {
-  document.getElementById('remaining-display-row').style.display = '';
-  document.getElementById('remaining-edit-row').style.display = 'none';
-}
-
-async function saveRemaining(id) {
-  const val = parseInt(document.getElementById('remaining-input').value, 10);
-  if (isNaN(val) || val < 0) { showToast('⚠️ Valor inválido'); return; }
-  const updated = await api('/coffees/'+id+'/remaining', {method:'PUT', body:JSON.stringify({remaining_g:val})});
-  const i = displayedCoffees.findIndex(c=>c.id===id);
-  if (i!==-1) displayedCoffees[i]=updated;
-  currentDetail = updated;
-  showDetail(updated.id);
-  showToast('✓ Café restante actualizado');
-}
-
-// ---------------------------------------------------------------------------
-// Settings
-// ---------------------------------------------------------------------------
-async function openSettings() {
-  document.getElementById('s-grams').value = gramsPerShot;
-  document.getElementById('modal-settings').classList.add('open');
-}
-
-async function saveSettings() {
-  const gps = parseInt(document.getElementById('s-grams').value, 10);
-  if (isNaN(gps) || gps < 1 || gps > 100) { showToast('⚠️ Valor entre 1 y 100 g'); return; }
-  await api('/settings', {method:'PUT', body:JSON.stringify({grams_per_shot:gps})});
-  gramsPerShot = gps;
-  showToast('✓ Ajustes guardados');
-}
-
-// ---------------------------------------------------------------------------
-// Autocomplete
-// ---------------------------------------------------------------------------
-let acTimers = {};
-
-function acInput(input, table) {
-  clearTimeout(acTimers[table]);
-  acTimers[table] = setTimeout(()=>renderAC(input, table), 80);
-}
-
-function renderAC(input, table) {
-  const val = input.value.trim().toLowerCase();
-  const dropdown = document.getElementById('ac-'+table);
-  const chipField = CHIP_FIELDS[table];
-  let opts = (allOptions[table]||[]);
-
-  // For chip fields: hide already-selected values
-  if (chipField) opts = opts.filter(o => !chipField.state().includes(o.name));
-
-  // For regions: filter by currently typed country
-  if (table === 'regions') {
-    const originName = (document.getElementById('f-origin')||{}).value||'';
-    if (originName.trim()) {
-      const origin = (allOptions.origins||[]).find(o => o.name.toLowerCase() === originName.trim().toLowerCase());
-      if (origin) opts = opts.filter(o => !o.origin_id || o.origin_id === origin.id);
-    }
-  }
-
-  const matches = val ? opts.filter(o=>o.name.toLowerCase().includes(val)) : opts;
-  dropdown.textContent = '';
-
-  matches.slice(0,10).forEach(o => {
-    const div = document.createElement('div');
-    div.className = 'ac-item';
-    div.textContent = o.name;
-    div.addEventListener('mousedown', e => {
-      e.preventDefault();
-      if (chipField) addChip(table, o.name);
-      else acSelect(input.id, table, o.name);
-    });
-    dropdown.appendChild(div);
-  });
-
-  const exact = (allOptions[table]||[]).some(o => o.name.toLowerCase() === val);
-  if (val && !exact) {
-    const trimmed = input.value.trim();
-    const div = document.createElement('div');
-    div.className = 'ac-item new-entry';
-    div.textContent = '+ Añadir "' + trimmed + '"';
-    div.addEventListener('mousedown', e => {
-      e.preventDefault();
-      if (chipField) addChip(table, trimmed);
-      else acSelect(input.id, table, trimmed);
-    });
-    dropdown.appendChild(div);
-  }
-
-  dropdown.classList.toggle('open', dropdown.children.length > 0);
-}
-
-function acSelect(inputId, table, value) {
-  document.getElementById(inputId).value = value;
-  document.getElementById('ac-'+table).classList.remove('open');
-  if (table === 'origins') onOriginChange();
-  if (table === 'regions') onRegionSelect(value);
-}
-
-function acBlur(table) {
-  // Small delay so mousedown fires first
-  setTimeout(()=>{ document.getElementById('ac-'+table).classList.remove('open'); }, 150);
-  if (table === 'origins') setTimeout(onOriginChange, 160);
-  if (table === 'regions') {
-    const inp = document.getElementById('f-region');
-    if (inp) setTimeout(() => onRegionSelect(inp.value), 160);
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Chip input management (multi-select for varieties / processes)
-// ---------------------------------------------------------------------------
-function addChip(table, name) {
-  const cf = CHIP_FIELDS[table];
-  if (!cf) return;
-  const n = name.trim();
-  if (!n || cf.state().includes(n)) return;
-  cf.set([...cf.state(), n]);
-  renderChips(table);
-  const inp = document.getElementById(cf.inputId);
-  inp.value = '';
-  document.getElementById('ac-'+table).classList.remove('open');
-  inp.focus();
-}
-
-function removeChip(table, idx) {
-  const cf = CHIP_FIELDS[table];
-  if (!cf) return;
-  const arr = [...cf.state()];
-  arr.splice(idx, 1);
-  cf.set(arr);
-  renderChips(table);
-}
-
-function renderChips(table) {
-  const cf = CHIP_FIELDS[table];
-  if (!cf) return;
-  const el = document.getElementById(cf.chipsId);
-  el.textContent = '';
-  cf.state().forEach((v, i) => {
-    const chip = document.createElement('span');
-    chip.className = 'chip';
-    const txt = document.createElement('span');
-    txt.textContent = v;
-    const btn = document.createElement('button');
-    btn.className = 'chip-x';
-    btn.type = 'button';
-    btn.textContent = '×';
-    btn.addEventListener('mousedown', e => { e.preventDefault(); removeChip(table, i); });
-    chip.appendChild(txt);
-    chip.appendChild(btn);
-    el.appendChild(chip);
-  });
-}
-
-function chipKeydown(e, table) {
-  if (e.key === 'Enter') {
-    e.preventDefault();
-    const val = e.target.value.trim();
-    if (val) addChip(table, val);
-  } else if (e.key === 'Backspace' && !e.target.value) {
-    const cf = CHIP_FIELDS[table];
-    if (cf && cf.state().length > 0) removeChip(table, cf.state().length - 1);
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Region ↔ Country cascade
-// ---------------------------------------------------------------------------
-function onRegionSelect(regionName) {
-  if (!regionName || !regionName.trim()) return;
-  const region = (allOptions.regions||[]).find(r => r.name.toLowerCase() === regionName.trim().toLowerCase());
-  if (!region || !region.origin_id) return;
-  const origin = (allOptions.origins||[]).find(o => o.id === region.origin_id);
-  if (!origin) return;
-  const originInput = document.getElementById('f-origin');
-  if (originInput) {
-    originInput.value = origin.name;
-    onOriginChange();
-  }
-}
-
-function onOriginChange() {
-  const originName = (document.getElementById('f-origin')||{}).value||'';
-  const hint = document.getElementById('region-hint');
-  const regionInput = document.getElementById('f-region');
-  if (!hint) return;
-  if (originName.trim()) {
-    const origin = (allOptions.origins||[]).find(o => o.name.toLowerCase() === originName.trim().toLowerCase());
-    if (origin) {
-      // If the currently entered region belongs to a different country, clear it
-      if (regionInput && regionInput.value.trim()) {
-        const region = (allOptions.regions||[]).find(r => r.name.toLowerCase() === regionInput.value.trim().toLowerCase());
-        if (region && region.origin_id && region.origin_id !== origin.id) {
-          regionInput.value = '';
-        }
-      }
-      const count = (allOptions.regions||[]).filter(r => r.origin_id === origin.id).length;
-      hint.textContent = count ? count + ' región' + (count!==1?'es':'') + ' disponible' + (count!==1?'s':'') : '';
-      return;
-    }
-  }
-  hint.textContent = '';
-}
-
-// ---------------------------------------------------------------------------
-// Form
-// ---------------------------------------------------------------------------
-function setRating(val) {
-  document.getElementById('f-rating').value = val;
-  document.querySelectorAll('.rating-star').forEach(s=>s.classList.toggle('active', parseInt(s.dataset.val)<=val));
-}
-
-function resetForm() {
-  document.getElementById('coffee-form').reset();
-  document.getElementById('f-id').value='';
-  document.getElementById('f-rating').value='';
-  document.querySelectorAll('.rating-star').forEach(s=>s.classList.remove('active'));
-  document.getElementById('edit-actions').style.display='none';
-  document.getElementById('modal-title').textContent='Nuevo café';
-  // Reset chip fields
-  selectedVarieties = []; renderChips('varieties');
-  selectedProcesses = []; renderChips('processes');
-  selectedMilkTypes = []; renderChips('milk_types');
-  if (document.getElementById('region-hint')) document.getElementById('region-hint').textContent='';
-}
-
-function openAddModal() {
-  resetForm();
-  document.getElementById('f-purchase').value = new Date().toISOString().split('T')[0];
-  document.getElementById('modal-form').classList.add('open');
-}
-
-function openEditModal(c) {
-  resetForm();
-  document.getElementById('modal-title').textContent='Editar café';
-  document.getElementById('f-id').value=c.id;
-  document.getElementById('f-name').value=c.name||'';
-  document.getElementById('f-roaster').value=c.roaster||'';
-  document.getElementById('f-producer').value=c.producer||'';
-  document.getElementById('f-origin').value=c.origin||'';
-  document.getElementById('f-region').value=c.region||'';
-  document.getElementById('f-shop').value=c.shop||'';
-  // Chip fields
-  selectedVarieties = Array.isArray(c.varieties)   ? [...c.varieties]   : [];
-  selectedProcesses = Array.isArray(c.processes)   ? [...c.processes]   : [];
-  selectedMilkTypes = Array.isArray(c.milk_types)  ? [...c.milk_types]  : [];
-  renderChips('varieties'); renderChips('processes'); renderChips('milk_types');
-  onOriginChange();
-  document.getElementById('f-quantity').value=c.quantity_g||'';
-  document.getElementById('f-price').value=c.price_kg||'';
-  document.getElementById('f-purchase').value=c.purchase_date||'';
-  document.getElementById('f-roast').value=c.roast_date||'';
-  document.getElementById('f-opened').value=c.opened_date||'';
-  document.getElementById('f-finished').value=c.finished_date||'';
-  document.getElementById('f-notes').value=c.notes||'';
-  document.getElementById('f-altitude').value=c.altitude||'';
-  const r=parseInt(c.rating,10);
-  if (r>=1&&r<=5) setRating(r);
-  document.getElementById('edit-actions').style.display='flex';
-  document.getElementById('modal-form').classList.add('open');
-}
-
-function closeModal(id) { document.getElementById(id).classList.remove('open'); }
-
-async function submitForm(e) {
-  e.preventDefault();
-  const id = document.getElementById('f-id').value;
-  const rv = document.getElementById('f-rating').value;
-  const data = {
-    name:          document.getElementById('f-name').value,
-    roaster:       document.getElementById('f-roaster').value||null,
-    producer:      document.getElementById('f-producer').value||null,
-    varieties:     selectedVarieties.length ? [...selectedVarieties] : [],
-    origin:        document.getElementById('f-origin').value||null,
-    region:        document.getElementById('f-region').value||null,
-    processes:     selectedProcesses.length ? [...selectedProcesses] : [],
-    milk_types:    selectedMilkTypes.length  ? [...selectedMilkTypes]  : [],
-    shop:          document.getElementById('f-shop').value||null,
-    quantity_g:    document.getElementById('f-quantity').value?parseInt(document.getElementById('f-quantity').value):null,
-    price_kg:      document.getElementById('f-price').value?parseFloat(document.getElementById('f-price').value):null,
-    purchase_date: document.getElementById('f-purchase').value||null,
-    roast_date:    document.getElementById('f-roast').value||null,
-    opened_date:   document.getElementById('f-opened').value||null,
-    finished_date: document.getElementById('f-finished').value||null,
-    rating:        rv?parseInt(rv):null,
-    notes:         document.getElementById('f-notes').value||null,
-    altitude:      document.getElementById('f-altitude').value?parseInt(document.getElementById('f-altitude').value):null,
-  };
-  // Validate region-country consistency for known entities
-  if (data.region && data.origin) {
-    const region = (allOptions.regions||[]).find(r => r.name.toLowerCase() === data.region.toLowerCase());
-    const origin = (allOptions.origins||[]).find(o => o.name.toLowerCase() === data.origin.toLowerCase());
-    if (region && region.origin_id && origin && region.origin_id !== origin.id) {
-      const correct = (allOptions.origins||[]).find(o => o.id === region.origin_id);
-      showToast(`⚠️ La región "${data.region}" pertenece a "${correct ? correct.name : '?'}", no a "${data.origin}"`);
-      return;
-    }
-  }
-  if (id) await api('/coffees/'+id, {method:'PUT', body:JSON.stringify(data)});
-  else    await api('/coffees',     {method:'POST',body:JSON.stringify(data)});
-  closeModal('modal-form');
-  showToast(id?'☕ Café actualizado':'☕ Café añadido');
-  await loadOptions();       // refresh autocomplete lists
-  populateFilterSelects();   // refresh filter dropdowns
-  await fetchAndRender();
-}
-
-function deleteCoffee() {
-  const id = document.getElementById('f-id').value;
-  if (!id) return;
-  const name = document.getElementById('f-name').value;
-  showConfirm({
-    icon: '🗑', title: 'Eliminar café',
-    msg: `¿Eliminar "${name}"? Esta acción no se puede deshacer.`,
-    btnLabel: 'Eliminar', btnClass: 'btn-danger',
-    onConfirm: async () => {
-      await api('/coffees/'+id, {method:'DELETE'});
-      closeModal('modal-form');
-      showToast('Café eliminado');
-      await fetchAndRender();
-    }
-  });
-}
-
-// ---------------------------------------------------------------------------
-// Stats
-// ---------------------------------------------------------------------------
-async function loadStats() {
-  const [s, coffees] = await Promise.all([api('/stats'), api('/coffees')]);
-  calCoffees = coffees;
-
-  const dpkg = s.days_per_kg ? `${s.days_per_kg} días/kg` : '–';
-  const pending = s.total - s.active - s.finished;
-  document.getElementById('stats-grid').innerHTML = `
-    <div class="stat-card"><div class="stat-val">${pending}</div><div class="stat-label">Disponibles</div>${s.pending_weight_g?`<div class="stat-sub">${fmtWeight(s.pending_weight_g)}</div>`:''}</div>
-    <div class="stat-card"><div class="stat-val">${s.active}</div><div class="stat-label">En uso</div>${s.active_weight_g?`<div class="stat-sub">${fmtWeight(s.active_weight_g)} restantes</div>`:''}</div>
-    <div class="stat-card"><div class="stat-val">${s.avg_rating?'⭐ '+s.avg_rating:'–'}</div><div class="stat-label">Valoración media</div></div>
-    <div class="stat-card"><div class="stat-val">${s.avg_cost_kg?s.avg_cost_kg+'€/kg':'–'}</div><div class="stat-label">Coste medio/kg</div></div>
-    <div class="stat-card" style="grid-column:1/-1"><div class="stat-val" style="font-size:22px">${dpkg}</div><div class="stat-label">Consumo medio normalizado (días para 1 kg)</div></div>
-  `;
-
-  renderCalendar();
-
-  const chartsEl = document.getElementById('stats-charts');
-  chartsEl.textContent = '';
-  if (s.top_roasters?.length) chartsEl.insertAdjacentHTML('beforeend', buildBarChart('Tostadores más usados', s.top_roasters));
-  if (s.origins_breakdown?.length) chartsEl.insertAdjacentHTML('beforeend', buildBarChart('Por país de origen', s.origins_breakdown));
-  if (s.processes_breakdown?.length) chartsEl.insertAdjacentHTML('beforeend', buildBarChart('Por proceso', s.processes_breakdown));
-  if (s.varieties_breakdown?.length) chartsEl.insertAdjacentHTML('beforeend', buildBarChart('Por variedad', s.varieties_breakdown));
-}
-
-function buildBarChart(title, data) {
-  const max = Math.max(...data.map(r=>r.cnt));
-  const rows = data.map(r=>{
-    const rating = r.avg_rating != null ? ` · ⭐${r.avg_rating}` : '';
-    return `
-    <div class="bar-row">
-      <span class="bar-label" title="${esc(r.name)}">${esc(r.name)}</span>
-      <div class="bar-track"><div class="bar-fill" style="width:${Math.round(r.cnt/max*100)}%"></div></div>
-      <span class="bar-cnt">${r.cnt}${rating}</span>
-    </div>`;
-  }).join('');
-  return `<div class="stats-section"><h3>${title}</h3>${rows}</div>`;
-}
-
-// ---------------------------------------------------------------------------
-// Calendar
-// ---------------------------------------------------------------------------
-function calNav(delta) {
-  calMonth += delta;
-  if (calMonth < 0)  { calMonth = 11; calYear--; }
-  if (calMonth > 11) { calMonth = 0;  calYear++; }
-  // Don't navigate beyond current month
-  const now = new Date();
-  if (calYear > now.getFullYear() || (calYear === now.getFullYear() && calMonth > now.getMonth())) {
-    calYear = now.getFullYear();
-    calMonth = now.getMonth();
-  }
-  renderCalendar();
-}
-
-function renderCalendar() {
-  const el = document.getElementById('stats-calendar');
-  if (!el) return;
-
-  const firstDay = new Date(calYear, calMonth, 1);
-  const lastDay  = new Date(calYear, calMonth + 1, 0);
-  const dim      = lastDay.getDate();
-  const today    = new Date(); today.setHours(0,0,0,0);
-
-  // coffees that overlap this month and have been opened
-  const active = calCoffees.filter(c => {
-    if (!c.opened_date) return false;
-    const o = new Date(c.opened_date);
-    const e = c.finished_date ? new Date(c.finished_date) : today;
-    return o <= lastDay && e >= firstDay;
-  });
-
-  // day tick marks: 1, every 5, last day
-  const ticks = new Set([1]);
-  for (let d = 5; d < dim; d += 5) ticks.add(d);
-  ticks.add(dim);
-
-  const dayHeader = Array.from({length: dim}, (_,i) => {
-    const d = i + 1;
-    const left = ((i + 0.5) / dim * 100).toFixed(2);
-    return ticks.has(d) ? `<span class="cal-day-tick" style="left:${left}%">${d}</span>` : '';
-  }).join('');
-
-  let namesHTML = '', tracksHTML = '';
-  active.forEach(c => {
-    const opened   = new Date(c.opened_date);
-    const closed   = c.finished_date ? new Date(c.finished_date) : today;
-    const isOpen   = !c.finished_date;
-    const startIdx = Math.max(0,     Math.round((opened - firstDay) / 86400000));
-    const endIdx   = Math.min(dim-1, Math.round((closed - firstDay) / 86400000));
-    const leftPct  = (startIdx / dim * 100).toFixed(2);
-    const widthPct = ((endIdx - startIdx + 1) / dim * 100).toFixed(2);
-    const color    = isOpen ? 'var(--green)' : 'var(--accent)';
-
-    namesHTML  += `<div class="cal-name" title="${esc(c.name)}">${esc(c.name)}</div>`;
-    tracksHTML += `<div class="cal-track">
-      <div class="cal-bar" style="left:${leftPct}%;width:${widthPct}%;background:${color}">
-        <span class="cal-bar-label">${esc(c.name)}</span>
-      </div>
-    </div>`;
-  });
-
-  const now2 = new Date();
-  const atCurrentMonth = calYear === now2.getFullYear() && calMonth === now2.getMonth();
-  el.innerHTML = `<div class="stats-section" style="margin-bottom:10px">
-    <div class="cal-nav-header">
-      <button class="cal-nav-btn" onclick="calNav(-1)">‹</button>
-      <span class="cal-title-text">${MONTH_NAMES[calMonth]} ${calYear}</span>
-      <button class="cal-nav-btn" onclick="calNav(1)" ${atCurrentMonth ? 'disabled' : ''}>›</button>
-    </div>
-    ${active.length ? `
-    <div class="cal-layout">
-      <div class="cal-names-col">${namesHTML}</div>
-      <div class="cal-tracks-col">
-        <div class="cal-days-header">${dayHeader}</div>
-        ${tracksHTML}
-      </div>
-    </div>` : `<div class="cal-empty">Sin consumo registrado en ${MONTH_NAMES[calMonth].toLowerCase()} ${calYear}</div>`}
-  </div>`;
-}
-
-// ---------------------------------------------------------------------------
-// Catalog management
-// ---------------------------------------------------------------------------
-let LOOKUP_TABLES = [];  // populated from /api/options on init
-const CATALOG_LABELS = {
-  roasters:'Tostadores', producers:'Productores', shops:'Tiendas',
-  origins:'Países de origen', regions:'Regiones', varieties:'Variedades', processes:'Procesos',
-  milk_types:'Leches vegetales'
-};
-
-async function loadCatalog() {
-  const el = document.getElementById('catalog-content');
-  el.innerHTML = '<div class="loading">Cargando...</div>';
-  const results = await Promise.all(
-    LOOKUP_TABLES.map(t => api('/lookup/'+t).then(data => ({table:t, data})))
-  );
-  el.innerHTML = results.map(({table, data}) => {
-    const orphans = data.filter(r => r.coffee_count === 0).length;
-    const badge = `<span class="catalog-badge ${orphans?'has-orphans':''}" id="cat-badge-${table}">${data.length} entrada${data.length!==1?'s':''}${orphans?' · '+orphans+' sin usar':''}</span>`;
-    const rows = data.map(r => `
-      <div class="catalog-row" id="crow-${table}-${r.id}">
-        <span class="catalog-row-name" id="cname-${table}-${r.id}">${esc(r.name)}</span>
-        <input class="catalog-row-input" id="cinput-${table}-${r.id}" value="${esc(r.name)}"
-          onkeydown="catalogKeydown(event,'${table}',${r.id})" onfocus="this.select()">
-        <span class="catalog-count ${r.coffee_count===0?'zero':''}" title="${r.coffee_count} café(s)">
-          ${r.coffee_count===0?'✕':r.coffee_count}
-        </span>
-        <button class="btn-icon" id="cedit-${table}-${r.id}" onclick="catalogStartEdit('${table}',${r.id})" title="Renombrar">✏️</button>
-        <button class="btn-icon save" id="csave-${table}-${r.id}" style="display:none" onclick="catalogSave('${table}',${r.id})" title="Guardar">✓</button>
-        <button class="btn-icon" id="ccancel-${table}-${r.id}" style="display:none" onclick="catalogCancelEdit('${table}',${r.id})" title="Cancelar">✕</button>
-        <button class="btn-icon danger" onclick="catalogDelete('${table}',${r.id},${r.coffee_count})" title="Eliminar" ${r.coffee_count>0?'disabled style="opacity:0.3;cursor:not-allowed"':''}>🗑</button>
-      </div>`).join('');
-    const purgeBtn = orphans ? `<div class="catalog-purge"><button class="btn-purge" onclick="catalogPurge('${table}')">🧹 Eliminar ${orphans} huérfano${orphans!==1?'s':''}</button></div>` : '';
-    return `<div class="catalog-section">
-      <div class="catalog-header" onclick="toggleCatalogSection('${table}')">
-        <div class="catalog-header-left">
-          <span class="catalog-title">${CATALOG_LABELS[table]}</span>
-          ${badge}
-        </div>
-        <span id="cat-arrow-${table}" style="color:var(--text3)">›</span>
-      </div>
-      <div class="catalog-body" id="catbody-${table}">
-        ${rows || '<div style="padding:14px 16px;color:var(--text3);font-size:13px">Sin entradas</div>'}
-        ${purgeBtn}
-      </div>
-    </div>`;
-  }).join('');
-}
-
-function toggleCatalogSection(table) {
-  const body = document.getElementById('catbody-'+table);
-  const arrow = document.getElementById('cat-arrow-'+table);
-  body.classList.toggle('open');
-  arrow.textContent = body.classList.contains('open') ? '⌄' : '›';
-}
-
-function catalogStartEdit(table, id) {
-  document.getElementById('cname-'+table+'-'+id).style.display = 'none';
-  document.getElementById('cinput-'+table+'-'+id).style.display = 'block';
-  document.getElementById('cedit-'+table+'-'+id).style.display = 'none';
-  document.getElementById('csave-'+table+'-'+id).style.display = 'flex';
-  document.getElementById('ccancel-'+table+'-'+id).style.display = 'flex';
-  document.getElementById('cinput-'+table+'-'+id).focus();
-}
-
-function catalogCancelEdit(table, id) {
-  const nameEl = document.getElementById('cname-'+table+'-'+id);
-  document.getElementById('cinput-'+table+'-'+id).value = nameEl.textContent;
-  nameEl.style.display = '';
-  document.getElementById('cinput-'+table+'-'+id).style.display = 'none';
-  document.getElementById('cedit-'+table+'-'+id).style.display = '';
-  document.getElementById('csave-'+table+'-'+id).style.display = 'none';
-  document.getElementById('ccancel-'+table+'-'+id).style.display = 'none';
-}
-
-function catalogKeydown(e, table, id) {
-  if (e.key === 'Enter') catalogSave(table, id);
-  if (e.key === 'Escape') catalogCancelEdit(table, id);
-}
-
-async function catalogSave(table, id) {
-  const input = document.getElementById('cinput-'+table+'-'+id);
-  const newName = input.value.trim();
-  if (!newName) return;
-  const r = await api('/lookup/'+table+'/'+id, {method:'PUT', body:JSON.stringify({name:newName})});
-  if (r.error) { showToast('⚠️ '+r.error); return; }
-  // Update name in UI without full reload
-  document.getElementById('cname-'+table+'-'+id).textContent = newName;
-  catalogCancelEdit(table, id);
-  // Refresh autocomplete options
-  await loadOptions();
-  populateFilterSelects();
-  showToast('✓ Renombrado correctamente');
-}
-
-function catalogDelete(table, id, count) {
-  if (count > 0) return;
-  const name = document.getElementById('cname-'+table+'-'+id)?.textContent || '';
-  showConfirm({
-    icon: '🗑', title: 'Eliminar entrada',
-    msg: `¿Eliminar "${name}"?`,
-    btnLabel: 'Eliminar', btnClass: 'btn-danger',
-    onConfirm: async () => {
-      const r = await api('/lookup/'+table+'/'+id, {method:'DELETE'});
-      if (r.error) { showToast('⚠️ '+r.error); return; }
-      document.getElementById('crow-'+table+'-'+id).remove();
-      await loadOptions(); populateFilterSelects();
-      // Update section badge without full reload
-      const rows = document.querySelectorAll(`#catbody-${table} .catalog-row`);
-      const orphanCounts = document.querySelectorAll(`#catbody-${table} .catalog-count.zero`);
-      const total = rows.length, orphans = orphanCounts.length;
-      const badge = document.getElementById('cat-badge-'+table);
-      if (badge) {
-        badge.className = `catalog-badge${orphans?' has-orphans':''}`;
-        badge.textContent = `${total} entrada${total!==1?'s':''}${orphans?' · '+orphans+' sin usar':''}`;
-      }
-      const purgeEl = document.querySelector(`#catbody-${table} .catalog-purge`);
-      if (!orphans && purgeEl) purgeEl.remove();
-      else if (orphans && purgeEl) {
-        const btn = purgeEl.querySelector('.btn-purge');
-        if (btn) btn.textContent = `🧹 Eliminar ${orphans} huérfano${orphans!==1?'s':''}`;
-      }
-      showToast('🗑 Entrada eliminada');
-    }
-  });
-}
-
-async function catalogPurge(table) {
-  const r = await api('/lookup/'+table+'/purge', {method:'POST'});
-  showToast(`🧹 ${r.deleted} entrada${r.deleted!==1?'s':''} eliminada${r.deleted!==1?'s':''}`);
-  await loadOptions();
-  populateFilterSelects();
-  await loadCatalog();
-}
-
-function purgeAll() {
-  showConfirm({
-    icon: '🧹', title: 'Eliminar huérfanos',
-    msg: '¿Eliminar todos los valores de referencia sin usar en ningún café?',
-    btnLabel: 'Eliminar todos', btnClass: 'btn-danger',
-    onConfirm: async () => {
-      let total = 0;
-      for (const t of LOOKUP_TABLES) {
-        const r = await api('/lookup/'+t+'/purge', {method:'POST'});
-        total += r.deleted || 0;
-      }
-      showToast(`🧹 ${total} entrada${total!==1?'s':''} eliminada${total!==1?'s':''}`);
-      await loadOptions(); populateFilterSelects();
-      await loadCatalog();
-    }
-  });
-}
-document.querySelectorAll('.modal-overlay').forEach(m=>{
-  m.addEventListener('click', e=>{ if(e.target===m) m.classList.remove('open'); });
-});
-
-// ---------------------------------------------------------------------------
-// PIN auth
-// ---------------------------------------------------------------------------
-let pinValue = '';
-
-function pinDigit(d) {
-  if (pinValue.length >= 4) return;
-  pinValue += d;
-  updatePinDots();
-  if (pinValue.length === 4) submitPin();
-}
-
-function pinDelete() {
-  pinValue = pinValue.slice(0, -1);
-  updatePinDots();
-}
-
-function updatePinDots() {
-  document.querySelectorAll('#pin-dots .pin-dot').forEach((dot, i) => {
-    dot.classList.toggle('filled', i < pinValue.length);
-  });
-}
-
-async function submitPin() {
-  try {
-    await api('/auth/login', {method:'POST', body:JSON.stringify({pin: pinValue})});
-    document.getElementById('pin-lock').style.display = 'none';
-    init();
-  } catch {
-    document.getElementById('pin-error').textContent = 'PIN incorrecto';
-    pinValue = '';
-    updatePinDots();
-    setTimeout(() => { document.getElementById('pin-error').textContent = ''; }, 1500);
-  }
-}
-
-async function changePinSubmit() {
-  const current = document.getElementById('cp-current').value;
-  const newPin = document.getElementById('cp-new').value;
-  const confirm = document.getElementById('cp-confirm').value;
-  if (!/^\d{4}$/.test(newPin)) { showToast('⚠️ El PIN debe tener exactamente 4 dígitos'); return; }
-  if (newPin !== confirm) { showToast('⚠️ Los PINs no coinciden'); return; }
-  try {
-    await api('/auth/change-pin', {method:'POST', body:JSON.stringify({current_pin:current, new_pin:newPin})});
-    closeModal('modal-settings');
-    document.getElementById('cp-current').value = '';
-    document.getElementById('cp-new').value = '';
-    document.getElementById('cp-confirm').value = '';
-    showToast('✓ PIN cambiado correctamente');
-  } catch { /* api() already shows toast */ }
-}
-
-async function startup() {
-  const status = await fetch('/api/auth/status').then(r => r.json()).catch(() => ({authenticated: false}));
-  if (status.authenticated) {
-    document.getElementById('pin-lock').style.display = 'none';
-    init();
-  }
-  // else: pin-lock screen is already visible (default display:flex)
-}
-
-startup();
-
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/sw.js');
-}
-</script>
+<script type="module" src="/static/js/main.js"></script>
 </body>
 </html>
