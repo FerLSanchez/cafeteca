@@ -84,6 +84,12 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
 .btn-quick{border:1px solid var(--border);background:var(--surface2);color:var(--text2);border-radius:8px;padding:7px 12px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer}
 .btn-quick.open{border-color:rgba(122,184,122,0.4);color:var(--green)}
 .btn-quick.finish{border-color:rgba(200,112,58,0.4);color:var(--accent2)}
+.btn-consume{border:2px solid var(--accent);background:rgba(200,112,58,0.12);color:var(--accent2);border-radius:10px;padding:10px 18px;font-size:15px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer;width:100%;margin-top:12px;margin-bottom:4px;transition:background 0.15s}
+.btn-consume:active{background:rgba(200,112,58,0.25)}
+.btn-inline-edit{background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;padding:0 4px;vertical-align:middle;line-height:1}
+.remaining-edit-row{display:flex;align-items:center;gap:8px;flex:1}
+.remaining-input{width:72px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:4px 8px;font-size:14px;font-family:'DM Sans',sans-serif;outline:none}
+.remaining-input:focus{border-color:var(--accent)}
 .empty-state{text-align:center;padding:60px 20px;color:var(--text3)}
 .empty-icon{font-size:48px;margin-bottom:12px}
 .empty-state h3{color:var(--text2);font-family:'Playfair Display',serif;margin-bottom:6px}
@@ -93,6 +99,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
 .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:15px}
 .stat-val{font-family:'Playfair Display',serif;font-size:28px;color:var(--accent2)}
 .stat-label{font-size:12px;color:var(--text3);margin-top:2px}
+.stat-sub{font-size:13px;color:var(--text2);margin-top:4px;font-weight:500}
 .stats-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:15px;margin-bottom:10px}
 .stats-section h3{font-size:12px;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:12px}
 .bar-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
@@ -263,7 +270,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
   <div class="nav-logo">Cafeteca <span>tu diario de café</span></div>
   <div class="nav-right">
     <input class="nav-search" id="search-input" placeholder="Buscar..." oninput="onSearch(this.value)">
-    <button class="btn-icon-nav" onclick="document.getElementById('modal-change-pin').classList.add('open')" title="Ajustes">⚙️</button>
+    <button class="btn-icon-nav" onclick="openSettings()" title="Ajustes">⚙️</button>
     <button class="nav-add" onclick="openAddModal()">+</button>
   </div>
 </nav>
@@ -568,13 +575,21 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
   </div>
 </div>
 
-<!-- CHANGE PIN MODAL -->
-<div class="modal-overlay" id="modal-change-pin">
-  <div class="modal" style="max-width:320px">
+<!-- SETTINGS MODAL -->
+<div class="modal-overlay" id="modal-settings">
+  <div class="modal" style="max-width:360px">
     <div class="modal-header">
-      <div class="modal-title">Cambiar PIN</div>
-      <button class="modal-close" onclick="closeModal('modal-change-pin')">✕</button>
+      <div class="modal-title">⚙️ Ajustes</div>
+      <button class="modal-close" onclick="closeModal('modal-settings')">✕</button>
     </div>
+    <div class="form-section">Consumo</div>
+    <div class="form-group">
+      <label class="form-label">Gramos por toma (g)</label>
+      <input class="form-input" id="s-grams" type="number" min="1" max="100" placeholder="17">
+      <div style="font-size:12px;color:var(--text3);margin-top:4px">Gramos que se restan al pulsar "Consumir" en la ficha del café.</div>
+    </div>
+    <button class="btn-primary" onclick="saveSettings()" style="margin-bottom:18px">Guardar ajustes</button>
+    <div class="form-section">Seguridad</div>
     <div class="form-group">
       <label class="form-label">PIN actual</label>
       <input class="form-input" id="cp-current" type="password" inputmode="numeric" maxlength="4" placeholder="••••">
@@ -605,6 +620,7 @@ let activeStatus = '';
 let searchQuery = '';
 let searchTimer = null;
 let currentSort = 'smart';
+let gramsPerShot = 17;      // loaded from /api/settings
 
 // Multi-select chip state for m2m fields
 let selectedVarieties = [];
@@ -698,7 +714,8 @@ function sortedCoffees() {
 // Init
 // ---------------------------------------------------------------------------
 async function init() {
-  await loadOptions();
+  const [, settings] = await Promise.all([loadOptions(), api('/settings')]);
+  gramsPerShot = settings.grams_per_shot || 17;
   await fetchAndRender();
 }
 
@@ -780,6 +797,11 @@ function stars(rating) {
 function fmtDate(d) {
   if (!d) return null;
   const [y,m,day] = d.split('-'); return `${day}/${m}/${y}`;
+}
+
+function fmtWeight(g) {
+  if (!g) return '0g';
+  return g >= 1000 ? (g / 1000).toFixed(1) + 'kg' : g + 'g';
 }
 
 function fmtPrice(c) {
@@ -984,11 +1006,38 @@ function showDetail(id) {
   const roastDays = daysFromRoast(c.roast_date);
   const freshBanner = roastDays !== null && roastDays < 14 && !c.finished_date
     ? `<div class="fresh-warning-banner">⏳ Aún en reposo — faltan <strong>${14 - roastDays} días</strong> para las dos semanas desde el tueste (${roastDays} días de ${14}).</div>` : '';
+
+  // Remaining coffee row (editable)
+  const remainingRow = c.quantity_g != null ? `
+    <div class="detail-row" id="remaining-display-row">
+      <span class="detail-label">☕ Restante</span>
+      <span class="detail-val" style="display:flex;align-items:center;gap:6px">
+        <span id="remaining-display">${c.remaining_g != null ? c.remaining_g + 'g' : '—'}</span>
+        <button class="btn-inline-edit" onclick="editRemainingInline(${c.id})" title="Editar">✏️</button>
+      </span>
+    </div>
+    <div class="detail-row" id="remaining-edit-row" style="display:none">
+      <span class="detail-label">☕ Restante</span>
+      <span class="detail-val">
+        <span class="remaining-edit-row">
+          <input class="remaining-input" type="number" id="remaining-input" value="${c.remaining_g ?? ''}" min="0" onkeydown="if(event.key==='Enter')saveRemaining(${c.id});if(event.key==='Escape')cancelEditRemaining()">
+          <span style="color:var(--text3);font-size:13px">g</span>
+          <button class="btn-quick" onclick="saveRemaining(${c.id})" style="padding:4px 10px;font-size:12px">✓</button>
+          <button class="btn-quick" onclick="cancelEditRemaining()" style="padding:4px 10px;font-size:12px">✕</button>
+        </span>
+      </span>
+    </div>` : '';
+
+  // Consume button (only if not finished)
+  const consumeBtn = !c.finished_date ? `<button class="btn-consume" onclick="consumeCoffee()">☕ Consumir una toma (−${gramsPerShot}g)</button>` : '';
+
   document.getElementById('detail-content').innerHTML = `
     ${freshBanner}
     <div style="margin-bottom:12px">${stars(c.rating)}</div>
     ${rows.map(([l,v])=>`<div class="detail-row"><span class="detail-label">${esc(l)}</span><span class="detail-val">${esc(String(v))}</span></div>`).join('')}
+    ${remainingRow}
     ${c.notes?`<div style="margin-top:14px;font-size:14px;color:var(--text2);line-height:1.6;font-style:italic">"${esc(c.notes)}"</div>`:''}
+    ${consumeBtn}
   `;
   document.getElementById('modal-detail').classList.add('open');
 }
@@ -1030,6 +1079,79 @@ async function unrateCurrent() {
   showDetail(updated.id);
   renderList();
   showToast('☆ Valoración eliminada');
+}
+
+// ---------------------------------------------------------------------------
+// Consumo de café
+// ---------------------------------------------------------------------------
+async function consumeCoffee() {
+  if (!currentDetail) return;
+  const result = await api('/coffees/'+currentDetail.id+'/consume', {method:'POST'});
+  const updated = result.coffee;
+  const i = displayedCoffees.findIndex(c=>c.id===updated.id);
+  if (i!==-1) displayedCoffees[i]=updated;
+  currentDetail = updated;
+  showDetail(updated.id);
+  renderList();
+  if (result.remaining_g <= 0) {
+    showConfirm({
+      icon: '☕',
+      title: '¿Marcar como terminado?',
+      msg: `"${updated.name}" se ha quedado sin café restante. ¿Marcarlo como terminado con la fecha de hoy?`,
+      btnLabel: 'Marcar como terminado',
+      btnClass: 'btn-primary',
+      onConfirm: async () => {
+        const finished = await api('/coffees/'+updated.id+'/finish', {method:'POST'});
+        const j = displayedCoffees.findIndex(c=>c.id===finished.id);
+        if (j!==-1) displayedCoffees[j]=finished;
+        currentDetail = finished;
+        showDetail(finished.id);
+        renderList();
+        showToast('✅ Café terminado');
+      }
+    });
+  } else {
+    showToast(`☕ −${result.consumed_g}g · Quedan ${result.remaining_g}g`);
+  }
+}
+
+function editRemainingInline(id) {
+  document.getElementById('remaining-display-row').style.display = 'none';
+  document.getElementById('remaining-edit-row').style.display = '';
+  const inp = document.getElementById('remaining-input');
+  inp.focus(); inp.select();
+}
+
+function cancelEditRemaining() {
+  document.getElementById('remaining-display-row').style.display = '';
+  document.getElementById('remaining-edit-row').style.display = 'none';
+}
+
+async function saveRemaining(id) {
+  const val = parseInt(document.getElementById('remaining-input').value, 10);
+  if (isNaN(val) || val < 0) { showToast('⚠️ Valor inválido'); return; }
+  const updated = await api('/coffees/'+id+'/remaining', {method:'PUT', body:JSON.stringify({remaining_g:val})});
+  const i = displayedCoffees.findIndex(c=>c.id===id);
+  if (i!==-1) displayedCoffees[i]=updated;
+  currentDetail = updated;
+  showDetail(updated.id);
+  showToast('✓ Café restante actualizado');
+}
+
+// ---------------------------------------------------------------------------
+// Settings
+// ---------------------------------------------------------------------------
+async function openSettings() {
+  document.getElementById('s-grams').value = gramsPerShot;
+  document.getElementById('modal-settings').classList.add('open');
+}
+
+async function saveSettings() {
+  const gps = parseInt(document.getElementById('s-grams').value, 10);
+  if (isNaN(gps) || gps < 1 || gps > 100) { showToast('⚠️ Valor entre 1 y 100 g'); return; }
+  await api('/settings', {method:'PUT', body:JSON.stringify({grams_per_shot:gps})});
+  gramsPerShot = gps;
+  showToast('✓ Ajustes guardados');
 }
 
 // ---------------------------------------------------------------------------
@@ -1335,8 +1457,8 @@ async function loadStats() {
   const dpkg = s.days_per_kg ? `${s.days_per_kg} días/kg` : '–';
   const pending = s.total - s.active - s.finished;
   document.getElementById('stats-grid').innerHTML = `
-    <div class="stat-card"><div class="stat-val">${pending}</div><div class="stat-label">Disponibles</div></div>
-    <div class="stat-card"><div class="stat-val">${s.active}</div><div class="stat-label">En uso</div></div>
+    <div class="stat-card"><div class="stat-val">${pending}</div><div class="stat-label">Disponibles</div>${s.pending_weight_g?`<div class="stat-sub">${fmtWeight(s.pending_weight_g)}</div>`:''}</div>
+    <div class="stat-card"><div class="stat-val">${s.active}</div><div class="stat-label">En uso</div>${s.active_weight_g?`<div class="stat-sub">${fmtWeight(s.active_weight_g)} restantes</div>`:''}</div>
     <div class="stat-card"><div class="stat-val">${s.avg_rating?'⭐ '+s.avg_rating:'–'}</div><div class="stat-label">Valoración media</div></div>
     <div class="stat-card"><div class="stat-val">${s.avg_cost_kg?s.avg_cost_kg+'€/kg':'–'}</div><div class="stat-label">Coste medio/kg</div></div>
     <div class="stat-card" style="grid-column:1/-1"><div class="stat-val" style="font-size:22px">${dpkg}</div><div class="stat-label">Consumo medio normalizado (días para 1 kg)</div></div>
@@ -1648,7 +1770,7 @@ async function changePinSubmit() {
   if (newPin !== confirm) { showToast('⚠️ Los PINs no coinciden'); return; }
   try {
     await api('/auth/change-pin', {method:'POST', body:JSON.stringify({current_pin:current, new_pin:newPin})});
-    closeModal('modal-change-pin');
+    closeModal('modal-settings');
     document.getElementById('cp-current').value = '';
     document.getElementById('cp-new').value = '';
     document.getElementById('cp-confirm').value = '';

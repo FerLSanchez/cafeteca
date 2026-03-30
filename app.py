@@ -149,6 +149,7 @@ def init_settings(conn):
         "INSERT OR IGNORE INTO settings (key, value) VALUES ('pin_hash', ?)",
         (_pin_hash('1111'),)
     )
+    conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('grams_per_shot', '17')")
 
 
 def login_required(f):
@@ -176,6 +177,7 @@ def init_db():
             region_id     INTEGER REFERENCES regions(id),
             shop_id       INTEGER REFERENCES shops(id),
             quantity_g    INTEGER,
+            remaining_g   INTEGER,
             price_kg      REAL,
             purchase_date TEXT,
             roast_date    TEXT,
@@ -189,6 +191,7 @@ def init_db():
         migrate_v1(conn)
         migrate_v2(conn)
         migrate_v3(conn)
+        migrate_v4(conn)
         if not col_exists(conn, 'coffees', 'altitude'):
             conn.execute('ALTER TABLE coffees ADD COLUMN altitude INTEGER')
 
@@ -293,6 +296,13 @@ def migrate_v3(conn):
     for name in ['Avena', 'Arroz', 'Almendras', 'Soja', 'Coco', 'Avellanas']:
         conn.execute("INSERT OR IGNORE INTO milk_types (name) VALUES (?)", (name,))
 
+def migrate_v4(conn):
+    """Phase 4: add remaining_g column, default to quantity_g for existing rows."""
+    if not col_exists(conn, 'coffees', 'remaining_g'):
+        conn.execute('ALTER TABLE coffees ADD COLUMN remaining_g INTEGER')
+        conn.execute('UPDATE coffees SET remaining_g=quantity_g WHERE remaining_g IS NULL AND quantity_g IS NOT NULL')
+        print('[migration v4] Added remaining_g column.')
+
 def _rebuild_table_v1(conn):
     """Rebuild coffees without old text columns (SQLite < 3.35)."""
     conn.execute('ALTER TABLE coffees RENAME TO coffees_old')
@@ -346,7 +356,7 @@ def _rebuild_table_v2(conn):
 # ---------------------------------------------------------------------------
 
 COFFEE_SELECT = '''
-    SELECT c.id, c.name, c.quantity_g, c.price_kg, c.altitude,
+    SELECT c.id, c.name, c.quantity_g, c.remaining_g, c.price_kg, c.altitude,
            c.purchase_date, c.roast_date, c.opened_date, c.finished_date,
            c.rating, c.notes, c.created_at,
            c.roaster_id,  ro.name AS roaster,
@@ -603,8 +613,10 @@ def add_coffee():
         return jsonify({'error': err}), 400
     with db_conn() as conn:
         ids = resolve_ids(conn, data)
-        fields = list(ids.keys()) + SCALAR_FIELDS
-        vals   = list(ids.values()) + [data.get(f) for f in SCALAR_FIELDS]
+        # Auto-set remaining_g to quantity_g if not provided
+        remaining_g = data.get('remaining_g') if data.get('remaining_g') is not None else data.get('quantity_g')
+        fields = list(ids.keys()) + SCALAR_FIELDS + ['remaining_g']
+        vals   = list(ids.values()) + [data.get(f) for f in SCALAR_FIELDS] + [remaining_g]
         cur = conn.execute(
             f"INSERT INTO coffees ({','.join(fields)}) VALUES ({','.join(['?']*len(fields))})", vals)
         cid = cur.lastrowid
@@ -667,6 +679,35 @@ def unrate_coffee(cid):
     return jsonify(row)
 
 
+@app.route('/api/coffees/<int:cid>/remaining', methods=['PUT'])
+@login_required
+def set_remaining(cid):
+    data = request.get_json(silent=True) or {}
+    val = data.get('remaining_g')
+    if val is None or not isinstance(val, int) or isinstance(val, bool) or val < 0:
+        return jsonify({'error': 'remaining_g debe ser un entero no negativo'}), 400
+    with db_conn() as conn:
+        conn.execute('UPDATE coffees SET remaining_g=? WHERE id=?', (val, cid))
+        row = row_to_coffee(conn.execute(COFFEE_SELECT + ' WHERE c.id=?', (cid,)).fetchone())
+    return jsonify(row)
+
+
+@app.route('/api/coffees/<int:cid>/consume', methods=['POST'])
+@login_required
+def consume_coffee(cid):
+    with db_conn() as conn:
+        coffee_row = conn.execute('SELECT remaining_g FROM coffees WHERE id=?', (cid,)).fetchone()
+        if not coffee_row:
+            return jsonify({'error': 'Not found'}), 404
+        gps_row = conn.execute("SELECT value FROM settings WHERE key='grams_per_shot'").fetchone()
+        grams = int(gps_row['value']) if gps_row else 17
+        current = coffee_row['remaining_g'] if coffee_row['remaining_g'] is not None else 0
+        new_val = max(0, current - grams)
+        conn.execute('UPDATE coffees SET remaining_g=? WHERE id=?', (new_val, cid))
+        row = row_to_coffee(conn.execute(COFFEE_SELECT + ' WHERE c.id=?', (cid,)).fetchone())
+    return jsonify({'coffee': row, 'consumed_g': grams, 'remaining_g': new_val})
+
+
 @app.route('/api/coffees/<int:cid>', methods=['DELETE'])
 @login_required
 def delete_coffee(cid):
@@ -682,6 +723,12 @@ def stats():
         total    = conn.execute('SELECT COUNT(*) FROM coffees').fetchone()[0]
         finished = conn.execute("SELECT COUNT(*) FROM coffees WHERE finished_date IS NOT NULL AND finished_date!=''").fetchone()[0]
         active   = conn.execute("SELECT COUNT(*) FROM coffees WHERE opened_date IS NOT NULL AND opened_date!='' AND (finished_date IS NULL OR finished_date='')").fetchone()[0]
+        pending_weight_g = conn.execute(
+            "SELECT COALESCE(SUM(quantity_g),0) FROM coffees WHERE (opened_date IS NULL OR opened_date='') AND (finished_date IS NULL OR finished_date='')"
+        ).fetchone()[0]
+        active_weight_g = conn.execute(
+            "SELECT COALESCE(SUM(remaining_g),0) FROM coffees WHERE opened_date IS NOT NULL AND opened_date!='' AND (finished_date IS NULL OR finished_date='')"
+        ).fetchone()[0]
         avg_r    = conn.execute('SELECT AVG(rating) FROM coffees WHERE rating IS NOT NULL').fetchone()[0]
         spent    = conn.execute('SELECT SUM(quantity_g/1000.0*price_kg) FROM coffees WHERE price_kg IS NOT NULL AND quantity_g IS NOT NULL').fetchone()[0]
         avg_cost_kg = conn.execute('''
@@ -717,6 +764,8 @@ def stats():
             GROUP BY v.id ORDER BY cnt DESC LIMIT 6''').fetchall()
     return jsonify({
         'total': total, 'finished': finished, 'active': active,
+        'pending_weight_g': pending_weight_g,
+        'active_weight_g': active_weight_g,
         'avg_rating': round(avg_r, 1) if avg_r else None,
         'total_spent': round(spent, 2) if spent else 0,
         'avg_cost_kg': round(avg_cost_kg, 2) if avg_cost_kg else None,
@@ -726,6 +775,28 @@ def stats():
         'processes_breakdown': [{'name': r['name'], 'cnt': r['cnt'], 'avg_rating': round(r['avg_rating'], 1) if r['avg_rating'] else None} for r in processes_bd],
         'varieties_breakdown': [{'name': r['name'], 'cnt': r['cnt'], 'avg_rating': round(r['avg_rating'], 1) if r['avg_rating'] else None} for r in varieties_bd],
     })
+
+
+@app.route('/api/settings')
+@login_required
+def get_settings():
+    with db_conn() as conn:
+        row = conn.execute("SELECT value FROM settings WHERE key='grams_per_shot'").fetchone()
+    return jsonify({'grams_per_shot': int(row['value']) if row else 17})
+
+
+@app.route('/api/settings', methods=['PUT'])
+@login_required
+def update_settings():
+    data = request.get_json(silent=True) or {}
+    gps = data.get('grams_per_shot')
+    if gps is None:
+        return jsonify({'error': 'Parámetro requerido: grams_per_shot'}), 400
+    if not isinstance(gps, int) or isinstance(gps, bool) or gps <= 0 or gps > 100:
+        return jsonify({'error': 'grams_per_shot debe ser un entero entre 1 y 100'}), 400
+    with db_conn() as conn:
+        conn.execute("INSERT OR REPLACE INTO settings (key, value) VALUES ('grams_per_shot', ?)", (str(gps),))
+    return jsonify({'ok': True})
 
 
 # Lookup management
