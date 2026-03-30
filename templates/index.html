@@ -193,6 +193,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
 .cal-nav-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
 .cal-title-text{font-family:'Playfair Display',serif;font-size:17px;color:var(--accent2)}
 .cal-nav-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text2);width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:20px;line-height:1;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.cal-nav-btn:disabled{opacity:0.3;cursor:default;pointer-events:none}
 .cal-layout{display:flex;align-items:flex-start;gap:0}
 .cal-names-col{flex-shrink:0;width:85px;display:flex;flex-direction:column;gap:5px;margin-top:25px}
 .cal-name{font-size:11px;color:var(--text2);height:18px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;align-items:center}
@@ -287,6 +288,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
     <div class="sort-row">
       <label>Orden:</label>
       <select class="filter-select" id="sort-select" onchange="onSortChange()" style="flex:1;max-width:200px">
+        <option value="smart">Recomendado</option>
         <option value="created_desc">Más reciente</option>
         <option value="roast_desc">Tueste ↓ reciente</option>
         <option value="roast_asc">Tueste ↑ antiguo</option>
@@ -602,7 +604,7 @@ let activeFilters = {};     // {roaster_id: 1, origin_id: 2, ...}
 let activeStatus = '';
 let searchQuery = '';
 let searchTimer = null;
-let currentSort = 'created_desc';
+let currentSort = 'smart';
 
 // Multi-select chip state for m2m fields
 let selectedVarieties = [];
@@ -674,6 +676,16 @@ function onSortChange() {
 function sortedCoffees() {
   const arr = [...displayedCoffees];
   switch (currentSort) {
+    case 'smart': return arr.sort((a, b) => {
+      // 0=abierto, 1=sin abrir, 2=terminado
+      const statusOrder = c => c.finished_date ? 2 : c.opened_date ? 0 : 1;
+      const sa = statusOrder(a), sb = statusOrder(b);
+      if (sa !== sb) return sa - sb;
+      // abiertos y sin abrir: tueste más antiguo primero
+      if (sa < 2) return (a.roast_date || '').localeCompare(b.roast_date || '');
+      // terminados: más reciente primero
+      return (b.finished_date || '').localeCompare(a.finished_date || '');
+    });
     case 'roast_desc':  return arr.sort((a,b)=>(b.roast_date||'').localeCompare(a.roast_date||''));
     case 'roast_asc':   return arr.sort((a,b)=>(a.roast_date||'').localeCompare(b.roast_date||''));
     case 'rating_desc': return arr.sort((a,b)=>(b.rating||0)-(a.rating||0));
@@ -1321,11 +1333,12 @@ async function loadStats() {
   calCoffees = coffees;
 
   const dpkg = s.days_per_kg ? `${s.days_per_kg} días/kg` : '–';
+  const pending = s.total - s.active - s.finished;
   document.getElementById('stats-grid').innerHTML = `
-    <div class="stat-card"><div class="stat-val">${s.total}</div><div class="stat-label">Registrados</div></div>
+    <div class="stat-card"><div class="stat-val">${pending}</div><div class="stat-label">Disponibles</div></div>
     <div class="stat-card"><div class="stat-val">${s.active}</div><div class="stat-label">En uso</div></div>
     <div class="stat-card"><div class="stat-val">${s.avg_rating?'⭐ '+s.avg_rating:'–'}</div><div class="stat-label">Valoración media</div></div>
-    <div class="stat-card"><div class="stat-val">${s.total_spent?s.total_spent+'€':'–'}</div><div class="stat-label">Gasto total</div></div>
+    <div class="stat-card"><div class="stat-val">${s.avg_cost_kg?s.avg_cost_kg+'€/kg':'–'}</div><div class="stat-label">Coste medio/kg</div></div>
     <div class="stat-card" style="grid-column:1/-1"><div class="stat-val" style="font-size:22px">${dpkg}</div><div class="stat-label">Consumo medio normalizado (días para 1 kg)</div></div>
   `;
 
@@ -1416,11 +1429,13 @@ function renderCalendar() {
     </div>`;
   });
 
+  const now2 = new Date();
+  const atCurrentMonth = calYear === now2.getFullYear() && calMonth === now2.getMonth();
   el.innerHTML = `<div class="stats-section" style="margin-bottom:10px">
     <div class="cal-nav-header">
       <button class="cal-nav-btn" onclick="calNav(-1)">‹</button>
       <span class="cal-title-text">${MONTH_NAMES[calMonth]} ${calYear}</span>
-      <button class="cal-nav-btn" onclick="calNav(1)">›</button>
+      <button class="cal-nav-btn" onclick="calNav(1)" ${atCurrentMonth ? 'disabled' : ''}>›</button>
     </div>
     ${active.length ? `
     <div class="cal-layout">

@@ -684,6 +684,10 @@ def stats():
         active   = conn.execute("SELECT COUNT(*) FROM coffees WHERE opened_date IS NOT NULL AND opened_date!='' AND (finished_date IS NULL OR finished_date='')").fetchone()[0]
         avg_r    = conn.execute('SELECT AVG(rating) FROM coffees WHERE rating IS NOT NULL').fetchone()[0]
         spent    = conn.execute('SELECT SUM(quantity_g/1000.0*price_kg) FROM coffees WHERE price_kg IS NOT NULL AND quantity_g IS NOT NULL').fetchone()[0]
+        avg_cost_kg = conn.execute('''
+            SELECT SUM(quantity_g/1000.0*price_kg) / NULLIF(SUM(quantity_g/1000.0), 0)
+            FROM coffees WHERE price_kg IS NOT NULL AND quantity_g IS NOT NULL AND quantity_g > 0
+        ''').fetchone()[0]
         days_per_kg = conn.execute('''
             SELECT AVG((julianday(finished_date) - julianday(opened_date)) / (quantity_g / 1000.0))
             FROM coffees
@@ -715,6 +719,7 @@ def stats():
         'total': total, 'finished': finished, 'active': active,
         'avg_rating': round(avg_r, 1) if avg_r else None,
         'total_spent': round(spent, 2) if spent else 0,
+        'avg_cost_kg': round(avg_cost_kg, 2) if avg_cost_kg else None,
         'days_per_kg': round(days_per_kg, 1) if days_per_kg else None,
         'top_roasters': [{'name': r['name'], 'cnt': r['cnt'], 'avg_rating': round(r['avg_rating'], 1) if r['avg_rating'] else None} for r in top_roasters],
         'origins_breakdown': [{'name': r['name'], 'cnt': r['cnt'], 'avg_rating': round(r['avg_rating'], 1) if r['avg_rating'] else None} for r in origins_bd],
