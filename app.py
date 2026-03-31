@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify, send_from_directory, session
-import sqlite3, os, re, hashlib, secrets, functools
+import sqlite3, os, re, hashlib, secrets, functools, logging
 from datetime import datetime
 from contextlib import contextmanager
 
@@ -22,8 +22,11 @@ def _get_secret_key():
             os.makedirs(data_dir, exist_ok=True)
             with open(key_path, 'w') as f:
                 f.write(key)
-        except Exception:
-            pass
+        except Exception as e:
+            logging.warning(
+                '[secret_key] No se pudo persistir la clave secreta en disco: %s. '
+                'La clave cambiará en cada reinicio e invalidará las sesiones activas.', e
+            )
         return key
 
 
@@ -44,9 +47,12 @@ def add_security_headers(response):
         "script-src 'self' 'unsafe-inline'; "
         "connect-src 'self'; "
         "img-src 'self' data:; "
+        "manifest-src 'self'; "
+        "worker-src 'self'; "
         "object-src 'none'; "
         "base-uri 'self'; "
-        "form-action 'self'"
+        "form-action 'self'; "
+        "frame-ancestors 'none'"
     )
     return response
 
@@ -126,11 +132,9 @@ def get_or_create(conn, table, name):
     if not name or not str(name).strip():
         return None
     name = str(name).strip()
+    conn.execute(f'INSERT OR IGNORE INTO {table} (name) VALUES (?)', (name,))
     row = conn.execute(f'SELECT id FROM {table} WHERE name=? COLLATE NOCASE', (name,)).fetchone()
-    if row:
-        return row[0]
-    cur = conn.execute(f'INSERT INTO {table} (name) VALUES (?)', (name,))
-    return cur.lastrowid
+    return row[0]
 
 # ---------------------------------------------------------------------------
 # Schema + migration
@@ -192,6 +196,7 @@ def init_db():
         migrate_v2(conn)
         migrate_v3(conn)
         migrate_v4(conn)
+        migrate_v5(conn)
         if not col_exists(conn, 'coffees', 'altitude'):
             conn.execute('ALTER TABLE coffees ADD COLUMN altitude INTEGER')
 
@@ -302,6 +307,56 @@ def migrate_v4(conn):
         conn.execute('ALTER TABLE coffees ADD COLUMN remaining_g INTEGER')
         conn.execute('UPDATE coffees SET remaining_g=quantity_g WHERE remaining_g IS NULL AND quantity_g IS NOT NULL')
         print('[migration v4] Added remaining_g column.')
+
+
+FTS_ENABLED = False
+
+def migrate_v5(conn):
+    """Phase 5: FTS5 full-text search index on name and notes."""
+    global FTS_ENABLED
+    fts_exists = conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='coffees_fts'"
+    ).fetchone()
+    if fts_exists:
+        FTS_ENABLED = True
+        return
+    try:
+        conn.execute('''
+            CREATE VIRTUAL TABLE coffees_fts USING fts5(
+                name, notes,
+                content='coffees',
+                content_rowid='id',
+                tokenize='unicode61'
+            )
+        ''')
+        conn.execute(
+            "INSERT INTO coffees_fts(rowid, name, notes) "
+            "SELECT id, name, COALESCE(notes, '') FROM coffees"
+        )
+        conn.execute('''
+            CREATE TRIGGER coffees_fts_ai AFTER INSERT ON coffees BEGIN
+                INSERT INTO coffees_fts(rowid, name, notes)
+                VALUES (new.id, new.name, COALESCE(new.notes, ''));
+            END
+        ''')
+        conn.execute('''
+            CREATE TRIGGER coffees_fts_au AFTER UPDATE ON coffees BEGIN
+                INSERT INTO coffees_fts(coffees_fts, rowid, name, notes)
+                VALUES('delete', old.id, old.name, COALESCE(old.notes, ''));
+                INSERT INTO coffees_fts(rowid, name, notes)
+                VALUES (new.id, new.name, COALESCE(new.notes, ''));
+            END
+        ''')
+        conn.execute('''
+            CREATE TRIGGER coffees_fts_ad AFTER DELETE ON coffees BEGIN
+                INSERT INTO coffees_fts(coffees_fts, rowid, name, notes)
+                VALUES('delete', old.id, old.name, COALESCE(old.notes, ''));
+            END
+        ''')
+        FTS_ENABLED = True
+        print('[migration v5] FTS5 full-text search index created.')
+    except Exception as e:
+        logging.warning('[migration v5] FTS5 no disponible (%s). La búsqueda usará LIKE.', e)
 
 def _rebuild_table_v1(conn):
     """Rebuild coffees without old text columns (SQLite < 3.35)."""
@@ -595,10 +650,28 @@ def list_coffees():
     elif status == 'unrated':
         where.append('c.rating IS NULL')
     if args.get('q'):
-        q = f'%{args["q"].strip()}%'
-        where.append('(c.name LIKE ? OR ro.name LIKE ? OR c.notes LIKE ? OR o.name LIKE ?)')
-        vals.extend([q, q, q, q])
+        q = args["q"].strip()
+        if FTS_ENABLED:
+            fts_q = ' '.join(f'"{w.replace(chr(34), "")}"*' for w in q.split() if w)
+            where.append(
+                '(c.id IN (SELECT rowid FROM coffees_fts WHERE coffees_fts MATCH ?) '
+                'OR ro.name LIKE ? OR o.name LIKE ?)'
+            )
+            vals.extend([fts_q, f'%{q}%', f'%{q}%'])
+        else:
+            q_like = f'%{q}%'
+            where.append('(c.name LIKE ? OR ro.name LIKE ? OR c.notes LIKE ? OR o.name LIKE ?)')
+            vals.extend([q_like, q_like, q_like, q_like])
+    try:
+        limit  = int(args['limit'])  if args.get('limit')  else None
+        offset = int(args['offset']) if args.get('offset') else 0
+        if limit is not None and limit <= 0:
+            raise ValueError
+    except (ValueError, TypeError):
+        return jsonify({'error': 'Parámetros limit/offset inválidos'}), 400
     sql = COFFEE_SELECT + (' WHERE ' + ' AND '.join(where) if where else '') + ' ORDER BY c.created_at DESC'
+    if limit is not None:
+        sql += f' LIMIT {limit} OFFSET {offset}'
     with db_conn() as conn:
         rows = conn.execute(sql, vals).fetchall()
     return jsonify([row_to_coffee(r) for r in rows])
@@ -655,6 +728,8 @@ def open_coffee(cid):
     if not isinstance(date, str) or not DATE_RE.match(date):
         return jsonify({'error': 'Formato de fecha inválido (esperado YYYY-MM-DD)'}), 400
     with db_conn() as conn:
+        if not conn.execute('SELECT 1 FROM coffees WHERE id=?', (cid,)).fetchone():
+            return jsonify({'error': 'Café no encontrado'}), 404
         conn.execute('UPDATE coffees SET opened_date=? WHERE id=?', (date, cid))
         row = row_to_coffee(conn.execute(COFFEE_SELECT + ' WHERE c.id=?', (cid,)).fetchone())
     return jsonify(row)
@@ -665,6 +740,8 @@ def open_coffee(cid):
 def finish_coffee(cid):
     today = datetime.now().strftime('%Y-%m-%d')
     with db_conn() as conn:
+        if not conn.execute('SELECT 1 FROM coffees WHERE id=?', (cid,)).fetchone():
+            return jsonify({'error': 'Café no encontrado'}), 404
         conn.execute('UPDATE coffees SET finished_date=? WHERE id=?', (today, cid))
         row = row_to_coffee(conn.execute(COFFEE_SELECT + ' WHERE c.id=?', (cid,)).fetchone())
     return jsonify(row)
@@ -674,6 +751,8 @@ def finish_coffee(cid):
 @login_required
 def unrate_coffee(cid):
     with db_conn() as conn:
+        if not conn.execute('SELECT 1 FROM coffees WHERE id=?', (cid,)).fetchone():
+            return jsonify({'error': 'Café no encontrado'}), 404
         conn.execute('UPDATE coffees SET rating=NULL WHERE id=?', (cid,))
         row = row_to_coffee(conn.execute(COFFEE_SELECT + ' WHERE c.id=?', (cid,)).fetchone())
     return jsonify(row)
@@ -687,6 +766,8 @@ def set_remaining(cid):
     if val is None or not isinstance(val, int) or isinstance(val, bool) or val < 0:
         return jsonify({'error': 'remaining_g debe ser un entero no negativo'}), 400
     with db_conn() as conn:
+        if not conn.execute('SELECT 1 FROM coffees WHERE id=?', (cid,)).fetchone():
+            return jsonify({'error': 'Café no encontrado'}), 404
         conn.execute('UPDATE coffees SET remaining_g=? WHERE id=?', (val, cid))
         row = row_to_coffee(conn.execute(COFFEE_SELECT + ' WHERE c.id=?', (cid,)).fetchone())
     return jsonify(row)
@@ -712,7 +793,9 @@ def consume_coffee(cid):
 @login_required
 def delete_coffee(cid):
     with db_conn() as conn:
-        conn.execute('DELETE FROM coffees WHERE id=?', (cid,))
+        cur = conn.execute('DELETE FROM coffees WHERE id=?', (cid,))
+        if cur.rowcount == 0:
+            return jsonify({'error': 'Café no encontrado'}), 404
     return jsonify({'ok': True})
 
 
