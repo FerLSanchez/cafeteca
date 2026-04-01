@@ -1,6 +1,7 @@
 FROM python:3.12-slim
 WORKDIR /app
-RUN pip install flask --no-cache-dir
+COPY requirements.txt .
+RUN pip install -r requirements.txt --no-cache-dir
 COPY app.py .
 COPY templates/ templates/
 COPY static/ static/

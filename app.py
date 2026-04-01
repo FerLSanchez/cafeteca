@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify, send_from_directory, session
-import sqlite3, os, re, hashlib, secrets, functools, logging
+import sqlite3, os, re, hashlib, secrets, functools, logging, time
 from datetime import datetime
 from contextlib import contextmanager
 
@@ -33,6 +33,9 @@ def _get_secret_key():
 app.secret_key = _get_secret_key()
 
 DATE_RE = re.compile(r'^\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01])$')
+
+SETTING_PIN_HASH      = 'pin_hash'
+SETTING_GRAMS_PER_SHOT = 'grams_per_shot'
 
 
 @app.after_request
@@ -150,10 +153,10 @@ def init_settings(conn):
         value TEXT NOT NULL
     )''')
     conn.execute(
-        "INSERT OR IGNORE INTO settings (key, value) VALUES ('pin_hash', ?)",
-        (_pin_hash('1111'),)
+        "INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)",
+        (SETTING_PIN_HASH, _pin_hash('1111'))
     )
-    conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('grams_per_shot', '17')")
+    conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES (?, '17')", (SETTING_GRAMS_PER_SHOT,))
 
 
 def login_required(f):
@@ -213,7 +216,7 @@ def migrate_v1(conn):
     }
     if not any(col_exists(conn, 'coffees', old) for old in old_map):
         return
-    print('[migration v1] Migrating text columns to lookup tables...')
+    logging.info('[migration v1] Migrating text columns to lookup tables...')
     for old, (table, fk_col) in old_map.items():
         if col_exists(conn, 'coffees', old) and not col_exists(conn, 'coffees', fk_col):
             conn.execute(f'ALTER TABLE coffees ADD COLUMN {fk_col} INTEGER REFERENCES {table}(id)')
@@ -234,7 +237,7 @@ def migrate_v1(conn):
                 conn.execute(f'ALTER TABLE coffees DROP COLUMN {old}')
     else:
         _rebuild_table_v1(conn)
-    print('[migration v1] Done.')
+    logging.info('[migration v1] Done.')
 
 def migrate_v2(conn):
     """Phase 2: variety_id/process_id → junction tables; link regions to origins."""
@@ -245,7 +248,7 @@ def migrate_v2(conn):
     )
     if not needs_work:
         return
-    print('[migration v2] Migrating to M2M varieties/processes and region→origin link...')
+    logging.info('[migration v2] Migrating to M2M varieties/processes and region→origin link...')
 
     # Migrate variety_id → coffee_varieties
     if col_exists(conn, 'coffees', 'variety_id'):
@@ -255,7 +258,7 @@ def migrate_v2(conn):
                 'INSERT OR IGNORE INTO coffee_varieties (coffee_id, variety_id) VALUES (?,?)',
                 (row['id'], row['variety_id'])
             )
-        print(f'[migration v2]   Migrated {len(rows)} variety relations.')
+        logging.info('[migration v2]   Migrated %d variety relations.', len(rows))
 
     # Migrate process_id → coffee_processes
     if col_exists(conn, 'coffees', 'process_id'):
@@ -265,7 +268,7 @@ def migrate_v2(conn):
                 'INSERT OR IGNORE INTO coffee_processes (coffee_id, process_id) VALUES (?,?)',
                 (row['id'], row['process_id'])
             )
-        print(f'[migration v2]   Migrated {len(rows)} process relations.')
+        logging.info('[migration v2]   Migrated %d process relations.', len(rows))
 
     # Add origin_id to regions and auto-populate from coffee data
     if not col_exists(conn, 'regions', 'origin_id'):
@@ -281,7 +284,7 @@ def migrate_v2(conn):
             if best:
                 conn.execute('UPDATE regions SET origin_id=? WHERE id=?', (best['origin_id'], r['id']))
                 linked += 1
-        print(f'[migration v2]   Linked {linked}/{len(regions)} regions to origins.')
+        logging.info('[migration v2]   Linked %d/%d regions to origins.', linked, len(regions))
 
     # Drop variety_id and process_id from coffees
     ver = tuple(int(x) for x in conn.execute('SELECT sqlite_version()').fetchone()[0].split('.'))
@@ -293,7 +296,7 @@ def migrate_v2(conn):
     elif col_exists(conn, 'coffees', 'variety_id') or col_exists(conn, 'coffees', 'process_id'):
         _rebuild_table_v2(conn)
 
-    print('[migration v2] Done.')
+    logging.info('[migration v2] Done.')
 
 def migrate_v3(conn):
     """Phase 3: add milk_types M2M and pre-populate default values."""
@@ -306,7 +309,7 @@ def migrate_v4(conn):
     if not col_exists(conn, 'coffees', 'remaining_g'):
         conn.execute('ALTER TABLE coffees ADD COLUMN remaining_g INTEGER')
         conn.execute('UPDATE coffees SET remaining_g=quantity_g WHERE remaining_g IS NULL AND quantity_g IS NOT NULL')
-        print('[migration v4] Added remaining_g column.')
+        logging.info('[migration v4] Added remaining_g column.')
 
 
 FTS_ENABLED = False
@@ -354,7 +357,7 @@ def migrate_v5(conn):
             END
         ''')
         FTS_ENABLED = True
-        print('[migration v5] FTS5 full-text search index created.')
+        logging.info('[migration v5] FTS5 full-text search index created.')
     except Exception as e:
         logging.warning('[migration v5] FTS5 no disponible (%s). La búsqueda usará LIKE.', e)
 
@@ -496,6 +499,10 @@ def resolve_ids(conn, data):
 SCALAR_FIELDS = ['name', 'quantity_g', 'price_kg', 'purchase_date', 'roast_date',
                  'opened_date', 'finished_date', 'rating', 'notes', 'altitude']
 
+def get_coffee_by_id(conn, cid):
+    """Fetch a single coffee by id and return it as a dict."""
+    return row_to_coffee(conn.execute(COFFEE_SELECT + ' WHERE c.id=?', (cid,)).fetchone())
+
 # ---------------------------------------------------------------------------
 # Validation
 # ---------------------------------------------------------------------------
@@ -569,10 +576,11 @@ def auth_login():
     data = request.get_json(silent=True) or {}
     pin = str(data.get('pin', ''))
     with db_conn() as conn:
-        row = conn.execute("SELECT value FROM settings WHERE key='pin_hash'").fetchone()
-    if row and _pin_hash(pin) == row['value']:
+        row = conn.execute('SELECT value FROM settings WHERE key=?', (SETTING_PIN_HASH,)).fetchone()
+    if row and secrets.compare_digest(_pin_hash(pin), row['value']):
         session['authenticated'] = True
         return jsonify({'ok': True})
+    time.sleep(0.5)
     return jsonify({'error': 'PIN incorrecto'}), 401
 
 
@@ -585,10 +593,10 @@ def auth_change_pin():
     if not new_pin.isdigit() or len(new_pin) != 4:
         return jsonify({'error': 'El nuevo PIN debe ser 4 dígitos'}), 400
     with db_conn() as conn:
-        row = conn.execute("SELECT value FROM settings WHERE key='pin_hash'").fetchone()
-        if not row or _pin_hash(current) != row['value']:
+        row = conn.execute('SELECT value FROM settings WHERE key=?', (SETTING_PIN_HASH,)).fetchone()
+        if not row or not secrets.compare_digest(_pin_hash(current), row['value']):
             return jsonify({'error': 'PIN actual incorrecto'}), 401
-        conn.execute("UPDATE settings SET value=? WHERE key='pin_hash'", (_pin_hash(new_pin),))
+        conn.execute('UPDATE settings SET value=? WHERE key=?', (_pin_hash(new_pin), SETTING_PIN_HASH))
     return jsonify({'ok': True})
 
 
@@ -663,7 +671,7 @@ def list_coffees():
             where.append('(c.name LIKE ? OR ro.name LIKE ? OR c.notes LIKE ? OR o.name LIKE ?)')
             vals.extend([q_like, q_like, q_like, q_like])
     try:
-        limit  = int(args['limit'])  if args.get('limit')  else None
+        limit  = min(int(args['limit']), 500) if args.get('limit') else None
         offset = int(args['offset']) if args.get('offset') else 0
         if limit is not None and limit <= 0:
             raise ValueError
@@ -696,7 +704,7 @@ def add_coffee():
         set_m2m(conn, cid, data.get('varieties'),  'varieties',  'coffee_varieties',   'variety_id')
         set_m2m(conn, cid, data.get('processes'),  'processes',  'coffee_processes',   'process_id')
         set_m2m(conn, cid, data.get('milk_types'), 'milk_types', 'coffee_milk_types',  'milk_type_id')
-        row = row_to_coffee(conn.execute(COFFEE_SELECT + ' WHERE c.id=?', (cid,)).fetchone())
+        row = get_coffee_by_id(conn, cid)
     return jsonify(row), 201
 
 
@@ -716,7 +724,7 @@ def update_coffee(cid):
         set_m2m(conn, cid, data.get('varieties'),  'varieties',  'coffee_varieties',   'variety_id')
         set_m2m(conn, cid, data.get('processes'),  'processes',  'coffee_processes',   'process_id')
         set_m2m(conn, cid, data.get('milk_types'), 'milk_types', 'coffee_milk_types',  'milk_type_id')
-        row = row_to_coffee(conn.execute(COFFEE_SELECT + ' WHERE c.id=?', (cid,)).fetchone())
+        row = get_coffee_by_id(conn, cid)
     return jsonify(row)
 
 
@@ -731,7 +739,7 @@ def open_coffee(cid):
         if not conn.execute('SELECT 1 FROM coffees WHERE id=?', (cid,)).fetchone():
             return jsonify({'error': 'Café no encontrado'}), 404
         conn.execute('UPDATE coffees SET opened_date=? WHERE id=?', (date, cid))
-        row = row_to_coffee(conn.execute(COFFEE_SELECT + ' WHERE c.id=?', (cid,)).fetchone())
+        row = get_coffee_by_id(conn, cid)
     return jsonify(row)
 
 
@@ -743,7 +751,7 @@ def finish_coffee(cid):
         if not conn.execute('SELECT 1 FROM coffees WHERE id=?', (cid,)).fetchone():
             return jsonify({'error': 'Café no encontrado'}), 404
         conn.execute('UPDATE coffees SET finished_date=? WHERE id=?', (today, cid))
-        row = row_to_coffee(conn.execute(COFFEE_SELECT + ' WHERE c.id=?', (cid,)).fetchone())
+        row = get_coffee_by_id(conn, cid)
     return jsonify(row)
 
 
@@ -754,7 +762,7 @@ def unrate_coffee(cid):
         if not conn.execute('SELECT 1 FROM coffees WHERE id=?', (cid,)).fetchone():
             return jsonify({'error': 'Café no encontrado'}), 404
         conn.execute('UPDATE coffees SET rating=NULL WHERE id=?', (cid,))
-        row = row_to_coffee(conn.execute(COFFEE_SELECT + ' WHERE c.id=?', (cid,)).fetchone())
+        row = get_coffee_by_id(conn, cid)
     return jsonify(row)
 
 
@@ -769,7 +777,7 @@ def set_remaining(cid):
         if not conn.execute('SELECT 1 FROM coffees WHERE id=?', (cid,)).fetchone():
             return jsonify({'error': 'Café no encontrado'}), 404
         conn.execute('UPDATE coffees SET remaining_g=? WHERE id=?', (val, cid))
-        row = row_to_coffee(conn.execute(COFFEE_SELECT + ' WHERE c.id=?', (cid,)).fetchone())
+        row = get_coffee_by_id(conn, cid)
     return jsonify(row)
 
 
@@ -779,13 +787,13 @@ def consume_coffee(cid):
     with db_conn() as conn:
         coffee_row = conn.execute('SELECT remaining_g FROM coffees WHERE id=?', (cid,)).fetchone()
         if not coffee_row:
-            return jsonify({'error': 'Not found'}), 404
-        gps_row = conn.execute("SELECT value FROM settings WHERE key='grams_per_shot'").fetchone()
+            return jsonify({'error': 'Café no encontrado'}), 404
+        gps_row = conn.execute('SELECT value FROM settings WHERE key=?', (SETTING_GRAMS_PER_SHOT,)).fetchone()
         grams = int(gps_row['value']) if gps_row else 17
         current = coffee_row['remaining_g'] if coffee_row['remaining_g'] is not None else 0
         new_val = max(0, current - grams)
         conn.execute('UPDATE coffees SET remaining_g=? WHERE id=?', (new_val, cid))
-        row = row_to_coffee(conn.execute(COFFEE_SELECT + ' WHERE c.id=?', (cid,)).fetchone())
+        row = get_coffee_by_id(conn, cid)
     return jsonify({'coffee': row, 'consumed_g': grams, 'remaining_g': new_val})
 
 
@@ -864,7 +872,7 @@ def stats():
 @login_required
 def get_settings():
     with db_conn() as conn:
-        row = conn.execute("SELECT value FROM settings WHERE key='grams_per_shot'").fetchone()
+        row = conn.execute('SELECT value FROM settings WHERE key=?', (SETTING_GRAMS_PER_SHOT,)).fetchone()
     return jsonify({'grams_per_shot': int(row['value']) if row else 17})
 
 
@@ -878,7 +886,7 @@ def update_settings():
     if not isinstance(gps, int) or isinstance(gps, bool) or gps <= 0 or gps > 100:
         return jsonify({'error': 'grams_per_shot debe ser un entero entre 1 y 100'}), 400
     with db_conn() as conn:
-        conn.execute("INSERT OR REPLACE INTO settings (key, value) VALUES ('grams_per_shot', ?)", (str(gps),))
+        conn.execute('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)', (SETTING_GRAMS_PER_SHOT, str(gps)))
     return jsonify({'ok': True})
 
 
