@@ -72,7 +72,9 @@ def index():
 
 @app.route('/sw.js')
 def service_worker():
-    return send_from_directory('static', 'sw.js', mimetype='application/javascript')
+    response = send_from_directory('static', 'sw.js', mimetype='application/javascript')
+    response.headers['Cache-Control'] = 'no-cache'
+    return response
 
 
 if __name__ == '__main__':
