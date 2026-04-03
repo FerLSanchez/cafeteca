@@ -1,5 +1,25 @@
-const CACHE = 'cafeteca-v2';
-const SHELL = ['/', '/static/manifest.json', '/static/icon-192.png', '/static/icon-512.png'];
+const CACHE = 'cafeteca-v3';
+const SHELL = [
+  '/',
+  '/static/manifest.json',
+  '/static/icon-192.png',
+  '/static/icon-512.png',
+  '/static/css/style.css',
+  '/static/js/state.js',
+  '/static/js/api.js',
+  '/static/js/utils.js',
+  '/static/js/chips.js',
+  '/static/js/autocomplete.js',
+  '/static/js/options.js',
+  '/static/js/list.js',
+  '/static/js/filters.js',
+  '/static/js/detail.js',
+  '/static/js/form.js',
+  '/static/js/stats.js',
+  '/static/js/catalog.js',
+  '/static/js/pin.js',
+  '/static/js/init.js',
+];
 
 // API GET endpoints whose responses can be cached for offline use
 const CACHEABLE_API = ['/api/coffees', '/api/options', '/api/stats', '/api/settings'];
