@@ -23,16 +23,45 @@ pip install flask
 python app.py
 ```
 
-Los datos se guardan en `/data/coffee.db`. En local puedes cambiar la variable `DB` en `app.py` para usar una ruta distinta.
+Los datos se guardan en `/data/coffee.db`. En local puedes cambiar la variable `DB` en `db.py` para usar una ruta distinta.
 
 ## Estructura de ficheros
 
 ```
 cafeteca/
-├── app.py                  # Backend Flask + lógica de BD
+├── app.py                  # Entry point Flask: config, blueprints, rutas /
+├── db.py                   # Conexión SQLite, context manager db_conn, col_exists
+├── lookup_config.py        # Constantes LOOKUP_TABLES/JUNCTION_TABLES/LOOKUP_FK,
+│                           #   create_lookup_tables(), get_or_create()
+├── models.py               # COFFEE_SELECT, row_to_coffee(), set_m2m(),
+│                           #   resolve_ids(), validate_coffee()
+├── schema.py               # init_db(), migraciones v1-v5, login_required, PIN
+├── blueprints/
+│   ├── auth.py             # /api/auth/*
+│   ├── coffees.py          # /api/coffees/*
+│   ├── stats.py            # /api/stats
+│   ├── settings.py         # /api/settings, /api/options, /api/lookup-tables
+│   └── lookup.py           # /api/lookup/<table>/*
 ├── templates/
-│   └── index.html          # Frontend completo (HTML/CSS/JS vanilla)
+│   └── index.html          # HTML + referencias a CSS y JS externos
 ├── static/
+│   ├── css/
+│   │   └── style.css       # Estilos de la aplicación
+│   ├── js/
+│   │   ├── state.js        # Variables globales
+│   │   ├── api.js          # fetch wrapper, showToast, showConfirm, closeModal
+│   │   ├── utils.js        # Formateadores: stars, fmtDate, fmtWeight, fmtPrice…
+│   │   ├── chips.js        # Chip input multi-selección
+│   │   ├── autocomplete.js # Autocompletar + cascada región→país
+│   │   ├── options.js      # loadOptions(), populateFilterSelects()
+│   │   ├── list.js         # fetchAndRender(), renderList(), showPage()
+│   │   ├── filters.js      # Filtros de estado y panel avanzado
+│   │   ├── detail.js       # Modal detalle, consumo, acciones rápidas
+│   │   ├── form.js         # Formulario añadir/editar, ajustes
+│   │   ├── stats.js        # Stats, gráficas, calendario
+│   │   ├── catalog.js      # Gestión de catálogos
+│   │   ├── pin.js          # Pantalla PIN
+│   │   └── init.js         # Arranque, registro del service worker
 │   ├── manifest.json       # PWA manifest
 │   ├── sw.js               # Service worker
 │   └── icon-*.png          # Iconos PWA
@@ -78,6 +107,7 @@ SQLite. La migración corre automáticamente al arrancar — no hace falta ejecu
 | shop_id | INTEGER FK | |
 | altitude | INTEGER | Metros |
 | quantity_g | INTEGER | Gramos |
+| remaining_g | INTEGER | Gramos restantes |
 | price_kg | REAL | €/kg |
 | purchase_date | TEXT | YYYY-MM-DD |
 | roast_date | TEXT | YYYY-MM-DD |
@@ -89,7 +119,15 @@ SQLite. La migración corre automáticamente al arrancar — no hace falta ejecu
 
 ### Migración automática
 
-Si la BD tiene las columnas de texto antiguas (`roaster`, `producer`, etc.), al arrancar se migran automáticamente a las tablas de referencia. Para añadir nuevos cambios de esquema, crear `migrate_v3()` y llamarla desde `init_db()`.
+Al arrancar se ejecutan `migrate_v1` a `migrate_v5` — todas idempotentes:
+
+- **v1** — columnas de texto → tablas de referencia con FK
+- **v2** — `variety_id`/`process_id` → tablas M2M; enlaza regiones a países
+- **v3** — añade leches vegetales M2M con valores por defecto
+- **v4** — añade `remaining_g`, inicializa con `quantity_g`
+- **v5** — crea índice FTS5 para búsqueda full-text (silencioso si no está disponible)
+
+Para añadir nuevos cambios de esquema, crear `migrate_v6()` en `schema.py` y llamarla desde `init_db()`.
 
 ## API
 
@@ -102,8 +140,13 @@ Si la BD tiene las columnas de texto antiguas (`roaster`, `producer`, etc.), al 
 | POST | /api/coffees/:id/open | Marcar abierto (con fecha) |
 | POST | /api/coffees/:id/finish | Marcar terminado hoy |
 | POST | /api/coffees/:id/unrate | Quitar valoración |
+| PUT | /api/coffees/:id/remaining | Actualizar gramos restantes |
+| POST | /api/coffees/:id/consume | Restar una toma (gramos configurables) |
 | GET | /api/options | Todos los lookups (para autocomplete) |
+| GET | /api/lookup-tables | Lista canónica de tablas de lookup |
 | GET | /api/stats | Estadísticas y breakdowns |
+| GET | /api/settings | Configuración (gramos por toma) |
+| PUT | /api/settings | Guardar configuración |
 | GET | /api/lookup/:table | Entradas de una tabla con coffee_count |
 | PUT | /api/lookup/:table/:id | Renombrar entrada |
 | DELETE | /api/lookup/:table/:id | Eliminar si no está en uso |
@@ -117,17 +160,21 @@ Si la BD tiene las columnas de texto antiguas (`roaster`, `producer`, etc.), al 
 Query params combinables:
 
 - `status` — `active` / `finished` / `pending` / `unrated`
-- `q` — búsqueda por nombre (LIKE)
+- `q` — búsqueda full-text (FTS5 si disponible, LIKE como fallback)
 - `roaster_id`, `producer_id`, `origin_id`, `region_id`, `process_id`, `variety_id`, `shop_id`
+- `limit`, `offset` — paginación
 
 ## Funcionalidades
 
-- **Orden recomendado por defecto** — abiertos primero (tueste más antiguo), luego disponibles (tueste más antiguo), luego terminados. Prioriza lo que hay que consumir antes.
+- **Orden recomendado por defecto** — abiertos primero (tueste más antiguo), luego disponibles, luego terminados. Prioriza lo que hay que consumir antes.
 - **Lista de cafés** con filtros de estado (abiertos, sin abrir, terminados, sin valorar) y panel de filtros avanzados por cualquier campo de referencia
-- **Buscador** por nombre con debounce
+- **Buscador** con debounce — FTS5 full-text si SQLite lo soporta, LIKE como fallback
+- **Seguimiento de café restante** — muestra los gramos que quedan y permite actualizarlos inline desde el detalle
+- **Consumo por tomas** — botón "Consumir" resta los gramos configurados; al llegar a 0 ofrece marcar como terminado
+- **Gramos por toma configurables** desde el panel de ajustes (por defecto 17 g)
 - **Autocompletar** en todos los campos de lookup al añadir/editar — sugiere valores existentes y permite crear nuevos inline
 - **Chip input** para variedades, procesos y leches vegetales (multi-selección)
-- **Botones rápidos** "Abrir hoy" y "Terminado hoy" directamente desde la tarjeta
+- **Botones rápidos** "Abrir hoy" (con selector de fecha) y "Terminado hoy" directamente desde la tarjeta
 - **Aviso de reposo** — indica los días que faltan para las dos semanas desde el tueste
 - **Duplicar bolsa** — crea una entrada nueva copiando los datos de producto de una existente
 - **Valoración** de 1 a 5 estrellas, con opción de eliminarla
@@ -138,11 +185,13 @@ Query params combinables:
   - Calendario Gantt mensual de consumo (con navegación hasta el mes actual)
 - **Catálogos** — gestión de tablas de referencia: renombrar entradas (propaga a todos los cafés), eliminar huérfanas individualmente o en bloque
 - **Autenticación por PIN** — pantalla de bloqueo con PIN de 4 dígitos, sesión Flask persistente, cambio de PIN desde ajustes
-- **PWA** — instalable en móvil/escritorio, con icono y service worker
+- **PWA** — instalable en móvil/escritorio, con icono y service worker (caché offline de assets y endpoints de lectura)
 
 ## Seguridad
 
 - PIN almacenado como SHA-256 en la BD
 - Cookie de sesión `HttpOnly` + `SameSite=Strict`
 - Clave secreta generada en el primer arranque y persistida en `/data/secret_key`
+- Cabeceras CSP, `X-Frame-Options`, `X-Content-Type-Options` y `Referrer-Policy` en todas las respuestas
 - Todos los endpoints `/api/*` requieren sesión activa (excepto `/api/auth/status` y `/api/auth/login`)
+- Límite de 1 MB por petición
