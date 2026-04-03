@@ -41,6 +41,9 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
 
+  // Skip cross-origin requests (Google Fonts, etc.) — let the browser handle them natively
+  if (url.origin !== location.origin) return;
+
   if (url.pathname.startsWith('/api/')) {
     // Only cache GET requests to known read-only endpoints
     if (
