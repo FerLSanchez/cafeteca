@@ -77,6 +77,13 @@ def service_worker():
     return response
 
 
+@app.route('/manifest.json')
+def manifest():
+    response = send_from_directory('static', 'manifest.json', mimetype='application/manifest+json')
+    response.headers['Cache-Control'] = 'no-cache'
+    return response
+
+
 if __name__ == '__main__':
     init_db()
     app.run(host='0.0.0.0', port=5000, debug=False)
