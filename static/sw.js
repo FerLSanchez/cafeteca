@@ -1,4 +1,4 @@
-const CACHE = 'cafeteca-v4';
+const CACHE = 'cafeteca-v5';
 const SHELL = [
   '/',
   '/manifest.json',
@@ -26,7 +26,11 @@ const CACHEABLE_API = ['/api/coffees', '/api/options', '/api/stats', '/api/setti
 
 self.addEventListener('install', e => {
   e.waitUntil(
-    caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())
+    caches.open(CACHE).then(c =>
+      Promise.all(SHELL.map(url =>
+        fetch(new Request(url, {cache: 'reload'})).then(r => c.put(url, r))
+      ))
+    ).then(() => self.skipWaiting())
   );
 });
 
