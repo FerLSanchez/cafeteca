@@ -34,23 +34,23 @@ def stats():
         top_roasters = conn.execute('''
             SELECT ro.name, COUNT(*) cnt, AVG(c.rating) avg_rating
             FROM coffees c JOIN roasters ro ON c.roaster_id=ro.id
-            GROUP BY ro.id ORDER BY cnt DESC LIMIT 5''').fetchall()
+            GROUP BY ro.id ORDER BY avg_rating DESC NULLS LAST, cnt DESC LIMIT 5''').fetchall()
         origins_bd = conn.execute('''
             SELECT o.name, COUNT(*) cnt, AVG(c.rating) avg_rating
             FROM coffees c JOIN origins o ON c.origin_id=o.id
-            GROUP BY o.id ORDER BY cnt DESC LIMIT 8''').fetchall()
+            GROUP BY o.id ORDER BY avg_rating DESC NULLS LAST, cnt DESC LIMIT 8''').fetchall()
         processes_bd = conn.execute('''
             SELECT pr.name, COUNT(DISTINCT cp.coffee_id) cnt, AVG(c.rating) avg_rating
             FROM coffee_processes cp
             JOIN processes pr ON cp.process_id=pr.id
             JOIN coffees c ON cp.coffee_id=c.id
-            GROUP BY pr.id ORDER BY cnt DESC LIMIT 6''').fetchall()
+            GROUP BY pr.id ORDER BY avg_rating DESC NULLS LAST, cnt DESC LIMIT 6''').fetchall()
         varieties_bd = conn.execute('''
             SELECT v.name, COUNT(DISTINCT cv.coffee_id) cnt, AVG(c.rating) avg_rating
             FROM coffee_varieties cv
             JOIN varieties v ON cv.variety_id=v.id
             JOIN coffees c ON cv.coffee_id=c.id
-            GROUP BY v.id ORDER BY cnt DESC LIMIT 6''').fetchall()
+            GROUP BY v.id ORDER BY avg_rating DESC NULLS LAST, cnt DESC LIMIT 6''').fetchall()
     return jsonify({
         'total': total, 'finished': finished, 'active': active,
         'pending_weight_g': pending_weight_g,
