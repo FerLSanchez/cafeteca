@@ -19,7 +19,9 @@ function fmtWeight(g) {
 
 function fmtPrice(c) {
   if (!c.price_kg||!c.quantity_g) return null;
-  return `${c.price_kg}€/kg · ${(c.quantity_g/1000*c.price_kg).toFixed(2)}€`;
+  const total = (c.quantity_g / 1000 * c.price_kg).toFixed(2);
+  const perCup = (c.price_kg * gramsPerShot / 1000).toFixed(2);
+  return `${c.price_kg}€/kg · ${total}€ · ${perCup}€/taza`;
 }
 
 function getStatus(c) {
