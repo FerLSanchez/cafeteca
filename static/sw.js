@@ -1,4 +1,4 @@
-const CACHE = 'cafeteca-v5';
+const CACHE = 'cafeteca-v6';
 const SHELL = [
   '/',
   '/manifest.json',
@@ -45,49 +45,48 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
 
-  // Skip cross-origin requests (Google Fonts, etc.) — let the browser handle them natively
+  // Skip cross-origin requests — let the browser handle them natively
   if (url.origin !== location.origin) return;
 
   if (url.pathname.startsWith('/api/')) {
-    // Only cache GET requests to known read-only endpoints
+    // Stale-while-revalidate for known read-only endpoints:
+    // respond from cache immediately (fast + no radio wake), update cache in background.
     if (
       e.request.method === 'GET' &&
       CACHEABLE_API.some(p => url.pathname === p || url.pathname.startsWith(p + '?'))
     ) {
       e.respondWith(
-        fetch(e.request)
-          .then(res => {
-            if (res.ok) {
-              const clone = res.clone();
-              caches.open(CACHE).then(c => c.put(e.request, clone));
-            }
-            return res;
+        caches.open(CACHE).then(c =>
+          c.match(e.request).then(cached => {
+            const networkFetch = fetch(e.request).then(res => {
+              if (res.ok) c.put(e.request, res.clone());
+              return res;
+            }).catch(() => cached);
+            // Serve cached response immediately if available, otherwise wait for network
+            return cached || networkFetch;
           })
-          .catch(() =>
-            caches.match(e.request).then(cached =>
-              cached ||
-              new Response(
-                JSON.stringify({ error: 'Sin conexión con el servidor' }),
-                { status: 503, headers: { 'Content-Type': 'application/json' } }
-              )
-            )
-          )
+        )
       );
     }
     // All other API calls (mutations, auth): always network, never cache
     return;
   }
 
-  // Static assets: network first, fall back to cache
+  // Static assets: cache-first.
+  // The shell is fully pre-cached on install and the cache name is versioned,
+  // so there is no need to hit the network on every load — avoids unnecessary
+  // radio activity that drains battery in the background.
   e.respondWith(
-    fetch(e.request)
-      .then(res => {
+    caches.match(e.request).then(cached => {
+      if (cached) return cached;
+      // Not in cache yet (asset added after install): fetch, cache, and return.
+      return fetch(e.request).then(res => {
         if (res.ok) {
           const clone = res.clone();
           caches.open(CACHE).then(c => c.put(e.request, clone));
         }
         return res;
-      })
-      .catch(() => caches.match(e.request))
+      });
+    })
   );
 });
