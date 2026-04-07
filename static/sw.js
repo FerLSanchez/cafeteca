@@ -1,4 +1,4 @@
-const CACHE = 'cafeteca-v6';
+const CACHE = 'cafeteca-v7';
 const SHELL = [
   '/',
   '/manifest.json',
@@ -17,6 +17,7 @@ const SHELL = [
   '/static/js/form.js',
   '/static/js/stats.js',
   '/static/js/catalog.js',
+  '/static/js/brews.js',
   '/static/js/pin.js',
   '/static/js/init.js',
 ];

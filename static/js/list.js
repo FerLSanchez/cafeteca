@@ -115,4 +115,5 @@ function showPage(name, tab) {
   tab.classList.add('active');
   if (name==='stats') loadStats();
   if (name==='catalog') loadCatalog();
+  if (name==='brews') loadBrews();
 }

@@ -88,8 +88,13 @@ function showDetail(id) {
     ${remainingRow}
     ${c.notes?`<div style="margin-top:14px;font-size:14px;color:var(--text2);line-height:1.6;font-style:italic">"${esc(c.notes)}"</div>`:''}
     ${consumeBtn}
+    <div id="detail-recipe-section" style="margin-top:14px"></div>
+    <button class="btn-brew" onclick="openBrewModal()" style="margin-top:8px;width:100%">🫖 Preparar café</button>
+    <div id="detail-brews-section" style="margin-top:14px"></div>
   `;
   document.getElementById('modal-detail').classList.add('open');
+  renderRecipeSection(c.id);
+  renderBrewsSection(c.id);
 }
 
 function editCurrent() { closeModal('modal-detail'); openEditModal(currentDetail); }
@@ -99,6 +104,7 @@ function duplicateCurrent() {
   const c = currentDetail;
   closeModal('modal-detail');
   resetForm();
+  pendingRecipeCopyFrom = c.id;
   document.getElementById('modal-title').textContent = 'Nueva bolsa';
   document.getElementById('f-name').value = c.name || '';
   document.getElementById('f-roaster').value = c.roaster || '';

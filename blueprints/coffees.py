@@ -88,6 +88,18 @@ def add_coffee():
         set_m2m(conn, cid, data.get('varieties'),  'varieties',  'coffee_varieties',   'variety_id')
         set_m2m(conn, cid, data.get('processes'),  'processes',  'coffee_processes',   'process_id')
         set_m2m(conn, cid, data.get('milk_types'), 'milk_types', 'coffee_milk_types',  'milk_type_id')
+        source_id = data.get('source_id')
+        if source_id:
+            try:
+                source_id = int(source_id)
+                conn.execute(
+                    'INSERT OR IGNORE INTO coffee_recipes (coffee_id, recipe_id) '
+                    'SELECT ?, recipe_id FROM coffee_recipes WHERE coffee_id=?', (cid, source_id))
+                conn.execute(
+                    'INSERT OR IGNORE INTO coffee_brews (coffee_id, brew_id) '
+                    'SELECT ?, brew_id FROM coffee_brews WHERE coffee_id=?', (cid, source_id))
+            except (ValueError, TypeError):
+                pass
         row = get_coffee_by_id(conn, cid)
     return jsonify(row), 201
 
@@ -188,4 +200,6 @@ def delete_coffee(cid):
         cur = conn.execute('DELETE FROM coffees WHERE id=?', (cid,))
         if cur.rowcount == 0:
             return jsonify({'error': 'Café no encontrado'}), 404
+        conn.execute('DELETE FROM recipes WHERE id NOT IN (SELECT recipe_id FROM coffee_recipes)')
+        conn.execute('DELETE FROM brews   WHERE id NOT IN (SELECT brew_id   FROM coffee_brews)')
     return jsonify({'ok': True})

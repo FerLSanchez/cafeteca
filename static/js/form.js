@@ -7,6 +7,7 @@ function setRating(val) {
 }
 
 function resetForm() {
+  pendingRecipeCopyFrom = null;
   document.getElementById('coffee-form').reset();
   document.getElementById('f-id').value='';
   document.getElementById('f-rating').value='';
@@ -90,8 +91,13 @@ async function submitForm(e) {
       return;
     }
   }
-  if (id) await api('/coffees/'+id, {method:'PUT', body:JSON.stringify(data)});
-  else    await api('/coffees',     {method:'POST',body:JSON.stringify(data)});
+  if (id) {
+    await api('/coffees/'+id, {method:'PUT', body:JSON.stringify(data)});
+  } else {
+    if (pendingRecipeCopyFrom) data.source_id = pendingRecipeCopyFrom;
+    await api('/coffees', {method:'POST', body:JSON.stringify(data)});
+    pendingRecipeCopyFrom = null;
+  }
   closeModal('modal-form');
   showToast(id?'☕ Café actualizado':'☕ Café añadido');
   await loadOptions();       // refresh autocomplete lists

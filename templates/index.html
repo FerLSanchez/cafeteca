@@ -54,6 +54,7 @@
 
 <div class="tabs">
   <div class="tab active" onclick="showPage('list',this)">☕ Cafés</div>
+  <div class="tab" onclick="showPage('brews',this)">🫖 Preparaciones</div>
   <div class="tab" onclick="showPage('stats',this)">📊 Stats</div>
   <div class="tab" onclick="showPage('catalog',this)">🗂 Catálogos</div>
 </div>
@@ -137,6 +138,11 @@
 
   <div class="results-info" id="results-info"></div>
   <div id="coffee-list" class="coffee-list"><div class="loading">Cargando...</div></div>
+</div>
+
+<!-- BREWS PAGE -->
+<div class="page" id="page-brews">
+  <div id="brews-list"><div class="loading">Cargando...</div></div>
 </div>
 
 <!-- STATS PAGE -->
@@ -339,6 +345,85 @@
   </div>
 </div>
 
+<!-- RECIPE MODAL -->
+<div class="modal-overlay" id="modal-recipe">
+  <div class="modal" style="max-width:360px">
+    <div class="modal-header">
+      <div class="modal-title">📋 Receta</div>
+      <button class="modal-close" onclick="closeModal('modal-recipe')">✕</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Café (g)</label>
+      <input class="form-input" id="r-dose" type="number" step="0.1" min="0" placeholder="ej. 18" oninput="updateRatioDisplay()">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Salida (g)</label>
+      <input class="form-input" id="r-yield" type="number" step="0.1" min="0" placeholder="ej. 36" oninput="updateRatioDisplay()">
+    </div>
+    <div style="font-size:13px;color:var(--accent);min-height:18px;margin-bottom:8px" id="r-ratio-display"></div>
+    <div class="form-group">
+      <label class="form-label">Grado de molienda</label>
+      <input class="form-input" id="r-grind" type="number" min="0" placeholder="ej. 15">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Temperatura del agua (°C)</label>
+      <input class="form-input" id="r-temp" type="number" min="0" max="110" placeholder="ej. 93">
+    </div>
+    <button class="btn-primary" onclick="submitRecipe()" style="margin-top:8px">Guardar receta</button>
+  </div>
+</div>
+
+<!-- BREW MODAL -->
+<div class="modal-overlay" id="modal-brew">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-header">
+      <div class="modal-title">🫖 Preparar café</div>
+      <button class="modal-close" onclick="closeModal('modal-brew')">✕</button>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Café (g)</label>
+        <input class="form-input" id="b-dose" type="number" step="0.1" min="0" placeholder="18" oninput="updateBrewRatioDisplay()">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Salida (g)</label>
+        <input class="form-input" id="b-yield" type="number" step="0.1" min="0" placeholder="36" oninput="updateBrewRatioDisplay()">
+      </div>
+    </div>
+    <div style="font-size:13px;color:var(--accent);min-height:18px;margin-bottom:8px" id="b-ratio-display"></div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Molienda</label>
+        <input class="form-input" id="b-grind" type="number" min="0" placeholder="15">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Temperatura (°C)</label>
+        <input class="form-input" id="b-temp" type="number" min="0" max="110" placeholder="93">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Fecha</label>
+      <input class="form-input" id="b-date" type="date">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Valoración</label>
+      <div class="rating-stars" style="margin-bottom:4px">
+        <span class="brew-star" data-val="1" onclick="setBrewRating(1)">★</span>
+        <span class="brew-star" data-val="2" onclick="setBrewRating(2)">★</span>
+        <span class="brew-star" data-val="3" onclick="setBrewRating(3)">★</span>
+        <span class="brew-star" data-val="4" onclick="setBrewRating(4)">★</span>
+        <span class="brew-star" data-val="5" onclick="setBrewRating(5)">★</span>
+        <span class="brew-star-clear" onclick="setBrewRating(0)" style="font-size:12px;color:var(--text3);margin-left:6px;cursor:pointer">✕</span>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Notas</label>
+      <textarea class="form-input" id="b-notes" rows="2" placeholder="Observaciones opcionales…"></textarea>
+    </div>
+    <button class="btn-primary" onclick="submitBrew()" style="margin-top:8px">Registrar preparación</button>
+  </div>
+</div>
+
 <!-- CONFIRM MODAL -->
 <div class="modal-overlay" id="modal-confirm">
   <div class="modal modal-confirm-inner">
@@ -397,6 +482,7 @@
 <script src="/static/js/form.js"></script>
 <script src="/static/js/stats.js"></script>
 <script src="/static/js/catalog.js"></script>
+<script src="/static/js/brews.js"></script>
 <script src="/static/js/pin.js"></script>
 <script src="/static/js/init.js"></script>
 </body>

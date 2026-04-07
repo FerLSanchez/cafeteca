@@ -43,5 +43,8 @@ const CATALOG_LABELS = {
   milk_types:'Leches vegetales'
 };
 
+// Duplicate flow: source coffee ID to copy recipe/brews from
+let pendingRecipeCopyFrom = null;
+
 // PIN
 let pinValue = '';
