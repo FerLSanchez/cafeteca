@@ -15,9 +15,9 @@ function onSearch(val) {
 
 function toggleFilterPanel() {
   const p = document.getElementById('filter-panel');
-  const a = document.getElementById('filter-arrow');
+  const btn = document.getElementById('filter-toggle-btn');
   p.classList.toggle('open');
-  a.textContent = p.classList.contains('open') ? '⌄' : '›';
+  btn.classList.toggle('active', p.classList.contains('open'));
 }
 
 function applyFilters() {
