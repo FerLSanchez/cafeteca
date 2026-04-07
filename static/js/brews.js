@@ -126,7 +126,7 @@ async function openRecipeModal(coffeeId) {
       updateRatioDisplay();
     }
   } catch (_) {}
-  document.getElementById('modal-recipe').classList.add('open');
+  openModal('modal-recipe');
 }
 
 function updateRatioDisplay() {
@@ -194,7 +194,7 @@ async function openBrewModal() {
       updateBrewRatioDisplay();
     }
   } catch (_) {}
-  document.getElementById('modal-brew').classList.add('open');
+  openModal('modal-brew');
 }
 
 function updateBrewRatioDisplay() {

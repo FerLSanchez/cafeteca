@@ -59,14 +59,12 @@ function showDetail(id) {
     ? `<div class="detail-fresh-note">⏳ ${14 - roastDays}d de reposo restantes (${roastDays} de 14)</div>`
     : '';
 
-  // Profile tags (horizontal scroll chips)
-  const tags = [];
-  if (c.roaster) tags.push(`<span class="tag" style="color:var(--accent2);border-color:rgba(200,112,58,0.3);background:rgba(200,112,58,0.08)">${esc(c.roaster)}</span>`);
-  if (c.origin)  tags.push(`<span class="tag">${esc(c.origin)}${c.region ? ' · ' + esc(c.region) : ''}</span>`);
-  (c.varieties  || []).forEach(v => tags.push(`<span class="tag">${esc(v)}</span>`));
-  (c.processes  || []).forEach(p => tags.push(`<span class="tag">${esc(p)}</span>`));
-  (c.milk_types || []).forEach(m => tags.push(`<span class="tag milk">🥛 ${esc(m)}</span>`));
-  if (c.altitude) tags.push(`<span class="tag">${c.altitude}m</span>`);
+  // Profile info rows for the grid
+  function chips(arr) {
+    if (!arr || !arr.length) return '';
+    if (arr.length === 1) return `<div class="detail-cell-val">${esc(arr[0])}</div>`;
+    return `<div class="detail-cell-chips">${arr.map(v=>`<span class="detail-chip">${esc(v)}</span>`).join('')}</div>`;
+  }
 
   // Compact grid helper
   function gridRow(l1, v1, l2, v2) {
@@ -82,8 +80,22 @@ function showDetail(id) {
     ? (c.price_kg * c.quantity_g / 1000).toFixed(2) + '€'
     : null;
 
+  // Profile rows (labeled, no horizontal scroll)
+  function profileRow(label, content) {
+    if (!content) return '';
+    return `<div class="detail-cell span2"><div class="detail-cell-label">${label}</div>${content}</div>`;
+  }
+
+  const profileHTML = [
+    gridRow('Tostador',   c.roaster,   'Productor', c.producer),
+    gridRow('País',       c.origin,    'Región',    c.region),
+    profileRow('Variedades',    chips(c.varieties)),
+    profileRow('Proceso',       chips(c.processes)),
+    profileRow('Con leche',     chips(c.milk_types)),
+    c.altitude ? `<div class="detail-cell span2"><div class="detail-cell-label">Altitud</div><div class="detail-cell-val">${c.altitude} m</div></div>` : '',
+  ].join('');
+
   const gridHTML = [
-    gridRow('Productor',  c.producer,                              'Región',      c.region),
     gridRow('Tienda',     c.shop,                                  'Compra',      fmtDate(c.purchase_date)),
     gridRow('Tueste',     fmtDate(c.roast_date),                   'Abierto',     fmtDate(c.opened_date)),
     gridRow('Terminado',  fmtDate(c.finished_date),                'Cantidad',    c.quantity_g ? c.quantity_g + 'g' : null),
@@ -128,9 +140,8 @@ function showDetail(id) {
       <div style="flex-shrink:0">${stars(c.rating)}</div>
     </div>
 
-    ${tags.length ? `<div class="detail-tags-row">${tags.join('')}</div>` : ''}
-
     <div class="detail-grid">
+      ${profileHTML}
       ${gridHTML}
       ${remainingRow}
     </div>
@@ -142,7 +153,7 @@ function showDetail(id) {
     <div id="detail-recipe-section" style="margin-top:4px"></div>
     <div id="detail-brews-section" style="margin-top:14px"></div>
   `;
-  document.getElementById('modal-detail').classList.add('open');
+  openModal('modal-detail');
   renderRecipeSection(c.id);
   renderBrewsSection(c.id);
 }
@@ -173,7 +184,7 @@ function duplicateCurrent() {
   document.getElementById('f-notes').value = c.notes || '';
   document.getElementById('f-purchase').value = new Date().toISOString().split('T')[0];
   // leave roast_date, opened_date, finished_date, rating blank (new bag)
-  document.getElementById('modal-form').classList.add('open');
+  openModal('modal-form');
 }
 
 async function unrateCurrent() {

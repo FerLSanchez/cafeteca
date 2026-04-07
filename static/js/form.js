@@ -24,7 +24,7 @@ function resetForm() {
 function openAddModal() {
   resetForm();
   document.getElementById('f-purchase').value = new Date().toISOString().split('T')[0];
-  document.getElementById('modal-form').classList.add('open');
+  openModal('modal-form');
 }
 
 function openEditModal(c) {
@@ -54,7 +54,7 @@ function openEditModal(c) {
   const r=parseInt(c.rating,10);
   if (r>=1&&r<=5) setRating(r);
   document.getElementById('edit-actions').style.display='flex';
-  document.getElementById('modal-form').classList.add('open');
+  openModal('modal-form');
 }
 
 async function submitForm(e) {
@@ -127,7 +127,7 @@ function deleteCoffee() {
 // ---------------------------------------------------------------------------
 function openSettings() {
   document.getElementById('s-grams').value = gramsPerShot;
-  document.getElementById('modal-settings').classList.add('open');
+  openModal('modal-settings');
 }
 
 async function saveSettings() {
