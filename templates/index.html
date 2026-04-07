@@ -52,12 +52,6 @@
   </div>
 </nav>
 
-<div class="tabs">
-  <div class="tab active" onclick="showPage('list',this)">☕ Cafés</div>
-  <div class="tab" onclick="showPage('brews',this)">🫖 Preparaciones</div>
-  <div class="tab" onclick="showPage('stats',this)">📊 Stats</div>
-  <div class="tab" onclick="showPage('catalog',this)">🗂 Catálogos</div>
-</div>
 
 <!-- LIST PAGE -->
 <div class="page active" id="page-list">
@@ -162,6 +156,21 @@
   </div>
   <div id="catalog-content"><div class="loading">Cargando...</div></div>
 </div>
+<nav class="bottom-nav" id="bottom-nav">
+  <button class="bnav-item active" onclick="showPage('list',this)" data-page="list">
+    <span class="bnav-icon">☕</span><span class="bnav-label">Cafés</span>
+  </button>
+  <button class="bnav-item" onclick="showPage('brews',this)" data-page="brews">
+    <span class="bnav-icon">🫖</span><span class="bnav-label">Prepas</span>
+  </button>
+  <button class="bnav-item" onclick="showPage('stats',this)" data-page="stats">
+    <span class="bnav-icon">📊</span><span class="bnav-label">Stats</span>
+  </button>
+  <button class="bnav-item" onclick="showPage('catalog',this)" data-page="catalog">
+    <span class="bnav-icon">🗂</span><span class="bnav-label">Catálogos</span>
+  </button>
+</nav>
+
 <div class="modal-overlay" id="modal-form">
   <div class="modal">
     <div class="modal-header">
