@@ -66,6 +66,7 @@ def init_db():
         migrate_v3(conn)
         migrate_v4(conn)
         migrate_v5(conn)
+        migrate_v6(conn)
         if not col_exists(conn, 'coffees', 'altitude'):
             conn.execute('ALTER TABLE coffees ADD COLUMN altitude INTEGER')
 
@@ -223,6 +224,40 @@ def migrate_v5(conn):
         logging.info('[migration v5] FTS5 full-text search index created.')
     except Exception as e:
         logging.warning('[migration v5] FTS5 no disponible (%s). La búsqueda usará LIKE.', e)
+
+
+def migrate_v6(conn):
+    """Phase 6: shared recipes and brews with M2N junction tables."""
+    conn.execute('''CREATE TABLE IF NOT EXISTS recipes (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        dose_g     REAL,
+        yield_g    REAL,
+        grind      INTEGER,
+        temp_c     INTEGER,
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+    )''')
+    conn.execute('''CREATE TABLE IF NOT EXISTS coffee_recipes (
+        coffee_id  INTEGER NOT NULL REFERENCES coffees(id) ON DELETE CASCADE,
+        recipe_id  INTEGER NOT NULL REFERENCES recipes(id) ON DELETE CASCADE,
+        PRIMARY KEY (coffee_id, recipe_id)
+    )''')
+    conn.execute('''CREATE TABLE IF NOT EXISTS brews (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        brew_date  TEXT DEFAULT (date('now')),
+        dose_g     REAL,
+        yield_g    REAL,
+        grind      INTEGER,
+        temp_c     INTEGER,
+        rating     INTEGER CHECK(rating BETWEEN 1 AND 5),
+        notes      TEXT,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    )''')
+    conn.execute('''CREATE TABLE IF NOT EXISTS coffee_brews (
+        coffee_id  INTEGER NOT NULL REFERENCES coffees(id) ON DELETE CASCADE,
+        brew_id    INTEGER NOT NULL REFERENCES brews(id) ON DELETE CASCADE,
+        PRIMARY KEY (coffee_id, brew_id)
+    )''')
+    logging.info('[migration v6] recipes and brews tables ready.')
 
 
 def _rebuild_table_v1(conn):

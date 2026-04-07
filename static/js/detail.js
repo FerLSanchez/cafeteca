@@ -41,55 +41,121 @@ function showDetail(id) {
   currentDetail = c;
   document.getElementById('detail-title').textContent = c.name;
   document.getElementById('unrate-btn').style.display = parseInt(c.rating,10)?'':'none';
-  const rows = [
-    ['Tostador',c.roaster],['Productor',c.producer],
-    ['Variedad',c.varieties&&c.varieties.length?c.varieties.join(', '):null],
-    ['País',c.origin],['Región',c.region],['Altitud',c.altitude?c.altitude+' m':null],
-    ['Proceso',c.processes&&c.processes.length?c.processes.join(', '):null],
-    ['🥛 Con leche vegetal',c.milk_types&&c.milk_types.length?c.milk_types.join(', '):null],
-    ['Tienda',c.shop],
-    ['Cantidad',c.quantity_g?c.quantity_g+'g':null],
-    ['Precio/kg',c.price_kg?c.price_kg+'€':null],['Coste total',fmtPrice(c)],
-    ['Compra',fmtDate(c.purchase_date)],['Tueste',fmtDate(c.roast_date)],
-    ['Abierto',fmtDate(c.opened_date)],['Terminado',fmtDate(c.finished_date)],
-  ].filter(([,v])=>v);
-  const roastDays = daysFromRoast(c.roast_date);
-  const freshBanner = roastDays !== null && roastDays < 14 && !c.finished_date
-    ? `<div class="fresh-warning-banner">⏳ Aún en reposo — faltan <strong>${14 - roastDays} días</strong> para las dos semanas desde el tueste (${roastDays} días de ${14}).</div>` : '';
 
-  // Remaining coffee row (editable)
+  // Hero: status badge
+  const roastDays = daysFromRoast(c.roast_date);
+  const isFresh = roastDays !== null && roastDays < 14 && !c.finished_date;
+  let statusClass = '', statusText = '';
+  if (c.finished_date) {
+    statusClass = 'done'; statusText = 'Terminado';
+  } else if (c.opened_date) {
+    const daysOpen = Math.floor((Date.now() - new Date(c.opened_date)) / 86400000);
+    statusClass = 'open';
+    statusText = `Abierto · ${daysOpen} día${daysOpen !== 1 ? 's' : ''}`;
+  } else {
+    statusText = 'Sin abrir';
+  }
+  const freshNote = isFresh
+    ? `<div class="detail-fresh-note">⏳ ${14 - roastDays}d de reposo restantes (${roastDays} de 14)</div>`
+    : '';
+
+  // Profile info rows for the grid
+  function chips(arr) {
+    if (!arr || !arr.length) return '';
+    if (arr.length === 1) return `<div class="detail-cell-val">${esc(arr[0])}</div>`;
+    return `<div class="detail-cell-chips">${arr.map(v=>`<span class="detail-chip">${esc(v)}</span>`).join('')}</div>`;
+  }
+
+  // Compact grid helper
+  function gridRow(l1, v1, l2, v2) {
+    if (!v1 && !v2) return '';
+    if (v1 && v2) return `
+      <div class="detail-cell"><div class="detail-cell-label">${l1}</div><div class="detail-cell-val">${esc(String(v1))}</div></div>
+      <div class="detail-cell"><div class="detail-cell-label">${l2}</div><div class="detail-cell-val">${esc(String(v2))}</div></div>`;
+    const l = v1 ? l1 : l2, v = v1 || v2;
+    return `<div class="detail-cell span2"><div class="detail-cell-label">${l}</div><div class="detail-cell-val">${esc(String(v))}</div></div>`;
+  }
+
+  const coste = c.price_kg && c.quantity_g
+    ? (c.price_kg * c.quantity_g / 1000).toFixed(2) + '€'
+    : null;
+
+  // Profile rows (labeled, no horizontal scroll)
+  function profileRow(label, content) {
+    if (!content) return '';
+    return `<div class="detail-cell span2"><div class="detail-cell-label">${label}</div>${content}</div>`;
+  }
+
+  const profileHTML = [
+    gridRow('Tostador',   c.roaster,   'Productor', c.producer),
+    gridRow('País',       c.origin,    'Región',    c.region),
+    profileRow('Variedades',    chips(c.varieties)),
+    profileRow('Proceso',       chips(c.processes)),
+    profileRow('Con leche',     chips(c.milk_types)),
+    c.altitude ? `<div class="detail-cell span2"><div class="detail-cell-label">Altitud</div><div class="detail-cell-val">${c.altitude} m</div></div>` : '',
+  ].join('');
+
+  const gridHTML = [
+    gridRow('Tienda',     c.shop,                                  'Compra',      fmtDate(c.purchase_date)),
+    gridRow('Tueste',     fmtDate(c.roast_date),                   'Abierto',     fmtDate(c.opened_date)),
+    gridRow('Terminado',  fmtDate(c.finished_date),                'Cantidad',    c.quantity_g ? c.quantity_g + 'g' : null),
+    gridRow('Precio/kg',  c.price_kg ? c.price_kg + '€/kg' : null,'Coste total', coste),
+  ].join('');
+
+  // Remaining row (preserves IDs used by editRemainingInline/saveRemaining)
   const remainingRow = c.quantity_g != null ? `
-    <div class="detail-row" id="remaining-display-row">
-      <span class="detail-label">☕ Restante</span>
-      <span class="detail-val" style="display:flex;align-items:center;gap:6px">
+    <div class="detail-cell span2" id="remaining-display-row">
+      <div class="detail-cell-label">Restante</div>
+      <div class="detail-cell-val" style="display:flex;align-items:center;gap:8px">
         <span id="remaining-display">${c.remaining_g != null ? c.remaining_g + 'g' : '—'}</span>
         <button class="btn-inline-edit" onclick="editRemainingInline(${c.id})" title="Editar">✏️</button>
-      </span>
+      </div>
     </div>
-    <div class="detail-row" id="remaining-edit-row" style="display:none">
-      <span class="detail-label">☕ Restante</span>
-      <span class="detail-val">
+    <div class="detail-cell span2" id="remaining-edit-row" style="display:none">
+      <div class="detail-cell-label">Restante</div>
+      <div class="detail-cell-val">
         <span class="remaining-edit-row">
-          <input class="remaining-input" type="number" id="remaining-input" value="${c.remaining_g ?? ''}" min="0" onkeydown="if(event.key==='Enter')saveRemaining(${c.id});if(event.key==='Escape')cancelEditRemaining()">
+          <input class="remaining-input" type="number" id="remaining-input" value="${c.remaining_g ?? ''}" min="0"
+            onkeydown="if(event.key==='Enter')saveRemaining(${c.id});if(event.key==='Escape')cancelEditRemaining()">
           <span style="color:var(--text3);font-size:13px">g</span>
           <button class="btn-quick" onclick="saveRemaining(${c.id})" style="padding:4px 10px;font-size:12px">✓</button>
           <button class="btn-quick" onclick="cancelEditRemaining()" style="padding:4px 10px;font-size:12px">✕</button>
         </span>
-      </span>
+      </div>
     </div>` : '';
 
-  // Consume button (only if not finished)
-  const consumeBtn = !c.finished_date ? `<button class="btn-consume" onclick="consumeCoffee()">☕ Consumir una toma (−${gramsPerShot}g)</button>` : '';
+  // Actions row (only if not finished)
+  const actionsRow = !c.finished_date ? `
+    <div class="detail-actions-row">
+      <button class="btn-brew" onclick="openBrewModal()">🫖 Preparar</button>
+      <button class="btn-consume" onclick="consumeCoffee()">☕ Consumir</button>
+    </div>` : '';
 
   document.getElementById('detail-content').innerHTML = `
-    ${freshBanner}
-    <div style="margin-bottom:12px">${stars(c.rating)}</div>
-    ${rows.map(([l,v])=>`<div class="detail-row"><span class="detail-label">${esc(l)}</span><span class="detail-val">${esc(String(v))}</span></div>`).join('')}
-    ${remainingRow}
-    ${c.notes?`<div style="margin-top:14px;font-size:14px;color:var(--text2);line-height:1.6;font-style:italic">"${esc(c.notes)}"</div>`:''}
-    ${consumeBtn}
+    <div class="detail-hero">
+      <div>
+        <div class="detail-status-badge ${statusClass}">${statusText}</div>
+        ${freshNote}
+      </div>
+      <div style="flex-shrink:0">${stars(c.rating)}</div>
+    </div>
+
+    <div class="detail-grid">
+      ${profileHTML}
+      ${gridHTML}
+      ${remainingRow}
+    </div>
+
+    ${c.notes ? `<div class="detail-notes">"${esc(c.notes)}"</div>` : ''}
+
+    ${actionsRow}
+
+    <div id="detail-recipe-section" style="margin-top:4px"></div>
+    <div id="detail-brews-section" style="margin-top:14px"></div>
   `;
-  document.getElementById('modal-detail').classList.add('open');
+  openModal('modal-detail');
+  renderRecipeSection(c.id);
+  renderBrewsSection(c.id);
 }
 
 function editCurrent() { closeModal('modal-detail'); openEditModal(currentDetail); }
@@ -99,6 +165,7 @@ function duplicateCurrent() {
   const c = currentDetail;
   closeModal('modal-detail');
   resetForm();
+  pendingRecipeCopyFrom = c.id;
   document.getElementById('modal-title').textContent = 'Nueva bolsa';
   document.getElementById('f-name').value = c.name || '';
   document.getElementById('f-roaster').value = c.roaster || '';
@@ -117,7 +184,7 @@ function duplicateCurrent() {
   document.getElementById('f-notes').value = c.notes || '';
   document.getElementById('f-purchase').value = new Date().toISOString().split('T')[0];
   // leave roast_date, opened_date, finished_date, rating blank (new bag)
-  document.getElementById('modal-form').classList.add('open');
+  openModal('modal-form');
 }
 
 async function unrateCurrent() {

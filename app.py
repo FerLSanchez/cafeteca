@@ -6,6 +6,7 @@ from blueprints.coffees import bp as coffees_bp
 from blueprints.stats import bp as stats_bp
 from blueprints.settings import bp as settings_bp
 from blueprints.lookup import bp as lookup_bp
+from blueprints.brews import bp as brews_bp
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
 app.config['MAX_CONTENT_LENGTH'] = 1 * 1024 * 1024  # 1 MB request size limit
@@ -41,6 +42,7 @@ app.register_blueprint(coffees_bp)
 app.register_blueprint(stats_bp)
 app.register_blueprint(settings_bp)
 app.register_blueprint(lookup_bp)
+app.register_blueprint(brews_bp)
 
 
 @app.after_request
@@ -84,6 +86,7 @@ def manifest():
     return response
 
 
+init_db()
+
 if __name__ == '__main__':
-    init_db()
     app.run(host='0.0.0.0', port=5000, debug=False)

@@ -35,7 +35,17 @@ function showConfirm({icon='🗑', title='¿Confirmar?', msg='', btnLabel='Elimi
   const btn = document.getElementById('confirm-action-btn');
   btn.textContent = btnLabel; btn.className = btnClass;
   btn.onclick = () => { closeModal('modal-confirm'); onConfirm(); };
-  document.getElementById('modal-confirm').classList.add('open');
+  openModal('modal-confirm');
 }
 
-function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function openModal(id) {
+  document.getElementById(id).classList.add('open');
+  document.body.classList.add('modal-open');
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+  if (!document.querySelector('.modal-overlay.open')) {
+    document.body.classList.remove('modal-open');
+  }
+}
