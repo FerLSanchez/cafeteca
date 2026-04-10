@@ -30,14 +30,19 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
 
 /* FILTER BAR */
 .filter-bar{margin-bottom:12px}
-.filter-status{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px}
-.fb{background:var(--surface2);border:1px solid var(--border);color:var(--text2);padding:5px 10px;border-radius:20px;font-size:12px;cursor:pointer;white-space:nowrap;font-family:'DM Sans',sans-serif;transition:all 0.15s}
+.filter-status{display:flex;gap:6px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding-bottom:6px;margin-bottom:6px}
+.filter-status::-webkit-scrollbar{display:none}
+.fb{background:var(--surface2);border:1px solid var(--border);color:var(--text2);padding:6px 14px;border-radius:20px;font-size:13px;cursor:pointer;white-space:nowrap;font-family:'DM Sans',sans-serif;transition:all 0.15s;flex-shrink:0}
 .fb.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.filter-toolbar{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.filter-sort{flex:1;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:10px;padding:8px 12px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none}
+.filter-sort:focus{border-color:var(--accent)}
+.filter-toggle-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text2);border-radius:10px;padding:8px 13px;font-size:16px;cursor:pointer;position:relative;display:flex;align-items:center;gap:4px;transition:all 0.15s;flex-shrink:0}
+.filter-toggle-btn.active{background:rgba(200,112,58,0.12);border-color:var(--accent);color:var(--accent2)}
+.ftb-badge{background:var(--accent);color:#fff;border-radius:10px;font-size:10px;font-weight:600;padding:1px 5px;display:none;font-family:'DM Sans',sans-serif}
+.ftb-badge.show{display:inline}
 
 /* FILTER PANEL */
-.filter-panel-toggle{display:flex;align-items:center;gap:6px;color:var(--text3);font-size:13px;cursor:pointer;margin-bottom:6px;user-select:none}
-.filter-panel-toggle .badge{background:var(--accent);color:#fff;border-radius:10px;font-size:11px;padding:1px 7px;display:none}
-.filter-panel-toggle .badge.show{display:inline}
 .filter-panel{display:none;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px}
 .filter-panel.open{display:block}
 .filter-groups{display:grid;grid-template-columns:1fr 1fr;gap:10px}

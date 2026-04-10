@@ -42,6 +42,8 @@ def list_coffees():
         where.append("(c.opened_date IS NULL OR c.opened_date='')")
     elif status == 'unrated':
         where.append('c.rating IS NULL')
+    elif status == 'in_use':
+        where.append("(c.finished_date IS NULL OR c.finished_date='')")
     if args.get('q'):
         q = args["q"].strip()
         if schema.FTS_ENABLED:

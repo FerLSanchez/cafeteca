@@ -55,32 +55,33 @@
 
 <!-- LIST PAGE -->
 <div class="page active" id="page-list">
-  <!-- Status filters -->
+  <!-- Filter bar -->
   <div class="filter-bar">
+    <!-- Status pills (horizontal scroll) -->
     <div class="filter-status">
-      <button class="fb active" onclick="setStatus('',this)">Todos</button>
+      <button class="fb active" onclick="setStatus('in_use',this)">En uso</button>
       <button class="fb" onclick="setStatus('active',this)">Abiertos</button>
       <button class="fb" onclick="setStatus('pending',this)">Sin abrir</button>
+      <button class="fb" onclick="setStatus('unrated',this)">Sin ★</button>
       <button class="fb" onclick="setStatus('finished',this)">Terminados</button>
-      <button class="fb" onclick="setStatus('unrated',this)">Sin valorar</button>
+      <button class="fb" onclick="setStatus('',this)">Todos</button>
     </div>
-    <div class="sort-row">
-      <label>Orden:</label>
-      <select class="filter-select" id="sort-select" onchange="onSortChange()" style="flex:1;max-width:200px">
-        <option value="smart">Recomendado</option>
-        <option value="created_desc">Más reciente</option>
-        <option value="roast_desc">Tueste ↓ reciente</option>
-        <option value="roast_asc">Tueste ↑ antiguo</option>
-        <option value="rating_desc">Mejor valorados</option>
-        <option value="name_asc">Nombre A→Z</option>
+    <!-- Sort + filter toggle row -->
+    <div class="filter-toolbar">
+      <select class="filter-select filter-sort" id="sort-select" onchange="onSortChange()">
+        <option value="smart">↕ Recomendado</option>
+        <option value="created_desc">↕ Más reciente</option>
+        <option value="roast_desc">↕ Tueste reciente</option>
+        <option value="roast_asc">↕ Tueste antiguo</option>
+        <option value="rating_desc">↕ Mejor valorados</option>
+        <option value="name_asc">↕ Nombre A→Z</option>
       </select>
+      <button class="filter-toggle-btn" onclick="toggleFilterPanel()" id="filter-toggle-btn">
+        <span>⚙️</span>
+        <span class="ftb-badge" id="filter-badge"></span>
+      </button>
     </div>
-    <!-- Advanced filter toggle -->
-    <div class="filter-panel-toggle" onclick="toggleFilterPanel()">
-      <span>⚙️ Filtros avanzados</span>
-      <span class="badge" id="filter-badge">0</span>
-      <span id="filter-arrow" style="margin-left:auto;color:var(--text3)">›</span>
-    </div>
+    <!-- Advanced filter panel -->
     <div class="filter-panel" id="filter-panel">
       <div class="filter-groups">
         <div class="filter-group">

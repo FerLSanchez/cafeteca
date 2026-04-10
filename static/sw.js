@@ -1,4 +1,4 @@
-const CACHE = 'cafeteca-v9';
+const CACHE = 'cafeteca-v10';
 const SHELL = [
   '/',
   '/manifest.json',
