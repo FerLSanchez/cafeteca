@@ -2,7 +2,7 @@ services:
   cafeteca:
     build: .
     ports:
-      - "5323:5000"
+      - "5323:5323"
     volumes:
       - ./data:/data
     restart: unless-stopped

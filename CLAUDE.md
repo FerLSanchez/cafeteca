@@ -91,7 +91,7 @@ La aplicación está en uso con datos reales. Cualquier cambio de esquema debe i
 ```bash
 pip install flask
 python app.py
-# → http://localhost:5000
+# → http://localhost:5323
 ```
 
 O con Docker:

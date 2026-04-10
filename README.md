@@ -8,7 +8,9 @@ Diario personal de cafés de especialidad. Registra compras, consumo, valoracion
 docker compose up -d
 ```
 
-Abre http://localhost:5000 en el móvil o navegador.
+Abre http://localhost:5323 en el móvil o navegador.
+
+> **Primer uso:** el PIN por defecto es `1111`. Cámbialo desde el botón ⚙️ en la barra de navegación antes de usar la app.
 
 Para parar:
 
@@ -195,3 +197,5 @@ Query params combinables:
 - Cabeceras CSP, `X-Frame-Options`, `X-Content-Type-Options` y `Referrer-Policy` en todas las respuestas
 - Todos los endpoints `/api/*` requieren sesión activa (excepto `/api/auth/status` y `/api/auth/login`)
 - Límite de 1 MB por petición
+
+> **Aviso:** esta app está diseñada para uso personal en red local o privada. No está pensada para exponerse directamente a internet sin un proxy inverso con HTTPS y autenticación adicional. El mecanismo de PIN no incluye bloqueo tras varios intentos fallidos.
