@@ -236,3 +236,7 @@ Query params combinables:
 - Límite de 1 MB por petición
 
 > **Aviso:** esta app está diseñada para uso personal en red local o privada. No está pensada para exponerse directamente a internet sin un proxy inverso con HTTPS y autenticación adicional. El mecanismo de PIN no incluye bloqueo tras varios intentos fallidos.
+
+## Licencia
+
+[PolyForm Noncommercial 1.0.0](LICENSE) — puedes usar, modificar y forkear libremente este proyecto para cualquier fin no comercial. No puedes venderlo ni integrarlo en un producto o servicio de pago.
