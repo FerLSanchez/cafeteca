@@ -27,6 +27,19 @@ python app.py
 
 Los datos se guardan en `/data/coffee.db`. En local puedes cambiar la variable `DB` en `db.py` para usar una ruta distinta.
 
+## Tests
+
+```bash
+python -m venv .venv
+.venv/Scripts/pip install -r requirements.txt -r requirements-test.txt  # Windows
+# source .venv/bin/activate && pip install ...  # macOS/Linux
+
+.venv/Scripts/pytest          # suite completa (227 tests)
+.venv/Scripts/pytest --cov=. --cov-report=term-missing --cov-omit="tests/*"  # con cobertura
+```
+
+La suite cubre todos los endpoints REST, validación de modelos, relaciones M2M, migraciones de esquema y lógica de autenticación. Cada test arranca con una base de datos SQLite en memoria completamente inicializada — no toca `/data/coffee.db`.
+
 ## Estructura de ficheros
 
 ```
@@ -37,13 +50,14 @@ cafeteca/
 │                           #   create_lookup_tables(), get_or_create()
 ├── models.py               # COFFEE_SELECT, row_to_coffee(), set_m2m(),
 │                           #   resolve_ids(), validate_coffee()
-├── schema.py               # init_db(), migraciones v1-v5, login_required, PIN
+├── schema.py               # init_db(), migraciones v1-v6, login_required, PIN
 ├── blueprints/
 │   ├── auth.py             # /api/auth/*
 │   ├── coffees.py          # /api/coffees/*
 │   ├── stats.py            # /api/stats
 │   ├── settings.py         # /api/settings, /api/options, /api/lookup-tables
-│   └── lookup.py           # /api/lookup/<table>/*
+│   ├── lookup.py           # /api/lookup/<table>/*
+│   └── brews.py            # /api/coffees/:id/recipe, /api/coffees/:id/brews, /api/brews
 ├── templates/
 │   └── index.html          # HTML + referencias a CSS y JS externos
 ├── static/
@@ -62,11 +76,26 @@ cafeteca/
 │   │   ├── form.js         # Formulario añadir/editar, ajustes
 │   │   ├── stats.js        # Stats, gráficas, calendario
 │   │   ├── catalog.js      # Gestión de catálogos
+│   │   ├── brews.js        # Historial de preparaciones y receta
 │   │   ├── pin.js          # Pantalla PIN
 │   │   └── init.js         # Arranque, registro del service worker
 │   ├── manifest.json       # PWA manifest
 │   ├── sw.js               # Service worker
 │   └── icon-*.png          # Iconos PWA
+├── tests/
+│   ├── conftest.py         # Fixtures: db, app, client, auth_client
+│   ├── helpers.py          # make_coffee(), make_brew()
+│   ├── test_schema.py      # Migraciones e init_db
+│   ├── test_models.py      # validate_coffee, row_to_coffee, set_m2m, resolve_ids
+│   ├── test_auth.py        # Login, status, change-pin
+│   ├── test_coffees.py     # CRUD, filtros, open/finish/consume
+│   ├── test_stats.py       # Estadísticas y breakdowns
+│   ├── test_settings.py    # Configuración y opciones
+│   ├── test_lookup.py      # Gestión de catálogos
+│   └── test_brews.py       # Recetas y preparaciones
+├── pytest.ini
+├── requirements.txt
+├── requirements-test.txt
 ├── Dockerfile
 ├── docker-compose.yml
 └── data/                   # Creado automáticamente, contiene coffee.db
@@ -121,15 +150,16 @@ SQLite. La migración corre automáticamente al arrancar — no hace falta ejecu
 
 ### Migración automática
 
-Al arrancar se ejecutan `migrate_v1` a `migrate_v5` — todas idempotentes:
+Al arrancar se ejecutan `migrate_v1` a `migrate_v6` — todas idempotentes:
 
 - **v1** — columnas de texto → tablas de referencia con FK
 - **v2** — `variety_id`/`process_id` → tablas M2M; enlaza regiones a países
 - **v3** — añade leches vegetales M2M con valores por defecto
 - **v4** — añade `remaining_g`, inicializa con `quantity_g`
 - **v5** — crea índice FTS5 para búsqueda full-text (silencioso si no está disponible)
+- **v6** — añade tablas `recipes`, `brews` y sus junctions para historial de preparaciones
 
-Para añadir nuevos cambios de esquema, crear `migrate_v6()` en `schema.py` y llamarla desde `init_db()`.
+Para añadir nuevos cambios de esquema, crear `migrate_v7()` en `schema.py` y llamarla desde `init_db()`.
 
 ## API
 
@@ -156,6 +186,13 @@ Para añadir nuevos cambios de esquema, crear `migrate_v6()` en `schema.py` y ll
 | GET | /api/auth/status | Estado de sesión (no requiere auth) |
 | POST | /api/auth/login | Login con PIN |
 | POST | /api/auth/change-pin | Cambiar PIN (requiere PIN actual) |
+| GET | /api/coffees/:id/recipe | Obtener receta del café |
+| PUT | /api/coffees/:id/recipe | Crear o actualizar receta |
+| DELETE | /api/coffees/:id/recipe | Eliminar receta |
+| GET | /api/coffees/:id/brews | Historial de preparaciones del café |
+| POST | /api/coffees/:id/brews | Registrar preparación |
+| GET | /api/brews | Todas las preparaciones (vista global) |
+| DELETE | /api/brews/:id | Eliminar preparación |
 
 ### Filtros en GET /api/coffees
 
