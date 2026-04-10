@@ -3,3 +3,8 @@ __pycache__/
 *.pyo
 data/
 .claude/
+.venv/
+.pytest_cache/
+.coverage
+htmlcov/
+
