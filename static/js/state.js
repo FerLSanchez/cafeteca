@@ -26,8 +26,10 @@ const PAGE_SIZE = 15;
 let visibleCount = PAGE_SIZE;
 
 // Calendar
-const MONTH_NAMES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
-                     'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+function getMonthNames() {
+  return ['month.jan','month.feb','month.mar','month.apr','month.may','month.jun',
+          'month.jul','month.aug','month.sep','month.oct','month.nov','month.dec'].map(k => t(k));
+}
 let calYear  = new Date().getFullYear();
 let calMonth = new Date().getMonth(); // 0-based
 let calCoffees = [];
@@ -37,11 +39,18 @@ let acTimers = {};
 
 // Catalog
 let LOOKUP_TABLES = [];  // populated from /api/options on init
-const CATALOG_LABELS = {
-  roasters:'Tostadores', producers:'Productores', shops:'Tiendas',
-  origins:'Países de origen', regions:'Regiones', varieties:'Variedades', processes:'Procesos',
-  milk_types:'Leches vegetales'
-};
+function getCatalogLabels() {
+  return {
+    roasters:   t('catalog.roasters'),
+    producers:  t('catalog.producers'),
+    shops:      t('catalog.shops'),
+    origins:    t('catalog.origins'),
+    regions:    t('catalog.regions'),
+    varieties:  t('catalog.varieties'),
+    processes:  t('catalog.processes'),
+    milk_types: t('catalog.milk_types'),
+  };
+}
 
 // Duplicate flow: source coffee ID to copy recipe/brews from
 let pendingRecipeCopyFrom = null;

@@ -9,6 +9,13 @@ import schema
 bp = Blueprint('coffees', __name__)
 
 
+def _validation_error(err):
+    body = {'error': err['msg'], 'error_key': err['key']}
+    if err.get('params'):
+        body['error_key_params'] = err['params']
+    return jsonify(body), 400
+
+
 @bp.route('/api/coffees')
 @login_required
 def list_coffees():
@@ -20,19 +27,19 @@ def list_coffees():
                 where.append(f'c.{fk}=?')
                 vals.append(int(args[fk]))
             except (ValueError, TypeError):
-                return jsonify({'error': f'Valor de filtro inválido: {fk}'}), 400
+                return jsonify({'error': f'Valor de filtro inválido: {fk}', 'error_key': 'error.coffee.invalid_filter_fk', 'error_key_params': {'field': fk}}), 400
     if args.get('variety_id'):
         try:
             where.append('EXISTS (SELECT 1 FROM coffee_varieties WHERE coffee_id=c.id AND variety_id=?)')
             vals.append(int(args['variety_id']))
         except (ValueError, TypeError):
-            return jsonify({'error': 'Valor de filtro inválido: variety_id'}), 400
+            return jsonify({'error': 'Valor de filtro inválido: variety_id', 'error_key': 'error.coffee.invalid_filter_variety'}), 400
     if args.get('process_id'):
         try:
             where.append('EXISTS (SELECT 1 FROM coffee_processes WHERE coffee_id=c.id AND process_id=?)')
             vals.append(int(args['process_id']))
         except (ValueError, TypeError):
-            return jsonify({'error': 'Valor de filtro inválido: process_id'}), 400
+            return jsonify({'error': 'Valor de filtro inválido: process_id', 'error_key': 'error.coffee.invalid_filter_process'}), 400
     status = args.get('status')
     if status == 'active':
         where.append("c.opened_date IS NOT NULL AND c.opened_date!='' AND (c.finished_date IS NULL OR c.finished_date='')")
@@ -63,7 +70,7 @@ def list_coffees():
         if limit is not None and limit <= 0:
             raise ValueError
     except (ValueError, TypeError):
-        return jsonify({'error': 'Parámetros limit/offset inválidos'}), 400
+        return jsonify({'error': 'Parámetros limit/offset inválidos', 'error_key': 'error.coffee.invalid_pagination'}), 400
     sql = COFFEE_SELECT + (' WHERE ' + ' AND '.join(where) if where else '') + ' ORDER BY c.created_at DESC'
     if limit is not None:
         sql += f' LIMIT {limit} OFFSET {offset}'
@@ -78,7 +85,7 @@ def add_coffee():
     data = request.get_json(silent=True)
     err = validate_coffee(data)
     if err:
-        return jsonify({'error': err}), 400
+        return _validation_error(err)
     with db_conn() as conn:
         ids = resolve_ids(conn, data)
         remaining_g = data.get('remaining_g') if data.get('remaining_g') is not None else data.get('quantity_g')
@@ -112,7 +119,7 @@ def update_coffee(cid):
     data = request.get_json(silent=True)
     err = validate_coffee(data)
     if err:
-        return jsonify({'error': err}), 400
+        return _validation_error(err)
     with db_conn() as conn:
         ids    = resolve_ids(conn, data)
         fields = list(ids.keys()) + SCALAR_FIELDS
@@ -132,10 +139,10 @@ def open_coffee(cid):
     data = request.get_json(silent=True) or {}
     date = data.get('date') or datetime.now().strftime('%Y-%m-%d')
     if not isinstance(date, str) or not DATE_RE.match(date):
-        return jsonify({'error': 'Formato de fecha inválido (esperado YYYY-MM-DD)'}), 400
+        return jsonify({'error': 'Formato de fecha inválido (esperado YYYY-MM-DD)', 'error_key': 'error.coffee.invalid_date'}), 400
     with db_conn() as conn:
         if not conn.execute('SELECT 1 FROM coffees WHERE id=?', (cid,)).fetchone():
-            return jsonify({'error': 'Café no encontrado'}), 404
+            return jsonify({'error': 'Café no encontrado', 'error_key': 'error.coffee.not_found'}), 404
         conn.execute('UPDATE coffees SET opened_date=? WHERE id=?', (date, cid))
         row = get_coffee_by_id(conn, cid)
     return jsonify(row)
@@ -147,7 +154,7 @@ def finish_coffee(cid):
     today = datetime.now().strftime('%Y-%m-%d')
     with db_conn() as conn:
         if not conn.execute('SELECT 1 FROM coffees WHERE id=?', (cid,)).fetchone():
-            return jsonify({'error': 'Café no encontrado'}), 404
+            return jsonify({'error': 'Café no encontrado', 'error_key': 'error.coffee.not_found'}), 404
         conn.execute('UPDATE coffees SET finished_date=? WHERE id=?', (today, cid))
         row = get_coffee_by_id(conn, cid)
     return jsonify(row)
@@ -158,7 +165,7 @@ def finish_coffee(cid):
 def unrate_coffee(cid):
     with db_conn() as conn:
         if not conn.execute('SELECT 1 FROM coffees WHERE id=?', (cid,)).fetchone():
-            return jsonify({'error': 'Café no encontrado'}), 404
+            return jsonify({'error': 'Café no encontrado', 'error_key': 'error.coffee.not_found'}), 404
         conn.execute('UPDATE coffees SET rating=NULL WHERE id=?', (cid,))
         row = get_coffee_by_id(conn, cid)
     return jsonify(row)
@@ -170,10 +177,10 @@ def set_remaining(cid):
     data = request.get_json(silent=True) or {}
     val = data.get('remaining_g')
     if val is None or not isinstance(val, int) or isinstance(val, bool) or val < 0:
-        return jsonify({'error': 'remaining_g debe ser un entero no negativo'}), 400
+        return jsonify({'error': 'remaining_g debe ser un entero no negativo', 'error_key': 'error.coffee.remaining_invalid'}), 400
     with db_conn() as conn:
         if not conn.execute('SELECT 1 FROM coffees WHERE id=?', (cid,)).fetchone():
-            return jsonify({'error': 'Café no encontrado'}), 404
+            return jsonify({'error': 'Café no encontrado', 'error_key': 'error.coffee.not_found'}), 404
         conn.execute('UPDATE coffees SET remaining_g=? WHERE id=?', (val, cid))
         row = get_coffee_by_id(conn, cid)
     return jsonify(row)
@@ -185,7 +192,7 @@ def consume_coffee(cid):
     with db_conn() as conn:
         coffee_row = conn.execute('SELECT remaining_g FROM coffees WHERE id=?', (cid,)).fetchone()
         if not coffee_row:
-            return jsonify({'error': 'Café no encontrado'}), 404
+            return jsonify({'error': 'Café no encontrado', 'error_key': 'error.coffee.not_found'}), 404
         gps_row = conn.execute('SELECT value FROM settings WHERE key=?', (schema.SETTING_GRAMS_PER_SHOT,)).fetchone()
         grams = int(gps_row['value']) if gps_row else 17
         current = coffee_row['remaining_g'] if coffee_row['remaining_g'] is not None else 0
@@ -201,7 +208,7 @@ def delete_coffee(cid):
     with db_conn() as conn:
         cur = conn.execute('DELETE FROM coffees WHERE id=?', (cid,))
         if cur.rowcount == 0:
-            return jsonify({'error': 'Café no encontrado'}), 404
+            return jsonify({'error': 'Café no encontrado', 'error_key': 'error.coffee.not_found'}), 404
         conn.execute('DELETE FROM recipes WHERE id NOT IN (SELECT recipe_id FROM coffee_recipes)')
         conn.execute('DELETE FROM brews   WHERE id NOT IN (SELECT brew_id   FROM coffee_brews)')
     return jsonify({'ok': True})

@@ -21,7 +21,7 @@ def auth_login():
         session['authenticated'] = True
         return jsonify({'ok': True})
     time.sleep(0.5)
-    return jsonify({'error': 'PIN incorrecto'}), 401
+    return jsonify({'error': 'PIN incorrecto', 'error_key': 'error.auth.wrong_pin'}), 401
 
 
 @bp.route('/api/auth/change-pin', methods=['POST'])
@@ -31,10 +31,10 @@ def auth_change_pin():
     current = str(data.get('current_pin', ''))
     new_pin = str(data.get('new_pin', ''))
     if not new_pin.isdigit() or len(new_pin) != 4:
-        return jsonify({'error': 'El nuevo PIN debe ser 4 dígitos'}), 400
+        return jsonify({'error': 'El nuevo PIN debe ser 4 dígitos', 'error_key': 'error.auth.new_pin_format'}), 400
     with db_conn() as conn:
         row = conn.execute('SELECT value FROM settings WHERE key=?', (SETTING_PIN_HASH,)).fetchone()
         if not row or not secrets.compare_digest(_pin_hash(current), row['value']):
-            return jsonify({'error': 'PIN actual incorrecto'}), 401
+            return jsonify({'error': 'PIN actual incorrecto', 'error_key': 'error.auth.current_pin_wrong'}), 401
         conn.execute('UPDATE settings SET value=? WHERE key=?', (_pin_hash(new_pin), SETTING_PIN_HASH))
     return jsonify({'ok': True})

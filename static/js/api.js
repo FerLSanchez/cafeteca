@@ -6,21 +6,24 @@ async function api(path, opts={}) {
   try {
     r = await fetch('/api'+path, {headers:{'Content-Type':'application/json'}, ...opts});
   } catch {
-    showToast('⚠️ Error de red: sin conexión con el servidor');
+    showToast('⚠️ ' + t('error.network'));
     throw new Error('network error');
   }
   const data = await r.json();
   if (!r.ok) {
-    showToast('⚠️ ' + (data.error || `Error ${r.status}`));
-    throw Object.assign(new Error(data.error || `Error ${r.status}`), {status: r.status});
+    const msg = data.error_key
+      ? t(data.error_key, data.error_key_params || {})
+      : (data.error || `Error ${r.status}`);
+    showToast('⚠️ ' + msg);
+    throw Object.assign(new Error(msg), {status: r.status});
   }
   return data;
 }
 
 function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg; t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'), 2200);
+  const toastEl = document.getElementById('toast');
+  toastEl.textContent = msg; toastEl.classList.add('show');
+  setTimeout(()=>toastEl.classList.remove('show'), 2200);
 }
 
 function esc(str) {
@@ -28,7 +31,9 @@ function esc(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
-function showConfirm({icon='🗑', title='¿Confirmar?', msg='', btnLabel='Eliminar', btnClass='btn-danger', onConfirm}) {
+function showConfirm({icon='🗑', title, msg='', btnLabel, btnClass='btn-danger', onConfirm}) {
+  title = title ?? t('modal.confirm.default_title');
+  btnLabel = btnLabel ?? t('modal.confirm.default_btn');
   document.getElementById('confirm-icon').textContent = icon;
   document.getElementById('confirm-title').textContent = title;
   document.getElementById('confirm-msg').textContent = msg;

@@ -47,12 +47,14 @@ function renderList() {
   const total = displayedCoffees.length;
   if (total === 0) {
     info.textContent = '';
-    el.innerHTML = `<div class="empty-state"><div class="empty-icon">☕</div><h3>Sin cafés aquí</h3><p>Prueba a cambiar los filtros o añade uno nuevo</p></div>`;
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">☕</div><h3>${t('list.empty_title')}</h3><p>${t('list.empty_hint')}</p></div>`;
     return;
   }
   const sorted = sortedCoffees();
   const showing = Math.min(visibleCount, total);
-  info.textContent = showing < total ? `${showing} de ${total} cafés` : `${total} café${total!==1?'s':''}`;
+  info.textContent = showing < total
+    ? t('list.showing', {showing, total})
+    : t('list.total', {total, s: total !== 1 ? 's' : ''});
 
   const visible = sorted.slice(0, showing);
   el.innerHTML = visible.map(c => {
@@ -62,13 +64,13 @@ function renderList() {
     const sub = [c.roaster, c.producer].filter(Boolean).map(esc).join(' / ');
     const roastDays = daysFromRoast(c.roast_date);
     const freshTag = !finished && roastDays !== null && roastDays < 14
-      ? `<span class="tag fresh-warning">⏳ Reposo: ${14 - roastDays} días más</span>` : '';
+      ? `<span class="tag fresh-warning">${t('list.fresh_tag', {days: 14 - roastDays})}</span>` : '';
     const daysOpen = opened ? Math.floor((new Date() - new Date(c.opened_date)) / 86400000) : null;
-    const daysOpenTag = daysOpen !== null ? `<span class="tag">📅 ${daysOpen} día${daysOpen!==1?'s':''} abierto</span>` : '';
+    const daysOpenTag = daysOpen !== null ? `<span class="tag">${t('list.days_open_tag', {days: daysOpen, s: daysOpen!==1?'s':''})}</span>` : '';
     const price = fmtPrice(c);
     const actions = !finished ? `<div class="card-actions" id="actions-${c.id}">
-      ${!c.opened_date?`<button class="btn-quick open" onclick="showOpenDatePicker(event,${c.id})">📦 Abrir hoy</button>`:''}
-      ${c.opened_date?`<button class="btn-quick finish" onclick="quickFinish(event,${c.id})">✅ Terminado hoy</button>`:''}
+      ${!c.opened_date?`<button class="btn-quick open" onclick="showOpenDatePicker(event,${c.id})">${t('list.btn.open_today')}</button>`:''}
+      ${c.opened_date?`<button class="btn-quick finish" onclick="quickFinish(event,${c.id})">${t('list.btn.finish_today')}</button>`:''}
     </div>` : '';
     return `<div class="coffee-card ${finished?'finished-coffee':opened?'active-coffee':''}" onclick="showDetail(${c.id})">
       <div class="card-header">
@@ -98,7 +100,7 @@ function renderList() {
     const remaining = total - showing;
     const next = Math.min(PAGE_SIZE, remaining);
     el.innerHTML += `<button class="btn-load-more" onclick="loadMore()">
-      Mostrar ${next} más <span>(${remaining} restantes)</span>
+      ${t('list.show_more', {next})} <span>(${t('list.show_more_remaining', {remaining})})</span>
     </button>`;
   }
 }

@@ -47,7 +47,7 @@ def list_brews():
 def get_recipe(cid):
     with db_conn() as conn:
         if not conn.execute('SELECT 1 FROM coffees WHERE id=?', (cid,)).fetchone():
-            return jsonify({'error': 'Café no encontrado'}), 404
+            return jsonify({'error': 'Café no encontrado', 'error_key': 'error.coffee.not_found'}), 404
         row = conn.execute('''
             SELECT r.id, r.dose_g, r.yield_g, r.grind, r.temp_c, r.updated_at
             FROM recipes r
@@ -56,7 +56,7 @@ def get_recipe(cid):
             LIMIT 1
         ''', (cid,)).fetchone()
     if not row:
-        return jsonify({'error': 'Sin receta'}), 404
+        return jsonify({'error': 'Sin receta', 'error_key': 'error.brew.no_recipe'}), 404
     return jsonify(dict(row))
 
 
@@ -71,7 +71,7 @@ def upsert_recipe(cid):
     now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     with db_conn() as conn:
         if not conn.execute('SELECT 1 FROM coffees WHERE id=?', (cid,)).fetchone():
-            return jsonify({'error': 'Café no encontrado'}), 404
+            return jsonify({'error': 'Café no encontrado', 'error_key': 'error.coffee.not_found'}), 404
         existing = conn.execute('''
             SELECT r.id FROM recipes r
             JOIN coffee_recipes cr ON cr.recipe_id = r.id
@@ -115,7 +115,7 @@ def delete_recipe(cid):
 def list_coffee_brews(cid):
     with db_conn() as conn:
         if not conn.execute('SELECT 1 FROM coffees WHERE id=?', (cid,)).fetchone():
-            return jsonify({'error': 'Café no encontrado'}), 404
+            return jsonify({'error': 'Café no encontrado', 'error_key': 'error.coffee.not_found'}), 404
         rows = conn.execute('''
             SELECT b.id, b.brew_date, b.dose_g, b.yield_g, b.grind, b.temp_c,
                    b.rating, b.notes, b.created_at
@@ -147,7 +147,7 @@ def add_brew(cid):
             rating = None
     with db_conn() as conn:
         if not conn.execute('SELECT 1 FROM coffees WHERE id=?', (cid,)).fetchone():
-            return jsonify({'error': 'Café no encontrado'}), 404
+            return jsonify({'error': 'Café no encontrado', 'error_key': 'error.coffee.not_found'}), 404
         cur = conn.execute(
             'INSERT INTO brews (brew_date, dose_g, yield_g, grind, temp_c, rating, notes) '
             'VALUES (?,?,?,?,?,?,?)',
@@ -168,6 +168,6 @@ def delete_brew(bid):
     with db_conn() as conn:
         cur = conn.execute('DELETE FROM brews WHERE id=?', (bid,))
         if cur.rowcount == 0:
-            return jsonify({'error': 'Preparación no encontrada'}), 404
+            return jsonify({'error': 'Preparación no encontrada', 'error_key': 'error.brew.not_found'}), 404
         _purge_orphans(conn)
     return jsonify({'ok': True})

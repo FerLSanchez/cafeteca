@@ -98,43 +98,52 @@ def get_coffee_by_id(conn, cid):
     return row_to_coffee(conn.execute(COFFEE_SELECT + ' WHERE c.id=?', (cid,)).fetchone())
 
 
+def _verr(key, msg, **params):
+    """Return a structured validation error dict."""
+    return {'key': key, 'msg': msg, 'params': params}
+
+
 def validate_coffee(data):
     if not data or not isinstance(data, dict):
-        return 'Datos inválidos'
+        return _verr('error.model.invalid_data', 'Datos inválidos')
     name = str(data.get('name', '')).strip()
     if not name:
-        return 'El campo "nombre" es requerido'
+        return _verr('error.model.name_required', 'El campo "nombre" es requerido')
     if len(name) > 200:
-        return 'El nombre no puede superar los 200 caracteres'
+        return _verr('error.model.name_too_long', 'El nombre no puede superar los 200 caracteres')
     r = data.get('rating')
     if r is not None and (not isinstance(r, int) or isinstance(r, bool) or not 1 <= r <= 5):
-        return 'La valoración debe estar entre 1 y 5'
+        return _verr('error.model.rating_invalid', 'La valoración debe estar entre 1 y 5')
     q = data.get('quantity_g')
     if q is not None and (not isinstance(q, int) or isinstance(q, bool) or q <= 0):
-        return 'La cantidad debe ser un número entero positivo'
+        return _verr('error.model.quantity_invalid', 'La cantidad debe ser un número entero positivo')
     p = data.get('price_kg')
     if p is not None and (not isinstance(p, (int, float)) or isinstance(p, bool) or p <= 0):
-        return 'El precio debe ser un valor positivo'
+        return _verr('error.model.price_invalid', 'El precio debe ser un valor positivo')
     a = data.get('altitude')
     if a is not None and (not isinstance(a, int) or isinstance(a, bool) or a < 0):
-        return 'La altitud debe ser un número entero no negativo'
+        return _verr('error.model.altitude_invalid', 'La altitud debe ser un número entero no negativo')
     for field in ['purchase_date', 'roast_date', 'opened_date', 'finished_date']:
         val = data.get(field)
         if val is not None and (not isinstance(val, str) or not DATE_RE.match(val)):
-            return f'Formato de fecha inválido para "{field}" (esperado YYYY-MM-DD)'
+            return _verr('error.model.date_invalid',
+                         f'Formato de fecha inválido para "{field}" (esperado YYYY-MM-DD)', field=field)
     for field in ['roaster', 'producer', 'origin', 'region', 'shop']:
         val = data.get(field)
         if val and len(str(val)) > 200:
-            return f'El campo "{field}" no puede superar los 200 caracteres'
+            return _verr('error.model.field_too_long',
+                         f'El campo "{field}" no puede superar los 200 caracteres', field=field)
     for field in ['varieties', 'processes', 'milk_types']:
         val = data.get(field)
         if val is not None:
             if not isinstance(val, list):
-                return f'El campo "{field}" debe ser una lista'
+                return _verr('error.model.field_not_list',
+                             f'El campo "{field}" debe ser una lista', field=field)
             for item in val:
                 if item and len(str(item)) > 200:
-                    return f'Un valor en "{field}" supera los 200 caracteres'
+                    return _verr('error.model.field_item_too_long',
+                                 f'Un valor en "{field}" supera los 200 caracteres', field=field)
     notes = data.get('notes')
     if notes and len(str(notes)) > 5000:
-        return 'Las notas no pueden superar los 5000 caracteres'
+        return _verr('error.model.notes_too_long', 'Las notas no pueden superar los 5000 caracteres')
     return None

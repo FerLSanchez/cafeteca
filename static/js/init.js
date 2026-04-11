@@ -13,6 +13,10 @@ document.querySelectorAll('.modal-overlay').forEach(m=>{
 });
 
 async function startup() {
+  await initI18n();
+  applyI18n();
+  const langSel = document.getElementById('lang-select');
+  if (langSel) langSel.value = _currentLang;
   const status = await fetch('/api/auth/status').then(r => r.json()).catch(() => ({authenticated: false}));
   if (status.authenticated) {
     document.getElementById('pin-lock').style.display = 'none';
