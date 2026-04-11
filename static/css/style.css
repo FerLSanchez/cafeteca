@@ -10,7 +10,8 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
 /* NAV */
 .nav{position:sticky;top:0;z-index:100;background:rgba(15,11,8,0.93);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:13px 18px;display:flex;align-items:center;justify-content:space-between;gap:10px}
 .nav-logo{font-family:'Playfair Display',serif;font-size:20px;color:var(--accent2);white-space:nowrap}
-.nav-logo span{color:var(--text3);font-style:italic;font-size:12px;display:block;font-family:'DM Sans',sans-serif;margin-top:-3px}
+.nav-logo span:first-child{color:var(--accent2);font-family:'Playfair Display',serif;font-size:20px}
+.nav-logo span:last-child{color:var(--text3);font-style:italic;font-size:12px;display:block;font-family:'DM Sans',sans-serif;margin-top:-3px}
 .nav-right{display:flex;gap:8px;align-items:center}
 .nav-add{background:var(--accent);color:#fff;border:none;width:36px;height:36px;border-radius:50%;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 12px rgba(200,112,58,0.4);flex-shrink:0}
 .nav-search{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:20px;padding:7px 14px;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;width:100%;max-width:220px;transition:border-color 0.2s}
