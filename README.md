@@ -63,7 +63,10 @@ cafeteca/
 ├── static/
 │   ├── css/
 │   │   └── style.css       # Estilos de la aplicación
+│   ├── i18n/
+│   │   └── es.json         # Cadenas de la UI en español (~200 claves)
 │   ├── js/
+│   │   ├── i18n.js         # Helper i18n: t(), initI18n(), applyI18n(), changeLang()
 │   │   ├── state.js        # Variables globales
 │   │   ├── api.js          # fetch wrapper, showToast, showConfirm, closeModal
 │   │   ├── utils.js        # Formateadores: stars, fmtDate, fmtWeight, fmtPrice…
@@ -224,6 +227,7 @@ Query params combinables:
   - Calendario Gantt mensual de consumo (con navegación hasta el mes actual)
 - **Catálogos** — gestión de tablas de referencia: renombrar entradas (propaga a todos los cafés), eliminar huérfanas individualmente o en bloque
 - **Autenticación por PIN** — pantalla de bloqueo con PIN de 4 dígitos, sesión Flask persistente, cambio de PIN desde ajustes
+- **Soporte multiidioma (i18n)** — toda la UI está internacionalizada; el idioma se selecciona desde el panel ⚙️ Ajustes y persiste entre sesiones. Para añadir un idioma nuevo, basta con crear `static/i18n/<lang>.json`
 - **PWA** — instalable en móvil/escritorio, con icono y service worker (caché offline de assets y endpoints de lectura)
 
 ## Seguridad
