@@ -1,5 +1,6 @@
 services:
   cafeteca:
+    image: ghcr.io/ferlsanchez/cafeteca:latest
     build: .
     ports:
       - "5323:5323"
