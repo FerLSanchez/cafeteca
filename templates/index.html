@@ -18,8 +18,8 @@
 
 <!-- PIN LOCK SCREEN -->
 <div class="pin-lock" id="pin-lock">
-  <div style="font-family:'Playfair Display',serif;font-size:30px;color:var(--accent2);margin-bottom:6px">Cafeteca</div>
-  <div style="color:var(--text3);font-size:14px;margin-bottom:44px">tu diario de café</div>
+  <div style="font-family:'Playfair Display',serif;font-size:30px;color:var(--accent2);margin-bottom:6px" data-i18n="nav.title">Cafeteca</div>
+  <div style="color:var(--text3);font-size:14px;margin-bottom:44px" data-i18n="nav.tagline">tu diario de café</div>
   <div class="pin-dots" id="pin-dots">
     <div class="pin-dot"></div>
     <div class="pin-dot"></div>
@@ -44,10 +44,10 @@
 </div>
 
 <nav class="nav">
-  <div class="nav-logo">Cafeteca <span>tu diario de café</span></div>
+  <div class="nav-logo"><span data-i18n="nav.title">Cafeteca</span> <span data-i18n="nav.tagline">tu diario de café</span></div>
   <div class="nav-right">
-    <input class="nav-search" id="search-input" placeholder="Buscar..." oninput="onSearch(this.value)">
-    <button class="btn-icon-nav" onclick="openSettings()" title="Ajustes">⚙️</button>
+    <input class="nav-search" id="search-input" placeholder="Buscar..." data-i18n-placeholder="nav.search_placeholder" oninput="onSearch(this.value)">
+    <button class="btn-icon-nav" onclick="openSettings()" title="Ajustes" data-i18n-title="nav.settings">⚙️</button>
     <button class="nav-add" onclick="openAddModal()">+</button>
   </div>
 </nav>
@@ -59,22 +59,22 @@
   <div class="filter-bar">
     <!-- Status pills (horizontal scroll) -->
     <div class="filter-status">
-      <button class="fb active" onclick="setStatus('in_use',this)">En uso</button>
-      <button class="fb" onclick="setStatus('active',this)">Abiertos</button>
-      <button class="fb" onclick="setStatus('pending',this)">Sin abrir</button>
-      <button class="fb" onclick="setStatus('unrated',this)">Sin ★</button>
-      <button class="fb" onclick="setStatus('finished',this)">Terminados</button>
-      <button class="fb" onclick="setStatus('',this)">Todos</button>
+      <button class="fb active" onclick="setStatus('in_use',this)" data-i18n="filter.in_use">En uso</button>
+      <button class="fb" onclick="setStatus('active',this)" data-i18n="filter.active">Abiertos</button>
+      <button class="fb" onclick="setStatus('pending',this)" data-i18n="filter.pending">Sin abrir</button>
+      <button class="fb" onclick="setStatus('unrated',this)" data-i18n="filter.unrated">Sin ★</button>
+      <button class="fb" onclick="setStatus('finished',this)" data-i18n="filter.finished">Terminados</button>
+      <button class="fb" onclick="setStatus('',this)" data-i18n="filter.all_masc">Todos</button>
     </div>
     <!-- Sort + filter toggle row -->
     <div class="filter-toolbar">
       <select class="filter-select filter-sort" id="sort-select" onchange="onSortChange()">
-        <option value="smart">↕ Recomendado</option>
-        <option value="created_desc">↕ Más reciente</option>
-        <option value="roast_desc">↕ Tueste reciente</option>
-        <option value="roast_asc">↕ Tueste antiguo</option>
-        <option value="rating_desc">↕ Mejor valorados</option>
-        <option value="name_asc">↕ Nombre A→Z</option>
+        <option value="smart" data-i18n="sort.smart">↕ Recomendado</option>
+        <option value="created_desc" data-i18n="sort.created_desc">↕ Más reciente</option>
+        <option value="roast_desc" data-i18n="sort.roast_desc">↕ Tueste reciente</option>
+        <option value="roast_asc" data-i18n="sort.roast_asc">↕ Tueste antiguo</option>
+        <option value="rating_desc" data-i18n="sort.rating_desc">↕ Mejor valorados</option>
+        <option value="name_asc" data-i18n="sort.name_asc">↕ Nombre A→Z</option>
       </select>
       <button class="filter-toggle-btn" onclick="toggleFilterPanel()" id="filter-toggle-btn">
         <span>⚙️</span>
@@ -85,64 +85,64 @@
     <div class="filter-panel" id="filter-panel">
       <div class="filter-groups">
         <div class="filter-group">
-          <label>Tostador</label>
+          <label data-i18n="filter.label.roaster">Tostador</label>
           <select class="filter-select" id="f-filter-roaster" onchange="applyFilters()">
-            <option value="">Todos</option>
+            <option value="" data-i18n="filter.all_masc">Todos</option>
           </select>
         </div>
         <div class="filter-group">
-          <label>Productor</label>
+          <label data-i18n="filter.label.producer">Productor</label>
           <select class="filter-select" id="f-filter-producer" onchange="applyFilters()">
-            <option value="">Todos</option>
+            <option value="" data-i18n="filter.all_masc">Todos</option>
           </select>
         </div>
         <div class="filter-group">
-          <label>País origen</label>
+          <label data-i18n="filter.label.origin">País origen</label>
           <select class="filter-select" id="f-filter-origin" onchange="onFilterOriginChange();applyFilters()">
-            <option value="">Todos</option>
+            <option value="" data-i18n="filter.all_masc">Todos</option>
           </select>
         </div>
         <div class="filter-group">
-          <label>Región</label>
+          <label data-i18n="filter.label.region">Región</label>
           <select class="filter-select" id="f-filter-region" onchange="applyFilters()">
-            <option value="">Todas</option>
+            <option value="" data-i18n="filter.all_fem">Todas</option>
           </select>
         </div>
         <div class="filter-group">
-          <label>Proceso</label>
+          <label data-i18n="filter.label.process">Proceso</label>
           <select class="filter-select" id="f-filter-process" onchange="applyFilters()">
-            <option value="">Todos</option>
+            <option value="" data-i18n="filter.all_masc">Todos</option>
           </select>
         </div>
         <div class="filter-group">
-          <label>Variedad</label>
+          <label data-i18n="filter.label.variety">Variedad</label>
           <select class="filter-select" id="f-filter-variety" onchange="applyFilters()">
-            <option value="">Todas</option>
+            <option value="" data-i18n="filter.all_fem">Todas</option>
           </select>
         </div>
         <div class="filter-group">
-          <label>Tienda</label>
+          <label data-i18n="filter.label.shop">Tienda</label>
           <select class="filter-select" id="f-filter-shop" onchange="applyFilters()">
-            <option value="">Todas</option>
+            <option value="" data-i18n="filter.all_fem">Todas</option>
           </select>
         </div>
       </div>
-      <button class="filter-clear" onclick="clearFilters()">✕ Limpiar filtros</button>
+      <button class="filter-clear" onclick="clearFilters()" data-i18n="filter.clear">✕ Limpiar filtros</button>
     </div>
   </div>
 
   <div class="results-info" id="results-info"></div>
-  <div id="coffee-list" class="coffee-list"><div class="loading">Cargando...</div></div>
+  <div id="coffee-list" class="coffee-list"><div class="loading" data-i18n="loading">Cargando...</div></div>
 </div>
 
 <!-- BREWS PAGE -->
 <div class="page" id="page-brews">
-  <div id="brews-list"><div class="loading">Cargando...</div></div>
+  <div id="brews-list"><div class="loading" data-i18n="loading">Cargando...</div></div>
 </div>
 
 <!-- STATS PAGE -->
 <div class="page" id="page-stats">
-  <div class="stats-grid" id="stats-grid"><div class="loading">Cargando...</div></div>
+  <div class="stats-grid" id="stats-grid"><div class="loading" data-i18n="loading">Cargando...</div></div>
   <div id="stats-calendar"></div>
   <div id="stats-charts"></div>
 </div>
@@ -150,65 +150,65 @@
 <!-- CATALOG PAGE -->
 <div class="page" id="page-catalog">
   <div style="margin-bottom:14px">
-    <div style="font-size:13px;color:var(--text2);line-height:1.6">
+    <div style="font-size:13px;color:var(--text2);line-height:1.6" data-i18n="catalog.description">
       Gestiona los valores de referencia. Puedes renombrar cualquier entrada (actualizará todos los cafés que la usen) o eliminar las que no estén en uso.
     </div>
-    <button class="btn-purge-all" onclick="purgeAll()" style="margin-top:10px">🧹 Eliminar todos los huérfanos</button>
+    <button class="btn-purge-all" onclick="purgeAll()" style="margin-top:10px" data-i18n="catalog.purge_all_btn">🧹 Eliminar todos los huérfanos</button>
   </div>
-  <div id="catalog-content"><div class="loading">Cargando...</div></div>
+  <div id="catalog-content"><div class="loading" data-i18n="loading">Cargando...</div></div>
 </div>
 <nav class="bottom-nav" id="bottom-nav">
   <button class="bnav-item active" onclick="showPage('list',this)" data-page="list">
-    <span class="bnav-icon">☕</span><span class="bnav-label">Cafés</span>
+    <span class="bnav-icon">☕</span><span class="bnav-label" data-i18n="nav.tab.coffees">Cafés</span>
   </button>
   <button class="bnav-item" onclick="showPage('brews',this)" data-page="brews">
-    <span class="bnav-icon">🫖</span><span class="bnav-label">Prepas</span>
+    <span class="bnav-icon">🫖</span><span class="bnav-label" data-i18n="nav.tab.brews">Prepas</span>
   </button>
   <button class="bnav-item" onclick="showPage('stats',this)" data-page="stats">
-    <span class="bnav-icon">📊</span><span class="bnav-label">Stats</span>
+    <span class="bnav-icon">📊</span><span class="bnav-label" data-i18n="nav.tab.stats">Stats</span>
   </button>
   <button class="bnav-item" onclick="showPage('catalog',this)" data-page="catalog">
-    <span class="bnav-icon">🗂</span><span class="bnav-label">Catálogos</span>
+    <span class="bnav-icon">🗂</span><span class="bnav-label" data-i18n="nav.tab.catalog">Catálogos</span>
   </button>
 </nav>
 
 <div class="modal-overlay" id="modal-form">
   <div class="modal">
     <div class="modal-header">
-      <div class="modal-title" id="modal-title">Nuevo café</div>
+      <div class="modal-title" id="modal-title" data-i18n="modal.form.new">Nuevo café</div>
       <button class="modal-close" onclick="closeModal('modal-form')">✕</button>
     </div>
     <form onsubmit="submitForm(event)" id="coffee-form">
       <input type="hidden" id="f-id">
 
-      <div class="form-section">Identificación</div>
+      <div class="form-section" data-i18n="form.section.identification">Identificación</div>
       <div class="form-group">
-        <label class="form-label">Nombre *</label>
-        <input class="form-input" id="f-name" placeholder="ej. Ethiopia Yirgacheffe" required>
+        <label class="form-label" data-i18n="form.field.name">Nombre *</label>
+        <input class="form-input" id="f-name" placeholder="ej. Ethiopia Yirgacheffe" data-i18n-placeholder="form.placeholder.name" required>
       </div>
       <div class="form-row">
         <div class="form-group">
-          <label class="form-label">Tostador</label>
+          <label class="form-label" data-i18n="form.field.roaster">Tostador</label>
           <div class="ac-wrapper">
-            <input class="form-input" id="f-roaster" placeholder="ej. Ineffable" autocomplete="off" oninput="acInput(this,'roasters')" onfocus="acInput(this,'roasters')" onblur="acBlur('roasters')">
+            <input class="form-input" id="f-roaster" placeholder="ej. Ineffable" data-i18n-placeholder="form.placeholder.roaster" autocomplete="off" oninput="acInput(this,'roasters')" onfocus="acInput(this,'roasters')" onblur="acBlur('roasters')">
             <div class="ac-dropdown" id="ac-roasters"></div>
           </div>
         </div>
         <div class="form-group">
-          <label class="form-label">Productor</label>
+          <label class="form-label" data-i18n="form.field.producer">Productor</label>
           <div class="ac-wrapper">
-            <input class="form-input" id="f-producer" placeholder="ej. Worka Sakaro" autocomplete="off" oninput="acInput(this,'producers')" onfocus="acInput(this,'producers')" onblur="acBlur('producers')">
+            <input class="form-input" id="f-producer" placeholder="ej. Worka Sakaro" data-i18n-placeholder="form.placeholder.producer" autocomplete="off" oninput="acInput(this,'producers')" onfocus="acInput(this,'producers')" onblur="acBlur('producers')">
             <div class="ac-dropdown" id="ac-producers"></div>
           </div>
         </div>
       </div>
       <div class="form-row">
         <div class="form-group">
-          <label class="form-label">Variedad(es)</label>
+          <label class="form-label" data-i18n="form.field.varieties">Variedad(es)</label>
           <div class="ac-wrapper">
             <div class="chip-wrapper" onclick="document.getElementById('f-variety-input').focus()">
               <div id="varieties-chips"></div>
-              <input class="chip-text-input" id="f-variety-input" placeholder="Añadir..." autocomplete="off"
+              <input class="chip-text-input" id="f-variety-input" placeholder="Añadir..." data-i18n-placeholder="form.placeholder.chip_add" autocomplete="off"
                 oninput="acInput(this,'varieties')" onfocus="acInput(this,'varieties')" onblur="acBlur('varieties')"
                 onkeydown="chipKeydown(event,'varieties')">
             </div>
@@ -216,11 +216,11 @@
           </div>
         </div>
         <div class="form-group">
-          <label class="form-label">Proceso(s)</label>
+          <label class="form-label" data-i18n="form.field.processes">Proceso(s)</label>
           <div class="ac-wrapper">
             <div class="chip-wrapper" onclick="document.getElementById('f-process-input').focus()">
               <div id="processes-chips"></div>
-              <input class="chip-text-input" id="f-process-input" placeholder="Añadir..." autocomplete="off"
+              <input class="chip-text-input" id="f-process-input" placeholder="Añadir..." data-i18n-placeholder="form.placeholder.chip_add" autocomplete="off"
                 oninput="acInput(this,'processes')" onfocus="acInput(this,'processes')" onblur="acBlur('processes')"
                 onkeydown="chipKeydown(event,'processes')">
             </div>
@@ -229,19 +229,19 @@
         </div>
       </div>
 
-      <div class="form-section">Origen</div>
+      <div class="form-section" data-i18n="form.section.origin">Origen</div>
       <div class="form-row">
         <div class="form-group">
-          <label class="form-label">País</label>
+          <label class="form-label" data-i18n="form.field.country">País</label>
           <div class="ac-wrapper">
-            <input class="form-input" id="f-origin" placeholder="ej. Etiopía" autocomplete="off" oninput="acInput(this,'origins')" onfocus="acInput(this,'origins')" onblur="acBlur('origins')">
+            <input class="form-input" id="f-origin" placeholder="ej. Etiopía" data-i18n-placeholder="form.placeholder.country" autocomplete="off" oninput="acInput(this,'origins')" onfocus="acInput(this,'origins')" onblur="acBlur('origins')">
             <div class="ac-dropdown" id="ac-origins"></div>
           </div>
         </div>
         <div class="form-group">
-          <label class="form-label">Región</label>
+          <label class="form-label" data-i18n="form.field.region">Región</label>
           <div class="ac-wrapper">
-            <input class="form-input" id="f-region" placeholder="ej. Yirgacheffe" autocomplete="off" oninput="acInput(this,'regions')" onfocus="acInput(this,'regions')" onblur="acBlur('regions')">
+            <input class="form-input" id="f-region" placeholder="ej. Yirgacheffe" data-i18n-placeholder="form.placeholder.region" autocomplete="off" oninput="acInput(this,'regions')" onfocus="acInput(this,'regions')" onblur="acBlur('regions')">
             <div class="ac-dropdown" id="ac-regions"></div>
           </div>
           <div class="region-hint" id="region-hint"></div>
@@ -249,59 +249,59 @@
       </div>
       <div class="form-row">
         <div class="form-group">
-          <label class="form-label">Altitud (m)</label>
-          <input class="form-input" id="f-altitude" type="number" placeholder="ej. 1800" min="0">
+          <label class="form-label" data-i18n="form.field.altitude">Altitud (m)</label>
+          <input class="form-input" id="f-altitude" type="number" placeholder="ej. 1800" data-i18n-placeholder="form.placeholder.altitude" min="0">
         </div>
         <div class="form-group"></div>
       </div>
 
-      <div class="form-section">Compra</div>
+      <div class="form-section" data-i18n="form.section.purchase">Compra</div>
       <div class="form-row">
         <div class="form-group">
-          <label class="form-label">Tienda</label>
+          <label class="form-label" data-i18n="form.field.shop">Tienda</label>
           <div class="ac-wrapper">
-            <input class="form-input" id="f-shop" placeholder="ej. Web, local" autocomplete="off" oninput="acInput(this,'shops')" onfocus="acInput(this,'shops')" onblur="acBlur('shops')">
+            <input class="form-input" id="f-shop" placeholder="ej. Web, local" data-i18n-placeholder="form.placeholder.shop" autocomplete="off" oninput="acInput(this,'shops')" onfocus="acInput(this,'shops')" onblur="acBlur('shops')">
             <div class="ac-dropdown" id="ac-shops"></div>
           </div>
         </div>
         <div class="form-group">
-          <label class="form-label">Fecha compra</label>
+          <label class="form-label" data-i18n="form.field.purchase_date">Fecha compra</label>
           <input class="form-input" id="f-purchase" type="date">
         </div>
       </div>
       <div class="form-row">
         <div class="form-group">
-          <label class="form-label">Cantidad (g)</label>
+          <label class="form-label" data-i18n="form.field.quantity">Cantidad (g)</label>
           <input class="form-input" id="f-quantity" type="number" placeholder="250">
         </div>
         <div class="form-group">
-          <label class="form-label">Precio/kg (€)</label>
+          <label class="form-label" data-i18n="form.field.price_kg">Precio/kg (€)</label>
           <input class="form-input" id="f-price" type="number" step="0.01" placeholder="60.00">
         </div>
       </div>
 
-      <div class="form-section">Consumo</div>
+      <div class="form-section" data-i18n="form.section.consumption">Consumo</div>
       <div class="form-row">
         <div class="form-group">
-          <label class="form-label">Fecha tueste</label>
+          <label class="form-label" data-i18n="form.field.roast_date">Fecha tueste</label>
           <input class="form-input" id="f-roast" type="date">
         </div>
         <div class="form-group">
-          <label class="form-label">Abierto el</label>
+          <label class="form-label" data-i18n="form.field.opened_date">Abierto el</label>
           <input class="form-input" id="f-opened" type="date">
         </div>
       </div>
       <div class="form-row">
         <div class="form-group">
-          <label class="form-label">Terminado el</label>
+          <label class="form-label" data-i18n="form.field.finished_date">Terminado el</label>
           <input class="form-input" id="f-finished" type="date">
         </div>
         <div class="form-group"></div>
       </div>
 
-      <div class="form-section">Valoración</div>
+      <div class="form-section" data-i18n="form.section.rating">Valoración</div>
       <div class="form-group">
-        <label class="form-label">Puntuación</label>
+        <label class="form-label" data-i18n="form.field.score">Puntuación</label>
         <div class="rating-input">
           <span class="rating-star" data-val="1" onclick="setRating(1)">★</span>
           <span class="rating-star" data-val="2" onclick="setRating(2)">★</span>
@@ -312,17 +312,17 @@
         <input type="hidden" id="f-rating">
       </div>
       <div class="form-group">
-        <label class="form-label">Notas de cata</label>
-        <textarea class="form-input form-textarea" id="f-notes" placeholder="Aromas, sabores, sensaciones..."></textarea>
+        <label class="form-label" data-i18n="form.field.notes">Notas de cata</label>
+        <textarea class="form-input form-textarea" id="f-notes" placeholder="Aromas, sabores, sensaciones..." data-i18n-placeholder="form.placeholder.notes"></textarea>
       </div>
 
-      <div class="form-section">Con leche vegetal</div>
+      <div class="form-section" data-i18n="form.section.milk">Con leche vegetal</div>
       <div class="form-group">
-        <label class="form-label">Funciona bien con</label>
+        <label class="form-label" data-i18n="form.field.milk_works_with">Funciona bien con</label>
         <div class="ac-wrapper">
           <div class="chip-wrapper" onclick="document.getElementById('f-milk-input').focus()">
             <div id="milk-chips"></div>
-            <input class="chip-text-input" id="f-milk-input" placeholder="Avena, Arroz..." autocomplete="off"
+            <input class="chip-text-input" id="f-milk-input" placeholder="Avena, Arroz..." data-i18n-placeholder="form.placeholder.milk" autocomplete="off"
               oninput="acInput(this,'milk_types')" onfocus="acInput(this,'milk_types')" onblur="acBlur('milk_types')"
               onkeydown="chipKeydown(event,'milk_types')">
           </div>
@@ -330,10 +330,10 @@
         </div>
       </div>
 
-      <button type="submit" class="btn-primary">Guardar café</button>
+      <button type="submit" class="btn-primary" data-i18n="form.btn.save_coffee">Guardar café</button>
       <div class="btn-row" id="edit-actions" style="display:none">
-        <button type="button" class="btn-secondary" onclick="closeModal('modal-form')">Cancelar</button>
-        <button type="button" class="btn-danger" onclick="deleteCoffee()">Eliminar</button>
+        <button type="button" class="btn-secondary" onclick="closeModal('modal-form')" data-i18n="form.btn.cancel">Cancelar</button>
+        <button type="button" class="btn-danger" onclick="deleteCoffee()" data-i18n="form.btn.delete">Eliminar</button>
       </div>
     </form>
   </div>
@@ -343,14 +343,14 @@
 <div class="modal-overlay" id="modal-detail">
   <div class="modal">
     <div class="modal-header">
-      <div class="modal-title" id="detail-title">Detalle</div>
+      <div class="modal-title" id="detail-title" data-i18n="modal.detail">Detalle</div>
       <button class="modal-close" onclick="closeModal('modal-detail')">✕</button>
     </div>
     <div id="detail-content"></div>
     <div class="btn-row" style="margin-top:16px">
-      <button class="btn-primary" style="margin-top:0" onclick="editCurrent()">✏️ Editar</button>
-      <button class="btn-secondary" onclick="duplicateCurrent()">⧉ Nueva bolsa</button>
-      <button class="btn-secondary" id="unrate-btn" onclick="unrateCurrent()" style="display:none">☆ Quitar valoración</button>
+      <button class="btn-primary" style="margin-top:0" onclick="editCurrent()" data-i18n="detail.btn.edit">✏️ Editar</button>
+      <button class="btn-secondary" onclick="duplicateCurrent()" data-i18n="detail.btn.new_bag">⧉ Nueva bolsa</button>
+      <button class="btn-secondary" id="unrate-btn" onclick="unrateCurrent()" style="display:none" data-i18n="detail.btn.remove_rating">☆ Quitar valoración</button>
     </div>
   </div>
 </div>
@@ -359,27 +359,27 @@
 <div class="modal-overlay" id="modal-recipe">
   <div class="modal" style="max-width:360px">
     <div class="modal-header">
-      <div class="modal-title">📋 Receta</div>
+      <div class="modal-title" data-i18n="modal.recipe">📋 Receta</div>
       <button class="modal-close" onclick="closeModal('modal-recipe')">✕</button>
     </div>
     <div class="form-group">
-      <label class="form-label">Café (g)</label>
+      <label class="form-label" data-i18n="recipe.field.dose">Café (g)</label>
       <input class="form-input" id="r-dose" type="number" step="0.1" min="0" placeholder="ej. 18" oninput="updateRatioDisplay()">
     </div>
     <div class="form-group">
-      <label class="form-label">Salida (g)</label>
+      <label class="form-label" data-i18n="recipe.field.yield">Salida (g)</label>
       <input class="form-input" id="r-yield" type="number" step="0.1" min="0" placeholder="ej. 36" oninput="updateRatioDisplay()">
     </div>
     <div style="font-size:13px;color:var(--accent);min-height:18px;margin-bottom:8px" id="r-ratio-display"></div>
     <div class="form-group">
-      <label class="form-label">Grado de molienda</label>
+      <label class="form-label" data-i18n="recipe.field.grind">Grado de molienda</label>
       <input class="form-input" id="r-grind" type="number" min="0" placeholder="ej. 15">
     </div>
     <div class="form-group">
-      <label class="form-label">Temperatura del agua (°C)</label>
+      <label class="form-label" data-i18n="recipe.field.temp">Temperatura del agua (°C)</label>
       <input class="form-input" id="r-temp" type="number" min="0" max="110" placeholder="ej. 93">
     </div>
-    <button class="btn-primary" onclick="submitRecipe()" style="margin-top:8px">Guardar receta</button>
+    <button class="btn-primary" onclick="submitRecipe()" style="margin-top:8px" data-i18n="recipe.btn.save">Guardar receta</button>
   </div>
 </div>
 
@@ -387,36 +387,36 @@
 <div class="modal-overlay" id="modal-brew">
   <div class="modal" style="max-width:400px">
     <div class="modal-header">
-      <div class="modal-title">🫖 Preparar café</div>
+      <div class="modal-title" data-i18n="modal.brew">🫖 Preparar café</div>
       <button class="modal-close" onclick="closeModal('modal-brew')">✕</button>
     </div>
     <div class="form-row">
       <div class="form-group">
-        <label class="form-label">Café (g)</label>
+        <label class="form-label" data-i18n="brew.field.dose">Café (g)</label>
         <input class="form-input" id="b-dose" type="number" step="0.1" min="0" placeholder="18" oninput="updateBrewRatioDisplay()">
       </div>
       <div class="form-group">
-        <label class="form-label">Salida (g)</label>
+        <label class="form-label" data-i18n="brew.field.yield">Salida (g)</label>
         <input class="form-input" id="b-yield" type="number" step="0.1" min="0" placeholder="36" oninput="updateBrewRatioDisplay()">
       </div>
     </div>
     <div style="font-size:13px;color:var(--accent);min-height:18px;margin-bottom:8px" id="b-ratio-display"></div>
     <div class="form-row">
       <div class="form-group">
-        <label class="form-label">Molienda</label>
+        <label class="form-label" data-i18n="brew.field.grind">Molienda</label>
         <input class="form-input" id="b-grind" type="number" min="0" placeholder="15">
       </div>
       <div class="form-group">
-        <label class="form-label">Temperatura (°C)</label>
+        <label class="form-label" data-i18n="brew.field.temp">Temperatura (°C)</label>
         <input class="form-input" id="b-temp" type="number" min="0" max="110" placeholder="93">
       </div>
     </div>
     <div class="form-group">
-      <label class="form-label">Fecha</label>
+      <label class="form-label" data-i18n="brew.field.date">Fecha</label>
       <input class="form-input" id="b-date" type="date">
     </div>
     <div class="form-group">
-      <label class="form-label">Valoración</label>
+      <label class="form-label" data-i18n="brew.field.rating">Valoración</label>
       <div class="rating-stars" style="margin-bottom:4px">
         <span class="brew-star" data-val="1" onclick="setBrewRating(1)">★</span>
         <span class="brew-star" data-val="2" onclick="setBrewRating(2)">★</span>
@@ -427,10 +427,10 @@
       </div>
     </div>
     <div class="form-group">
-      <label class="form-label">Notas</label>
-      <textarea class="form-input" id="b-notes" rows="2" placeholder="Observaciones opcionales…"></textarea>
+      <label class="form-label" data-i18n="brew.field.notes">Notas</label>
+      <textarea class="form-input" id="b-notes" rows="2" placeholder="Observaciones opcionales…" data-i18n-placeholder="form.placeholder.brew_notes"></textarea>
     </div>
-    <button class="btn-primary" onclick="submitBrew()" style="margin-top:8px">Registrar preparación</button>
+    <button class="btn-primary" onclick="submitBrew()" style="margin-top:8px" data-i18n="brew.btn.submit">Registrar preparación</button>
   </div>
 </div>
 
@@ -438,11 +438,11 @@
 <div class="modal-overlay" id="modal-confirm">
   <div class="modal modal-confirm-inner">
     <div class="confirm-icon" id="confirm-icon">🗑</div>
-    <div class="modal-title" id="confirm-title" style="margin-bottom:8px">¿Confirmar?</div>
+    <div class="modal-title" id="confirm-title" style="margin-bottom:8px" data-i18n="modal.confirm.default_title">¿Confirmar?</div>
     <div class="confirm-msg" id="confirm-msg"></div>
     <div class="btn-row">
-      <button class="btn-secondary" onclick="closeModal('modal-confirm')">Cancelar</button>
-      <button class="btn-danger" id="confirm-action-btn">Eliminar</button>
+      <button class="btn-secondary" onclick="closeModal('modal-confirm')" data-i18n="modal.confirm.cancel">Cancelar</button>
+      <button class="btn-danger" id="confirm-action-btn" data-i18n="modal.confirm.default_btn">Eliminar</button>
     </div>
   </div>
 </div>
@@ -451,35 +451,43 @@
 <div class="modal-overlay" id="modal-settings">
   <div class="modal" style="max-width:360px">
     <div class="modal-header">
-      <div class="modal-title">⚙️ Ajustes</div>
+      <div class="modal-title" data-i18n="modal.settings">⚙️ Ajustes</div>
       <button class="modal-close" onclick="closeModal('modal-settings')">✕</button>
     </div>
-    <div class="form-section">Consumo</div>
+    <div class="form-section" data-i18n="settings.section.consumption">Consumo</div>
     <div class="form-group">
-      <label class="form-label">Gramos por toma (g)</label>
+      <label class="form-label" data-i18n="settings.field.grams_per_shot">Gramos por toma (g)</label>
       <input class="form-input" id="s-grams" type="number" min="1" max="100" placeholder="17">
-      <div style="font-size:12px;color:var(--text3);margin-top:4px">Gramos que se restan al pulsar "Consumir" en la ficha del café.</div>
+      <div style="font-size:12px;color:var(--text3);margin-top:4px" data-i18n="settings.grams_hint">Gramos que se restan al pulsar "Consumir" en la ficha del café.</div>
     </div>
-    <button class="btn-primary" onclick="saveSettings()" style="margin-bottom:18px">Guardar ajustes</button>
-    <div class="form-section">Seguridad</div>
+    <button class="btn-primary" onclick="saveSettings()" style="margin-bottom:18px" data-i18n="settings.btn.save">Guardar ajustes</button>
+    <div class="form-section" data-i18n="settings.section.security">Seguridad</div>
     <div class="form-group">
-      <label class="form-label">PIN actual</label>
+      <label class="form-label" data-i18n="settings.field.current_pin">PIN actual</label>
       <input class="form-input" id="cp-current" type="password" inputmode="numeric" maxlength="4" placeholder="••••">
     </div>
     <div class="form-group">
-      <label class="form-label">Nuevo PIN (4 dígitos)</label>
+      <label class="form-label" data-i18n="settings.field.new_pin">Nuevo PIN (4 dígitos)</label>
       <input class="form-input" id="cp-new" type="password" inputmode="numeric" maxlength="4" placeholder="••••">
     </div>
     <div class="form-group">
-      <label class="form-label">Confirmar nuevo PIN</label>
+      <label class="form-label" data-i18n="settings.field.confirm_pin">Confirmar nuevo PIN</label>
       <input class="form-input" id="cp-confirm" type="password" inputmode="numeric" maxlength="4" placeholder="••••">
     </div>
-    <button class="btn-primary" onclick="changePinSubmit()">Cambiar PIN</button>
+    <button class="btn-primary" onclick="changePinSubmit()" style="margin-bottom:18px" data-i18n="settings.btn.change_pin">Cambiar PIN</button>
+    <div class="form-section" data-i18n="settings.section.language">Idioma</div>
+    <div class="form-group">
+      <select class="form-input" id="lang-select" onchange="changeLang(this.value)">
+        <option value="es">Español</option>
+        <option value="en">English</option>
+      </select>
+    </div>
   </div>
 </div>
 
 <div class="toast" id="toast"></div>
 
+<script src="/static/js/i18n.js"></script>
 <script src="/static/js/state.js"></script>
 <script src="/static/js/api.js"></script>
 <script src="/static/js/utils.js"></script>

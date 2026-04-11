@@ -3,13 +3,15 @@
 // ---------------------------------------------------------------------------
 async function loadCatalog() {
   const el = document.getElementById('catalog-content');
-  el.innerHTML = '<div class="loading">Cargando...</div>';
+  el.innerHTML = `<div class="loading">${t('loading')}</div>`;
   const results = await Promise.all(
-    LOOKUP_TABLES.map(t => api('/lookup/'+t).then(data => ({table:t, data})))
+    LOOKUP_TABLES.map(tbl => api('/lookup/'+tbl).then(data => ({table:tbl, data})))
   );
   el.innerHTML = results.map(({table, data}) => {
     const orphans = data.filter(r => r.coffee_count === 0).length;
-    const badge = `<span class="catalog-badge ${orphans?'has-orphans':''}" id="cat-badge-${table}">${data.length} entrada${data.length!==1?'s':''}${orphans?' · '+orphans+' sin usar':''}</span>`;
+    const s = data.length !== 1 ? 's' : '';
+    const badgeText = t('catalog.entry_count', {count: data.length, s}) + (orphans ? ' · ' + t('catalog.unused_count', {count: orphans}) : '');
+    const badge = `<span class="catalog-badge ${orphans?'has-orphans':''}" id="cat-badge-${table}">${badgeText}</span>`;
     const rows = data.map(r => `
       <div class="catalog-row" id="crow-${table}-${r.id}">
         <span class="catalog-row-name" id="cname-${table}-${r.id}">${esc(r.name)}</span>
@@ -23,17 +25,17 @@ async function loadCatalog() {
         <button class="btn-icon" id="ccancel-${table}-${r.id}" style="display:none" onclick="catalogCancelEdit('${table}',${r.id})" title="Cancelar">✕</button>
         <button class="btn-icon danger" onclick="catalogDelete('${table}',${r.id},${r.coffee_count})" title="Eliminar" ${r.coffee_count>0?'disabled style="opacity:0.3;cursor:not-allowed"':''}>🗑</button>
       </div>`).join('');
-    const purgeBtn = orphans ? `<div class="catalog-purge"><button class="btn-purge" onclick="catalogPurge('${table}')">🧹 Eliminar ${orphans} huérfano${orphans!==1?'s':''}</button></div>` : '';
+    const purgeBtn = orphans ? `<div class="catalog-purge"><button class="btn-purge" onclick="catalogPurge('${table}')">🧹 ${t('catalog.unused_count', {count: orphans})}</button></div>` : '';
     return `<div class="catalog-section">
       <div class="catalog-header" onclick="toggleCatalogSection('${table}')">
         <div class="catalog-header-left">
-          <span class="catalog-title">${CATALOG_LABELS[table]}</span>
+          <span class="catalog-title">${getCatalogLabels()[table]}</span>
           ${badge}
         </div>
         <span id="cat-arrow-${table}" style="color:var(--text3)">›</span>
       </div>
       <div class="catalog-body" id="catbody-${table}">
-        ${rows || '<div style="padding:14px 16px;color:var(--text3);font-size:13px">Sin entradas</div>'}
+        ${rows || `<div style="padding:14px 16px;color:var(--text3);font-size:13px">${t('catalog.no_entries')}</div>`}
         ${purgeBtn}
       </div>
     </div>`;
@@ -83,16 +85,16 @@ async function catalogSave(table, id) {
   // Refresh autocomplete options
   await loadOptions();
   populateFilterSelects();
-  showToast('✓ Renombrado correctamente');
+  showToast(t('toast.catalog_renamed'));
 }
 
 function catalogDelete(table, id, count) {
   if (count > 0) return;
   const name = document.getElementById('cname-'+table+'-'+id)?.textContent || '';
   showConfirm({
-    icon: '🗑', title: 'Eliminar entrada',
-    msg: `¿Eliminar "${name}"?`,
-    btnLabel: 'Eliminar', btnClass: 'btn-danger',
+    icon: '🗑', title: t('confirm.catalog_delete.title'),
+    msg: t('confirm.catalog_delete.msg', {name}),
+    btnLabel: t('confirm.catalog_delete.btn'), btnClass: 'btn-danger',
     onConfirm: async () => {
       const r = await api('/lookup/'+table+'/'+id, {method:'DELETE'});
       if (r.error) { showToast('⚠️ '+r.error); return; }
@@ -105,22 +107,24 @@ function catalogDelete(table, id, count) {
       const badge = document.getElementById('cat-badge-'+table);
       if (badge) {
         badge.className = `catalog-badge${orphans?' has-orphans':''}`;
-        badge.textContent = `${total} entrada${total!==1?'s':''}${orphans?' · '+orphans+' sin usar':''}`;
+        const s2 = total !== 1 ? 's' : '';
+        badge.textContent = t('catalog.entry_count', {count: total, s: s2}) + (orphans ? ' · ' + t('catalog.unused_count', {count: orphans}) : '');
       }
       const purgeEl = document.querySelector(`#catbody-${table} .catalog-purge`);
       if (!orphans && purgeEl) purgeEl.remove();
       else if (orphans && purgeEl) {
         const btn = purgeEl.querySelector('.btn-purge');
-        if (btn) btn.textContent = `🧹 Eliminar ${orphans} huérfano${orphans!==1?'s':''}`;
+        if (btn) btn.textContent = `🧹 ${t('catalog.unused_count', {count: orphans})}`;
       }
-      showToast('🗑 Entrada eliminada');
+      showToast(t('toast.catalog_entry_deleted'));
     }
   });
 }
 
 async function catalogPurge(table) {
   const r = await api('/lookup/'+table+'/purge', {method:'POST'});
-  showToast(`🧹 ${r.deleted} entrada${r.deleted!==1?'s':''} eliminada${r.deleted!==1?'s':''}`);
+  const s = r.deleted !== 1 ? 's' : '';
+  showToast(t('toast.catalog_purged', {count: r.deleted, s}));
   await loadOptions();
   populateFilterSelects();
   await loadCatalog();
@@ -128,16 +132,17 @@ async function catalogPurge(table) {
 
 function purgeAll() {
   showConfirm({
-    icon: '🧹', title: 'Eliminar huérfanos',
-    msg: '¿Eliminar todos los valores de referencia sin usar en ningún café?',
-    btnLabel: 'Eliminar todos', btnClass: 'btn-danger',
+    icon: '🧹', title: t('confirm.purge_all.title'),
+    msg: t('confirm.purge_all.msg'),
+    btnLabel: t('confirm.purge_all.btn'), btnClass: 'btn-danger',
     onConfirm: async () => {
       let total = 0;
-      for (const t of LOOKUP_TABLES) {
-        const r = await api('/lookup/'+t+'/purge', {method:'POST'});
+      for (const tbl of LOOKUP_TABLES) {
+        const r = await api('/lookup/'+tbl+'/purge', {method:'POST'});
         total += r.deleted || 0;
       }
-      showToast(`🧹 ${total} entrada${total!==1?'s':''} eliminada${total!==1?'s':''}`);
+      const s = total !== 1 ? 's' : '';
+      showToast(t('toast.catalog_purged', {count: total, s}));
       await loadOptions(); populateFilterSelects();
       await loadCatalog();
     }

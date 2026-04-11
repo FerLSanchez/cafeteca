@@ -49,7 +49,7 @@ def lookup_rename(table, lid):
     with db_conn() as conn:
         existing = conn.execute(f'SELECT id FROM {table} WHERE name=? COLLATE NOCASE AND id!=?', (name, lid)).fetchone()
         if existing:
-            return jsonify({'error': 'Ya existe una entrada con ese nombre'}), 409
+            return jsonify({'error': 'Ya existe una entrada con ese nombre', 'error_key': 'error.lookup.duplicate_name'}), 409
         conn.execute(f'UPDATE {table} SET name=? WHERE id=?', (name, lid))
     return jsonify({'ok': True})
 
@@ -67,7 +67,7 @@ def lookup_delete(table, lid):
             fk = LOOKUP_FK[table]
             count = conn.execute(f'SELECT COUNT(*) FROM coffees WHERE {fk}=?', (lid,)).fetchone()[0]
         if count > 0:
-            return jsonify({'error': f'En uso por {count} café(s)'}), 409
+            return jsonify({'error': f'En uso por {count} café(s)', 'error_key': 'error.lookup.in_use', 'error_key_params': {'count': count}}), 409
         conn.execute(f'DELETE FROM {table} WHERE id=?', (lid,))
     return jsonify({'ok': True})
 

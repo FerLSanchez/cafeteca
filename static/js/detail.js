@@ -19,7 +19,7 @@ async function confirmOpen(e, id) {
   const i = displayedCoffees.findIndex(c=>c.id===id);
   if (i!==-1) displayedCoffees[i]=updated;
   if (currentDetail?.id===id) currentDetail=updated;
-  renderList(); showToast('📦 Marcado como abierto');
+  renderList(); showToast(t('toast.opened'));
   await loadOptions();
 }
 
@@ -29,7 +29,7 @@ async function quickFinish(e, id) {
   const i = displayedCoffees.findIndex(c=>c.id===id);
   if (i!==-1) displayedCoffees[i]=updated;
   if (currentDetail?.id===id) currentDetail=updated;
-  renderList(); showToast('✅ Marcado como terminado');
+  renderList(); showToast(t('toast.finished'));
 }
 
 // ---------------------------------------------------------------------------
@@ -47,16 +47,16 @@ function showDetail(id) {
   const isFresh = roastDays !== null && roastDays < 14 && !c.finished_date;
   let statusClass = '', statusText = '';
   if (c.finished_date) {
-    statusClass = 'done'; statusText = 'Terminado';
+    statusClass = 'done'; statusText = t('detail.status.finished');
   } else if (c.opened_date) {
     const daysOpen = Math.floor((Date.now() - new Date(c.opened_date)) / 86400000);
     statusClass = 'open';
-    statusText = `Abierto · ${daysOpen} día${daysOpen !== 1 ? 's' : ''}`;
+    statusText = t('detail.status.open', {days: daysOpen, s: daysOpen !== 1 ? 's' : ''});
   } else {
-    statusText = 'Sin abrir';
+    statusText = t('detail.status.unopened');
   }
   const freshNote = isFresh
-    ? `<div class="detail-fresh-note">⏳ ${14 - roastDays}d de reposo restantes (${roastDays} de 14)</div>`
+    ? `<div class="detail-fresh-note">${t('detail.fresh_note', {days: 14 - roastDays, roasted: roastDays})}</div>`
     : '';
 
   // Profile info rows for the grid
@@ -87,32 +87,32 @@ function showDetail(id) {
   }
 
   const profileHTML = [
-    gridRow('Tostador',   c.roaster,   'Productor', c.producer),
-    gridRow('País',       c.origin,    'Región',    c.region),
-    profileRow('Variedades',    chips(c.varieties)),
-    profileRow('Proceso',       chips(c.processes)),
-    profileRow('Con leche',     chips(c.milk_types)),
-    c.altitude ? `<div class="detail-cell span2"><div class="detail-cell-label">Altitud</div><div class="detail-cell-val">${c.altitude} m</div></div>` : '',
+    gridRow(t('detail.label.roaster'),   c.roaster,   t('detail.label.producer'), c.producer),
+    gridRow(t('detail.label.country'),   c.origin,    t('detail.label.region'),   c.region),
+    profileRow(t('detail.label.varieties'),  chips(c.varieties)),
+    profileRow(t('detail.label.process'),    chips(c.processes)),
+    profileRow(t('detail.label.milk'),       chips(c.milk_types)),
+    c.altitude ? `<div class="detail-cell span2"><div class="detail-cell-label">${t('detail.label.altitude')}</div><div class="detail-cell-val">${c.altitude} m</div></div>` : '',
   ].join('');
 
   const gridHTML = [
-    gridRow('Tienda',     c.shop,                                  'Compra',      fmtDate(c.purchase_date)),
-    gridRow('Tueste',     fmtDate(c.roast_date),                   'Abierto',     fmtDate(c.opened_date)),
-    gridRow('Terminado',  fmtDate(c.finished_date),                'Cantidad',    c.quantity_g ? c.quantity_g + 'g' : null),
-    gridRow('Precio/kg',  c.price_kg ? c.price_kg + '€/kg' : null,'Coste total', coste),
+    gridRow(t('detail.label.shop'),      c.shop,                                  t('detail.label.purchase'),   fmtDate(c.purchase_date)),
+    gridRow(t('detail.label.roast'),     fmtDate(c.roast_date),                   t('detail.label.opened'),     fmtDate(c.opened_date)),
+    gridRow(t('detail.label.finished'),  fmtDate(c.finished_date),                t('detail.label.quantity'),   c.quantity_g ? c.quantity_g + 'g' : null),
+    gridRow(t('detail.label.price_kg'),  c.price_kg ? c.price_kg + '€/kg' : null, t('detail.label.total_cost'), coste),
   ].join('');
 
   // Remaining row (preserves IDs used by editRemainingInline/saveRemaining)
   const remainingRow = c.quantity_g != null ? `
     <div class="detail-cell span2" id="remaining-display-row">
-      <div class="detail-cell-label">Restante</div>
+      <div class="detail-cell-label">${t('detail.label.remaining')}</div>
       <div class="detail-cell-val" style="display:flex;align-items:center;gap:8px">
         <span id="remaining-display">${c.remaining_g != null ? c.remaining_g + 'g' : '—'}</span>
         <button class="btn-inline-edit" onclick="editRemainingInline(${c.id})" title="Editar">✏️</button>
       </div>
     </div>
     <div class="detail-cell span2" id="remaining-edit-row" style="display:none">
-      <div class="detail-cell-label">Restante</div>
+      <div class="detail-cell-label">${t('detail.label.remaining')}</div>
       <div class="detail-cell-val">
         <span class="remaining-edit-row">
           <input class="remaining-input" type="number" id="remaining-input" value="${c.remaining_g ?? ''}" min="0"
@@ -127,8 +127,8 @@ function showDetail(id) {
   // Actions row (only if not finished)
   const actionsRow = !c.finished_date ? `
     <div class="detail-actions-row">
-      <button class="btn-brew" onclick="openBrewModal()">🫖 Preparar</button>
-      <button class="btn-consume" onclick="consumeCoffee()">☕ Consumir</button>
+      <button class="btn-brew" onclick="openBrewModal()">${t('detail.btn.brew')}</button>
+      <button class="btn-consume" onclick="consumeCoffee()">${t('detail.btn.consume')}</button>
     </div>` : '';
 
   document.getElementById('detail-content').innerHTML = `
@@ -166,7 +166,7 @@ function duplicateCurrent() {
   closeModal('modal-detail');
   resetForm();
   pendingRecipeCopyFrom = c.id;
-  document.getElementById('modal-title').textContent = 'Nueva bolsa';
+  document.getElementById('modal-title').textContent = t('modal.form.duplicate');
   document.getElementById('f-name').value = c.name || '';
   document.getElementById('f-roaster').value = c.roaster || '';
   document.getElementById('f-producer').value = c.producer || '';
@@ -195,7 +195,7 @@ async function unrateCurrent() {
   currentDetail = updated;
   showDetail(updated.id);
   renderList();
-  showToast('☆ Valoración eliminada');
+  showToast(t('toast.rating_removed'));
 }
 
 // ---------------------------------------------------------------------------
@@ -213,9 +213,9 @@ async function consumeCoffee() {
   if (result.remaining_g <= 0) {
     showConfirm({
       icon: '☕',
-      title: '¿Marcar como terminado?',
-      msg: `"${updated.name}" se ha quedado sin café restante. ¿Marcarlo como terminado con la fecha de hoy?`,
-      btnLabel: 'Marcar como terminado',
+      title: t('confirm.consume_finish.title'),
+      msg: t('confirm.consume_finish.msg', {name: updated.name}),
+      btnLabel: t('confirm.consume_finish.btn'),
       btnClass: 'btn-primary',
       onConfirm: async () => {
         const finished = await api('/coffees/'+updated.id+'/finish', {method:'POST'});
@@ -224,11 +224,11 @@ async function consumeCoffee() {
         currentDetail = finished;
         showDetail(finished.id);
         renderList();
-        showToast('✅ Café terminado');
+        showToast(t('toast.coffee_done'));
       }
     });
   } else {
-    showToast(`☕ −${result.consumed_g}g · Quedan ${result.remaining_g}g`);
+    showToast(t('toast.consume_summary', {consumed_g: result.consumed_g, remaining_g: result.remaining_g}));
   }
 }
 
@@ -246,11 +246,11 @@ function cancelEditRemaining() {
 
 async function saveRemaining(id) {
   const val = parseInt(document.getElementById('remaining-input').value, 10);
-  if (isNaN(val) || val < 0) { showToast('⚠️ Valor inválido'); return; }
+  if (isNaN(val) || val < 0) { showToast(t('validation.remaining_invalid')); return; }
   const updated = await api('/coffees/'+id+'/remaining', {method:'PUT', body:JSON.stringify({remaining_g:val})});
   const i = displayedCoffees.findIndex(c=>c.id===id);
   if (i!==-1) displayedCoffees[i]=updated;
   currentDetail = updated;
   showDetail(updated.id);
-  showToast('✓ Café restante actualizado');
+  showToast(t('toast.remaining_saved'));
 }

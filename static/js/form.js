@@ -13,7 +13,7 @@ function resetForm() {
   document.getElementById('f-rating').value='';
   document.querySelectorAll('.rating-star').forEach(s=>s.classList.remove('active'));
   document.getElementById('edit-actions').style.display='none';
-  document.getElementById('modal-title').textContent='Nuevo café';
+  document.getElementById('modal-title').textContent=t('modal.form.new');
   // Reset chip fields
   selectedVarieties = []; renderChips('varieties');
   selectedProcesses = []; renderChips('processes');
@@ -29,7 +29,7 @@ function openAddModal() {
 
 function openEditModal(c) {
   resetForm();
-  document.getElementById('modal-title').textContent='Editar café';
+  document.getElementById('modal-title').textContent=t('modal.form.edit');
   document.getElementById('f-id').value=c.id;
   document.getElementById('f-name').value=c.name||'';
   document.getElementById('f-roaster').value=c.roaster||'';
@@ -87,7 +87,7 @@ async function submitForm(e) {
     const origin = (allOptions.origins||[]).find(o => o.name.toLowerCase() === data.origin.toLowerCase());
     if (region && region.origin_id && origin && region.origin_id !== origin.id) {
       const correct = (allOptions.origins||[]).find(o => o.id === region.origin_id);
-      showToast(`⚠️ La región "${data.region}" pertenece a "${correct ? correct.name : '?'}", no a "${data.origin}"`);
+      showToast(t('validation.region_mismatch', {region: data.region, country: correct ? correct.name : '?', origin: data.origin}));
       return;
     }
   }
@@ -99,7 +99,7 @@ async function submitForm(e) {
     pendingRecipeCopyFrom = null;
   }
   closeModal('modal-form');
-  showToast(id?'☕ Café actualizado':'☕ Café añadido');
+  showToast(id ? t('toast.coffee_updated') : t('toast.coffee_added'));
   await loadOptions();       // refresh autocomplete lists
   populateFilterSelects();   // refresh filter dropdowns
   await fetchAndRender();
@@ -110,13 +110,13 @@ function deleteCoffee() {
   if (!id) return;
   const name = document.getElementById('f-name').value;
   showConfirm({
-    icon: '🗑', title: 'Eliminar café',
-    msg: `¿Eliminar "${name}"? Esta acción no se puede deshacer.`,
-    btnLabel: 'Eliminar', btnClass: 'btn-danger',
+    icon: '🗑', title: t('confirm.delete_coffee.title'),
+    msg: t('confirm.delete_coffee.msg', {name}),
+    btnLabel: t('confirm.delete_coffee.btn'), btnClass: 'btn-danger',
     onConfirm: async () => {
       await api('/coffees/'+id, {method:'DELETE'});
       closeModal('modal-form');
-      showToast('Café eliminado');
+      showToast(t('toast.coffee_deleted'));
       await fetchAndRender();
     }
   });
@@ -132,8 +132,8 @@ function openSettings() {
 
 async function saveSettings() {
   const gps = parseInt(document.getElementById('s-grams').value, 10);
-  if (isNaN(gps) || gps < 1 || gps > 100) { showToast('⚠️ Valor entre 1 y 100 g'); return; }
+  if (isNaN(gps) || gps < 1 || gps > 100) { showToast(t('validation.grams_invalid')); return; }
   await api('/settings', {method:'PUT', body:JSON.stringify({grams_per_shot:gps})});
   gramsPerShot = gps;
-  showToast('✓ Ajustes guardados');
+  showToast(t('toast.settings_saved'));
 }

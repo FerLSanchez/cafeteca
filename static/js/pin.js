@@ -25,7 +25,7 @@ async function submitPin() {
     document.getElementById('pin-lock').style.display = 'none';
     init();
   } catch {
-    document.getElementById('pin-error').textContent = 'PIN incorrecto';
+    document.getElementById('pin-error').textContent = t('validation.pin_wrong');
     pinValue = '';
     updatePinDots();
     setTimeout(() => { document.getElementById('pin-error').textContent = ''; }, 1500);
@@ -36,14 +36,14 @@ async function changePinSubmit() {
   const current = document.getElementById('cp-current').value;
   const newPin = document.getElementById('cp-new').value;
   const confirm = document.getElementById('cp-confirm').value;
-  if (!/^\d{4}$/.test(newPin)) { showToast('⚠️ El PIN debe tener exactamente 4 dígitos'); return; }
-  if (newPin !== confirm) { showToast('⚠️ Los PINs no coinciden'); return; }
+  if (!/^\d{4}$/.test(newPin)) { showToast(t('validation.pin_format')); return; }
+  if (newPin !== confirm) { showToast(t('validation.pin_mismatch')); return; }
   try {
     await api('/auth/change-pin', {method:'POST', body:JSON.stringify({current_pin:current, new_pin:newPin})});
     closeModal('modal-settings');
     document.getElementById('cp-current').value = '';
     document.getElementById('cp-new').value = '';
     document.getElementById('cp-confirm').value = '';
-    showToast('✓ PIN cambiado correctamente');
+    showToast(t('toast.pin_changed'));
   } catch { /* api() already shows toast */ }
 }

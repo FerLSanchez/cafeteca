@@ -2,7 +2,7 @@
 // Brews tab
 // ---------------------------------------------------------------------------
 async function loadBrews() {
-  document.getElementById('brews-list').innerHTML = '<div class="loading">Cargando...</div>';
+  document.getElementById('brews-list').innerHTML = `<div class="loading">${t('loading')}</div>`;
   const brews = await api('/brews');
   renderBrewsPage(brews);
 }
@@ -16,7 +16,7 @@ function brewSummaryLine(b) {
   const parts = [];
   if (b.dose_g && b.yield_g) parts.push(`${b.dose_g}g → ${b.yield_g}g (${fmtRatio(b.dose_g, b.yield_g)})`);
   else if (b.dose_g)         parts.push(`${b.dose_g}g café`);
-  if (b.grind)  parts.push(`molienda ${b.grind}`);
+  if (b.grind)  parts.push(t('brew.grind_label', {grind: b.grind}));
   if (b.temp_c) parts.push(`${b.temp_c}°C`);
   return parts.join(' · ') || '—';
 }
@@ -24,14 +24,14 @@ function brewSummaryLine(b) {
 function renderBrewsPage(brews) {
   const el = document.getElementById('brews-list');
   if (!brews.length) {
-    el.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text3)">Sin preparaciones registradas</div>';
+    el.innerHTML = `<div style="text-align:center;padding:40px;color:var(--text3)">${t('brew.empty')}</div>`;
     return;
   }
   el.innerHTML = brews.map(b => `
     <div class="brew-card">
       <div class="brew-card-header">
         <span class="brew-date">${fmtDate(b.brew_date)}</span>
-        <span class="brew-rating">${b.rating ? stars(b.rating) : '<span style="color:var(--text3)">Sin valorar</span>'}</span>
+        <span class="brew-rating">${b.rating ? stars(b.rating) : `<span style="color:var(--text3)">${t('brew.unrated')}</span>`}</span>
         <button class="btn-brew-delete" onclick="deleteBrew(${b.id})" title="Eliminar preparación">✕</button>
       </div>
       <div class="brew-coffees">${b.coffees.map(n=>`<span class="brew-coffee-tag">${esc(n)}</span>`).join('')}</div>
@@ -59,12 +59,12 @@ async function renderRecipeSection(coffeeId) {
     const parts = [];
     if (recipe.dose_g && recipe.yield_g) parts.push(`${recipe.dose_g}g → ${recipe.yield_g}g${ratio ? ' (' + ratio + ')' : ''}`);
     else if (recipe.dose_g)              parts.push(`${recipe.dose_g}g`);
-    if (recipe.grind)  parts.push(`molienda ${recipe.grind}`);
+    if (recipe.grind)  parts.push(t('recipe.grind_label', {grind: recipe.grind}));
     if (recipe.temp_c) parts.push(`${recipe.temp_c}°C`);
     el.innerHTML = `
       <div class="recipe-section">
         <div class="recipe-header">
-          <span class="recipe-label">📋 Receta</span>
+          <span class="recipe-label">${t('recipe.label')}</span>
           <button class="btn-inline-edit" onclick="openRecipeModal(${coffeeId})" title="Editar receta">✏️</button>
           <button class="btn-inline-edit" onclick="confirmDeleteRecipe(${coffeeId})" title="Quitar receta" style="color:var(--text3)">✕</button>
         </div>
@@ -73,8 +73,8 @@ async function renderRecipeSection(coffeeId) {
   } else {
     el.innerHTML = `
       <div class="recipe-section recipe-empty">
-        <span style="color:var(--text3);font-size:13px">📋 Sin receta</span>
-        <button class="btn-add-recipe" onclick="openRecipeModal(${coffeeId})">+ Añadir receta</button>
+        <span style="color:var(--text3);font-size:13px">${t('recipe.no_recipe')}</span>
+        <button class="btn-add-recipe" onclick="openRecipeModal(${coffeeId})">${t('recipe.add_btn')}</button>
       </div>`;
   }
 }
@@ -92,7 +92,7 @@ async function renderBrewsSection(coffeeId) {
   } catch (_) {}
   if (!brews.length) { el.innerHTML = ''; return; }
   el.innerHTML = `
-    <div class="detail-brews-header">Preparaciones (${brews.length})</div>
+    <div class="detail-brews-header">${t('detail.brews_header', {count: brews.length})}</div>
     ${brews.map(b => `
       <div class="detail-brew-row">
         <span class="detail-brew-date">${fmtDate(b.brew_date)}</span>
@@ -147,18 +147,18 @@ async function submitRecipe() {
     body: JSON.stringify({ dose_g, yield_g, grind, temp_c })
   });
   closeModal('modal-recipe');
-  showToast('📋 Receta guardada');
+  showToast(t('toast.recipe_saved'));
   renderRecipeSection(_recipeTargetId);
 }
 
 function confirmDeleteRecipe(coffeeId) {
   showConfirm({
-    icon: '📋', title: 'Quitar receta',
-    msg: '¿Eliminar la receta de este café?',
-    btnLabel: 'Quitar', btnClass: 'btn-danger',
+    icon: '📋', title: t('confirm.delete_recipe.title'),
+    msg: t('confirm.delete_recipe.msg'),
+    btnLabel: t('confirm.delete_recipe.btn'), btnClass: 'btn-danger',
     onConfirm: async () => {
       await api('/coffees/' + coffeeId + '/recipe', { method: 'DELETE' });
-      showToast('Receta eliminada');
+      showToast(t('toast.recipe_deleted'));
       renderRecipeSection(coffeeId);
     }
   });
@@ -224,7 +224,7 @@ async function submitBrew() {
     body: JSON.stringify({ dose_g, yield_g, grind, temp_c, brew_date, notes, rating })
   });
   closeModal('modal-brew');
-  showToast('🫖 Preparación registrada');
+  showToast(t('toast.brew_registered'));
   renderBrewsSection(_brewTargetId);
   // If brews tab is active, refresh it
   if (document.getElementById('page-brews')?.classList.contains('active')) loadBrews();
@@ -232,12 +232,12 @@ async function submitBrew() {
 
 async function deleteBrew(id, coffeeId) {
   showConfirm({
-    icon: '🫖', title: 'Eliminar preparación',
-    msg: '¿Eliminar esta preparación? Se quitará de todas las bolsas relacionadas.',
-    btnLabel: 'Eliminar', btnClass: 'btn-danger',
+    icon: '🫖', title: t('confirm.delete_brew.title'),
+    msg: t('confirm.delete_brew.msg'),
+    btnLabel: t('confirm.delete_brew.btn'), btnClass: 'btn-danger',
     onConfirm: async () => {
       await api('/brews/' + id, { method: 'DELETE' });
-      showToast('Preparación eliminada');
+      showToast(t('toast.brew_deleted'));
       if (coffeeId) renderBrewsSection(coffeeId);
       if (document.getElementById('page-brews')?.classList.contains('active')) loadBrews();
     }

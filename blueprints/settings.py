@@ -44,9 +44,9 @@ def update_settings():
     data = request.get_json(silent=True) or {}
     gps = data.get('grams_per_shot')
     if gps is None:
-        return jsonify({'error': 'Parámetro requerido: grams_per_shot'}), 400
+        return jsonify({'error': 'Parámetro requerido: grams_per_shot', 'error_key': 'error.settings.grams_required'}), 400
     if not isinstance(gps, int) or isinstance(gps, bool) or gps <= 0 or gps > 100:
-        return jsonify({'error': 'grams_per_shot debe ser un entero entre 1 y 100'}), 400
+        return jsonify({'error': 'grams_per_shot debe ser un entero entre 1 y 100', 'error_key': 'error.settings.grams_invalid'}), 400
     with db_conn() as conn:
         conn.execute('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)', (SETTING_GRAMS_PER_SHOT, str(gps)))
     return jsonify({'ok': True})

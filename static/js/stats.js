@@ -5,24 +5,24 @@ async function loadStats() {
   const [s, coffees] = await Promise.all([api('/stats'), api('/coffees')]);
   calCoffees = coffees;
 
-  const dpkg = s.days_per_kg ? `${s.days_per_kg} días/kg` : '–';
+  const dpkg = s.days_per_kg ? t('stats.days_per_kg', {n: s.days_per_kg}) : '–';
   const pending = s.total - s.active - s.finished;
   document.getElementById('stats-grid').innerHTML = `
-    <div class="stat-card"><div class="stat-val">${pending}</div><div class="stat-label">Disponibles</div>${s.pending_weight_g?`<div class="stat-sub">${fmtWeight(s.pending_weight_g)}</div>`:''}</div>
-    <div class="stat-card"><div class="stat-val">${s.active}</div><div class="stat-label">En uso</div>${s.active_weight_g?`<div class="stat-sub">${fmtWeight(s.active_weight_g)} restantes</div>`:''}</div>
-    <div class="stat-card"><div class="stat-val">${s.avg_rating?'⭐ '+s.avg_rating:'–'}</div><div class="stat-label">Valoración media</div></div>
-    <div class="stat-card"><div class="stat-val">${s.avg_cost_kg?s.avg_cost_kg+'€/kg':'–'}</div><div class="stat-label">Coste medio/kg</div></div>
-    <div class="stat-card" style="grid-column:1/-1"><div class="stat-val" style="font-size:22px">${dpkg}</div><div class="stat-label">Consumo medio normalizado (días para 1 kg)</div></div>
+    <div class="stat-card"><div class="stat-val">${pending}</div><div class="stat-label">${t('stats.available')}</div>${s.pending_weight_g?`<div class="stat-sub">${fmtWeight(s.pending_weight_g)}</div>`:''}</div>
+    <div class="stat-card"><div class="stat-val">${s.active}</div><div class="stat-label">${t('stats.in_use')}</div>${s.active_weight_g?`<div class="stat-sub">${t('stats.remaining_weight', {weight: fmtWeight(s.active_weight_g)})}</div>`:''}</div>
+    <div class="stat-card"><div class="stat-val">${s.avg_rating?'⭐ '+s.avg_rating:'–'}</div><div class="stat-label">${t('stats.avg_rating')}</div></div>
+    <div class="stat-card"><div class="stat-val">${s.avg_cost_kg?s.avg_cost_kg+'€/kg':'–'}</div><div class="stat-label">${t('stats.avg_cost')}</div></div>
+    <div class="stat-card" style="grid-column:1/-1"><div class="stat-val" style="font-size:22px">${dpkg}</div><div class="stat-label">${t('stats.consumption_rate')}</div></div>
   `;
 
   renderCalendar();
 
   const chartsEl = document.getElementById('stats-charts');
   chartsEl.textContent = '';
-  if (s.top_roasters?.length) chartsEl.insertAdjacentHTML('beforeend', buildBarChart('Tostadores más usados', s.top_roasters));
-  if (s.origins_breakdown?.length) chartsEl.insertAdjacentHTML('beforeend', buildBarChart('Por país de origen', s.origins_breakdown));
-  if (s.processes_breakdown?.length) chartsEl.insertAdjacentHTML('beforeend', buildBarChart('Por proceso', s.processes_breakdown));
-  if (s.varieties_breakdown?.length) chartsEl.insertAdjacentHTML('beforeend', buildBarChart('Por variedad', s.varieties_breakdown));
+  if (s.top_roasters?.length) chartsEl.insertAdjacentHTML('beforeend', buildBarChart(t('stats.chart.top_roasters'), s.top_roasters));
+  if (s.origins_breakdown?.length) chartsEl.insertAdjacentHTML('beforeend', buildBarChart(t('stats.chart.by_origin'), s.origins_breakdown));
+  if (s.processes_breakdown?.length) chartsEl.insertAdjacentHTML('beforeend', buildBarChart(t('stats.chart.by_process'), s.processes_breakdown));
+  if (s.varieties_breakdown?.length) chartsEl.insertAdjacentHTML('beforeend', buildBarChart(t('stats.chart.by_variety'), s.varieties_breakdown));
 }
 
 function buildBarChart(title, data) {
@@ -104,7 +104,7 @@ function renderCalendar() {
   el.innerHTML = `<div class="stats-section" style="margin-bottom:10px">
     <div class="cal-nav-header">
       <button class="cal-nav-btn" onclick="calNav(-1)">‹</button>
-      <span class="cal-title-text">${MONTH_NAMES[calMonth]} ${calYear}</span>
+      <span class="cal-title-text">${getMonthNames()[calMonth]} ${calYear}</span>
       <button class="cal-nav-btn" onclick="calNav(1)" ${atCurrentMonth ? 'disabled' : ''}>›</button>
     </div>
     ${active.length ? `
@@ -114,6 +114,6 @@ function renderCalendar() {
         <div class="cal-days-header">${dayHeader}</div>
         ${tracksHTML}
       </div>
-    </div>` : `<div class="cal-empty">Sin consumo registrado en ${MONTH_NAMES[calMonth].toLowerCase()} ${calYear}</div>`}
+    </div>` : `<div class="cal-empty">${t('stats.no_consumption', {month: getMonthNames()[calMonth].toLowerCase(), year: calYear})}</div>`}
   </div>`;
 }

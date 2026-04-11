@@ -3,7 +3,7 @@
 // ---------------------------------------------------------------------------
 function stars(rating) {
   const r = parseInt(rating, 10);
-  if (!r||r<1||r>5) return '<span style="color:var(--text3);font-size:13px">Sin valorar</span>';
+  if (!r||r<1||r>5) return `<span style="color:var(--text3);font-size:13px">${t('status.unrated')}</span>`;
   return [1,2,3,4,5].map(i=>`<span class="star ${i<=r?'filled':''}">★</span>`).join('');
 }
 
@@ -25,9 +25,9 @@ function fmtPrice(c) {
 }
 
 function getStatus(c) {
-  if (c.finished_date) return {label:'Terminado',cls:'status-done'};
-  if (c.opened_date)   return {label:'Abierto',cls:'status-open'};
-  return {label:'Sin abrir',cls:''};
+  if (c.finished_date) return {label:t('status.finished'),cls:'status-done'};
+  if (c.opened_date)   return {label:t('status.open'),cls:'status-open'};
+  return {label:t('status.unopened'),cls:''};
 }
 
 function daysFromRoast(roastDate) {
