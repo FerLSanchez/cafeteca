@@ -12,6 +12,8 @@ App web personal para registrar cafés de especialidad. Flask + SQLite + HTML/CS
 - `templates/index.html` — todo el frontend en un único fichero (HTML + CSS + JS)
 - `docker-compose.yml` — monta `./data` como volumen para persistir la BD
 - `Dockerfile` — imagen Python 3.12-slim, solo depende de Flask
+- `static/js/i18n.js` — helper de internacionalización: `t()`, `initI18n()`, `applyI18n()`, `changeLang()`
+- `static/i18n/es.json` — todas las cadenas de la UI en español (~200 claves)
 
 ## Arquitectura de datos
 
@@ -52,6 +54,24 @@ Los endpoints de lookup (`/api/lookup/<table>`) y las funciones de conteo/borrad
 - Las respuestas incluyen `varieties: [...]`, `variety_ids: [...]`, `processes: [...]`, `process_ids: [...]`
 - `/api/options` devuelve regiones con `origin_id` para que el frontend pueda filtrar por país
 
+### Errores de API con clave i18n
+
+Todas las respuestas de error incluyen `error_key` (y opcionalmente `error_key_params`) para que el frontend pueda mostrar el mensaje traducido:
+
+```python
+# En cualquier blueprint
+return jsonify({'error': 'PIN incorrecto', 'error_key': 'error.auth.wrong_pin'}), 401
+
+# Con parámetros de interpolación
+return jsonify({
+    'error': 'En uso por 3 cafés',
+    'error_key': 'error.lookup.in_use',
+    'error_key_params': {'count': 3}
+}), 409
+```
+
+El frontend en `api.js` comprueba `data.error_key` primero y usa `t(error_key, params)` para traducir.
+
 ## Autenticación por PIN
 
 La app está protegida con un PIN de 4 dígitos. Por defecto es `1111`.
@@ -82,9 +102,92 @@ La app está protegida con un PIN de 4 dígitos. Por defecto es `1111`.
 - **Cascada región→país**: `onOriginChange()` actualiza el hint de región en el formulario; `onFilterOriginChange()` filtra el desplegable de región en el panel de filtros avanzados
 - `renderAC()` filtra automáticamente los chips ya seleccionados y las regiones por país
 
+## Internacionalización (i18n)
+
+La UI está internacionalizada mediante un sistema de traducción JSON sin dependencias externas.
+
+### Ficheros
+
+- `static/js/i18n.js` — debe cargarse **primero** (antes que `state.js` y cualquier otro JS)
+- `static/i18n/es.json` — cadenas en español (idioma por defecto)
+- `static/i18n/<lang>.json` — añadir este fichero para soportar un nuevo idioma
+
+### API de traducción
+
+```javascript
+// Traducción simple
+t('nav.title')                           // → "Cafeteca"
+
+// Con interpolación de variables
+t('list.days_open_tag', {days: 3, s: 's'})  // → "📅 3 días abierto"
+
+// Aplicar atributos data-i18n al DOM (llamar tras initI18n)
+applyI18n()
+
+// Cambiar idioma (guarda en localStorage y recarga la página)
+changeLang('en')
+```
+
+### Atributos HTML
+
+```html
+<span data-i18n="nav.title">Cafeteca</span>
+<input data-i18n-placeholder="nav.search_placeholder">
+<button data-i18n-title="filter.btn_title">…</button>
+```
+
+`applyI18n()` recorre el DOM y rellena `textContent`, `placeholder` y `title` respectivamente.
+
+### Convención de claves
+
+Separador `.`, grupo primero en snake_case:
+
+| Grupo | Uso |
+|-------|-----|
+| `nav.*` | Barra de navegación |
+| `filter.*` | Panel de filtros y pills de estado |
+| `sort.*` | Opciones del dropdown de ordenación |
+| `form.*` | Campos y secciones del formulario de café |
+| `modal.*` | Títulos de modales |
+| `detail.*` | Vista de detalle de un café |
+| `status.*` | Estados del café (abierto, terminado, sin abrir) |
+| `catalog.*` | Tabla de catálogo de lookup tables |
+| `month.*` | Nombres de los 12 meses |
+| `stats.*` | Página de estadísticas |
+| `brew.*` | Preparaciones y recetas |
+| `settings.*` | Ajustes y PIN |
+| `list.*` | Tarjetas de la lista principal |
+| `confirm.*` | Diálogos de confirmación |
+| `toast.*` | Mensajes de notificación |
+| `validation.*` | Errores de validación en frontend |
+| `error.*` | Errores del backend (coinciden con `error_key`) |
+
+Para pluralización se usa la variable `{s}`: el JS pasa `s: count !== 1 ? 's' : ''`.
+
+### Constantes convertidas a funciones
+
+`MONTH_NAMES` y `CATALOG_LABELS` se eliminaron de `state.js` y se convirtieron en funciones que llaman a `t()`:
+
+```javascript
+getMonthNames()     // devuelve array de 12 nombres del mes traducidos
+getCatalogLabels()  // devuelve objeto {roasters, producers, ...} traducido
+```
+
+### Añadir un nuevo idioma
+
+1. Crear `static/i18n/<lang>.json` con las mismas claves que `es.json`
+2. Añadir `<option value="<lang>">Nombre</option>` al `<select id="lang-select">` en `index.html`
+3. El selector de idioma está en el modal ⚙️ Ajustes; el idioma persiste en `localStorage`
+
+### Inicialización
+
+En `init.js`, `startup()` llama `await initI18n()` y luego `applyI18n()` antes de cualquier otra operación. Si el fichero de idioma no carga, hace fallback automático a `es.json`.
+
 ## Estado actual
 
 La aplicación está en uso con datos reales. Cualquier cambio de esquema debe ir acompañado de una nueva función `migrate_vN()` llamada desde `init_db()`.
+
+La UI está completamente internacionalizada (i18n). Todas las cadenas estáticas pasan por `t()` y están definidas en `static/i18n/es.json`. Los datos introducidos por el usuario (nombres de cafés, tostadores, etc.) no se traducen.
 
 ## Cómo probar localmente
 
