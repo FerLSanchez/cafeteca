@@ -58,6 +58,10 @@ import blueprints.lookup as _lookup_mod
 import blueprints.brews as _brews_mod
 import schema as _schema_mod
 
+# Prevent init_db() from calling os.makedirs('/data') — the `if db_dir:` guard
+# in schema.py skips makedirs when DB is '' (no directory component).
+_schema_mod.DB = ''
+
 for _mod in (_auth_mod, _coffees_mod, _stats_mod, _settings_mod,
              _lookup_mod, _brews_mod, _schema_mod):
     if hasattr(_mod, 'db_conn'):
