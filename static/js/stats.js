@@ -10,7 +10,7 @@ async function loadStats() {
   document.getElementById('stats-grid').innerHTML = `
     <div class="stat-card"><div class="stat-val">${pending}</div><div class="stat-label">${t('stats.available')}</div>${s.pending_weight_g?`<div class="stat-sub">${fmtWeight(s.pending_weight_g)}</div>`:''}</div>
     <div class="stat-card"><div class="stat-val">${s.active}</div><div class="stat-label">${t('stats.in_use')}</div>${s.active_weight_g?`<div class="stat-sub">${t('stats.remaining_weight', {weight: fmtWeight(s.active_weight_g)})}</div>`:''}</div>
-    <div class="stat-card"><div class="stat-val">${s.avg_rating?'⭐ '+s.avg_rating:'–'}</div><div class="stat-label">${t('stats.avg_rating')}</div></div>
+    <div class="stat-card"><div class="stat-val">${s.avg_rating?'★ '+s.avg_rating:'–'}</div><div class="stat-label">${t('stats.avg_rating')}</div></div>
     <div class="stat-card"><div class="stat-val">${s.avg_cost_kg?s.avg_cost_kg+'€/kg':'–'}</div><div class="stat-label">${t('stats.avg_cost')}</div></div>
     <div class="stat-card" style="grid-column:1/-1"><div class="stat-val" style="font-size:22px">${dpkg}</div><div class="stat-label">${t('stats.consumption_rate')}</div></div>
   `;
@@ -28,7 +28,7 @@ async function loadStats() {
 function buildBarChart(title, data) {
   const max = Math.max(...data.map(r=>r.cnt));
   const rows = data.map(r=>{
-    const rating = r.avg_rating != null ? ` · ⭐${r.avg_rating}` : '';
+    const rating = r.avg_rating != null ? ` · ★${r.avg_rating}` : '';
     return `
     <div class="bar-row">
       <span class="bar-label" title="${esc(r.name)}">${esc(r.name)}</span>

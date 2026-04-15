@@ -1,4 +1,12 @@
 // ---------------------------------------------------------------------------
+// SVG icon helper — devuelve un <svg> referenciando el sprite del HTML
+// ---------------------------------------------------------------------------
+function icon(name, extraClass) {
+  const cls = extraClass ? ' ' + extraClass : '';
+  return `<svg class="ic${cls}" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-${name}"/></svg>`;
+}
+
+// ---------------------------------------------------------------------------
 // Formatting utilities
 // ---------------------------------------------------------------------------
 function stars(rating) {
