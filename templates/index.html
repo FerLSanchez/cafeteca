@@ -5,21 +5,168 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Cafeteca</title>
 <link rel="manifest" href="/manifest.json">
-<meta name="theme-color" content="#c8703a">
+<meta name="theme-color" content="#bf5b26">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Cafeteca">
 <link rel="apple-touch-icon" href="/static/icon-192.png">
+<link rel="icon" type="image/svg+xml" href="/static/icon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;1,500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
 
-<!-- PIN LOCK SCREEN -->
+<!-- Sprite de iconos SVG (oculto) -->
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+
+  <!-- Café (pestaña cafés) -->
+  <symbol id="ic-coffee" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M17 8h1a4 4 0 0 1 0 8h-1"/>
+    <path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/>
+    <line x1="6" y1="2" x2="6" y2="4"/><line x1="10" y1="2" x2="10" y2="4"/><line x1="14" y1="2" x2="14" y2="4"/>
+  </symbol>
+
+  <!-- Frasco (pestaña prepas) -->
+  <symbol id="ic-beaker" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M10 2v7.527a2 2 0 0 1-.211.896L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.069-10.127A2 2 0 0 1 14 9.527V2"/>
+    <path d="M8.5 2h7"/>
+    <path d="M7 16h10"/>
+  </symbol>
+
+  <!-- Gráfico de barras (pestaña stats) -->
+  <symbol id="ic-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="18" y1="20" x2="18" y2="10"/>
+    <line x1="12" y1="20" x2="12" y2="4"/>
+    <line x1="6" y1="20" x2="6" y2="14"/>
+  </symbol>
+
+  <!-- Capas (pestaña catálogo) -->
+  <symbol id="ic-layers" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9A1 1 0 0 0 22 6.08z"/>
+    <path d="m22 17.08-8.97 4.06a2 2 0 0 1-1.66 0L2 17.08"/>
+    <path d="m22 12.08-8.97 4.06a2 2 0 0 1-1.66 0L2 12.08"/>
+  </symbol>
+
+  <!-- Más -->
+  <symbol id="ic-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="12" y1="5" x2="12" y2="19"/>
+    <line x1="5" y1="12" x2="19" y2="12"/>
+  </symbol>
+
+  <!-- Cerrar -->
+  <symbol id="ic-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
+  </symbol>
+
+  <!-- Ajustes (engranaje) -->
+  <symbol id="ic-settings" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+    <circle cx="12" cy="12" r="3"/>
+  </symbol>
+
+  <!-- Localización -->
+  <symbol id="ic-mappin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
+    <circle cx="12" cy="10" r="3"/>
+  </symbol>
+
+  <!-- Hoja (variedad) -->
+  <symbol id="ic-leaf" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10z"/>
+    <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/>
+  </symbol>
+
+  <!-- Actividad/ondas (proceso) -->
+  <symbol id="ic-activity" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+  </symbol>
+
+  <!-- Gota (leche vegetal) -->
+  <symbol id="ic-droplet" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3.1-5.4C14.3 8.1 12 2 12 2S9.7 8.1 8.1 9.6C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/>
+  </symbol>
+
+  <!-- Caja (cantidad/gramos) -->
+  <symbol id="ic-package" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+    <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+    <line x1="12" y1="22.08" x2="12" y2="12"/>
+  </symbol>
+
+  <!-- Etiqueta (precio) -->
+  <symbol id="ic-tag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z"/>
+    <path d="M7 7h.01"/>
+  </symbol>
+
+  <!-- Lápiz (editar) -->
+  <symbol id="ic-edit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
+  </symbol>
+
+  <!-- Papelera (eliminar) -->
+  <symbol id="ic-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="3 6 5 6 21 6"/>
+    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+  </symbol>
+
+  <!-- Retroceso (borrar PIN) -->
+  <symbol id="ic-delete" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M20 5H9l-7 7 7 7h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2z"/>
+    <line x1="18" y1="9" x2="12" y2="15"/>
+    <line x1="12" y1="9" x2="18" y2="15"/>
+  </symbol>
+
+  <!-- Filtros (sliders) -->
+  <symbol id="ic-sliders" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="4" y1="21" x2="4" y2="14"/>
+    <line x1="4" y1="10" x2="4" y2="3"/>
+    <line x1="12" y1="21" x2="12" y2="12"/>
+    <line x1="12" y1="8" x2="12" y2="3"/>
+    <line x1="20" y1="21" x2="20" y2="16"/>
+    <line x1="20" y1="12" x2="20" y2="3"/>
+    <line x1="1" y1="14" x2="7" y2="14"/>
+    <line x1="9" y1="8" x2="15" y2="8"/>
+    <line x1="17" y1="16" x2="23" y2="16"/>
+  </symbol>
+
+  <!-- Chevron derecha -->
+  <symbol id="ic-chevron-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="9 18 15 12 9 6"/>
+  </symbol>
+
+  <!-- Chevron abajo -->
+  <symbol id="ic-chevron-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="6 9 12 15 18 9"/>
+  </symbol>
+
+  <!-- Escoba (purgar) -->
+  <symbol id="ic-broom" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <path d="m9 6 11-4v6"/>
+    <path d="M9 6c-2.6 1-5.1 3.3-6 7h14.5c-.2-3.1-2.1-5.7-4.5-7"/>
+    <path d="M3 13c-.5 2.5.5 5 2 7"/>
+    <path d="M17.5 13c.5 2-.5 4.5-2 6"/>
+    <path d="M10 19c.3 1 .6 2 1 3"/>
+  </symbol>
+
+  <!-- Duplicar -->
+  <symbol id="ic-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+  </symbol>
+
+  <!-- Estrella vacía -->
+  <symbol id="ic-star-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+  </symbol>
+
+</svg>
+
+<!-- PANTALLA DE BLOQUEO PIN -->
 <div class="pin-lock" id="pin-lock">
-  <div style="font-family:'Playfair Display',serif;font-size:30px;color:var(--accent2);margin-bottom:6px" data-i18n="nav.title">Cafeteca</div>
-  <div style="color:var(--text3);font-size:14px;margin-bottom:44px" data-i18n="nav.tagline">tu diario de café</div>
+  <div class="pin-lock-brand" data-i18n="nav.title">Cafeteca</div>
+  <div class="pin-lock-sub" data-i18n="nav.tagline">tu diario de café</div>
   <div class="pin-dots" id="pin-dots">
     <div class="pin-dot"></div>
     <div class="pin-dot"></div>
@@ -39,25 +186,34 @@
     <button class="pin-btn" onclick="pinDigit('9')">9</button>
     <button class="pin-btn empty" disabled></button>
     <button class="pin-btn" onclick="pinDigit('0')">0</button>
-    <button class="pin-btn del" onclick="pinDelete()">⌫</button>
+    <button class="pin-btn del" onclick="pinDelete()">
+      <svg class="ic" viewBox="0 0 24 24"><use href="#ic-delete"/></svg>
+    </button>
   </div>
 </div>
 
 <nav class="nav">
-  <div class="nav-logo"><span data-i18n="nav.title">Cafeteca</span> <span data-i18n="nav.tagline">tu diario de café</span></div>
+  <div class="nav-logo">
+    <span class="nav-logo-name" data-i18n="nav.title">Cafeteca</span>
+    <span class="nav-logo-tag" data-i18n="nav.tagline">tu diario de café</span>
+  </div>
   <div class="nav-right">
     <input class="nav-search" id="search-input" placeholder="Buscar..." data-i18n-placeholder="nav.search_placeholder" oninput="onSearch(this.value)">
-    <button class="btn-icon-nav" onclick="openSettings()" title="Ajustes" data-i18n-title="nav.settings">⚙️</button>
-    <button class="nav-add" onclick="openAddModal()">+</button>
+    <button class="btn-icon-nav" onclick="openSettings()" data-i18n-title="nav.settings">
+      <svg class="ic" viewBox="0 0 24 24"><use href="#ic-settings"/></svg>
+    </button>
+    <button class="nav-add" onclick="openAddModal()">
+      <svg class="ic" viewBox="0 0 24 24"><use href="#ic-plus"/></svg>
+    </button>
   </div>
 </nav>
 
 
-<!-- LIST PAGE -->
+<!-- PÁGINA: LISTA -->
 <div class="page active" id="page-list">
-  <!-- Filter bar -->
+  <!-- Barra de filtros -->
   <div class="filter-bar">
-    <!-- Status pills (horizontal scroll) -->
+    <!-- Pills de estado -->
     <div class="filter-status">
       <button class="fb active" onclick="setStatus('in_use',this)" data-i18n="filter.in_use">En uso</button>
       <button class="fb" onclick="setStatus('active',this)" data-i18n="filter.active">Abiertos</button>
@@ -66,7 +222,7 @@
       <button class="fb" onclick="setStatus('finished',this)" data-i18n="filter.finished">Terminados</button>
       <button class="fb" onclick="setStatus('',this)" data-i18n="filter.all_masc">Todos</button>
     </div>
-    <!-- Sort + filter toggle row -->
+    <!-- Ordenar + toggle filtros -->
     <div class="filter-toolbar">
       <select class="filter-select filter-sort" id="sort-select" onchange="onSortChange()">
         <option value="smart" data-i18n="sort.smart">↕ Recomendado</option>
@@ -77,11 +233,11 @@
         <option value="name_asc" data-i18n="sort.name_asc">↕ Nombre A→Z</option>
       </select>
       <button class="filter-toggle-btn" onclick="toggleFilterPanel()" id="filter-toggle-btn">
-        <span>⚙️</span>
+        <svg class="ic ic-md" viewBox="0 0 24 24"><use href="#ic-sliders"/></svg>
         <span class="ftb-badge" id="filter-badge"></span>
       </button>
     </div>
-    <!-- Advanced filter panel -->
+    <!-- Panel de filtros avanzados -->
     <div class="filter-panel" id="filter-panel">
       <div class="filter-groups">
         <div class="filter-group">
@@ -127,7 +283,10 @@
           </select>
         </div>
       </div>
-      <button class="filter-clear" onclick="clearFilters()" data-i18n="filter.clear">✕ Limpiar filtros</button>
+      <button class="filter-clear" onclick="clearFilters()">
+        <svg class="ic ic-sm" viewBox="0 0 24 24"><use href="#ic-x"/></svg>
+        <span data-i18n="filter.clear">Limpiar filtros</span>
+      </button>
     </div>
   </div>
 
@@ -135,48 +294,60 @@
   <div id="coffee-list" class="coffee-list"><div class="loading" data-i18n="loading">Cargando...</div></div>
 </div>
 
-<!-- BREWS PAGE -->
+<!-- PÁGINA: PREPAS -->
 <div class="page" id="page-brews">
   <div id="brews-list"><div class="loading" data-i18n="loading">Cargando...</div></div>
 </div>
 
-<!-- STATS PAGE -->
+<!-- PÁGINA: STATS -->
 <div class="page" id="page-stats">
   <div class="stats-grid" id="stats-grid"><div class="loading" data-i18n="loading">Cargando...</div></div>
   <div id="stats-calendar"></div>
   <div id="stats-charts"></div>
 </div>
 
-<!-- CATALOG PAGE -->
+<!-- PÁGINA: CATÁLOGO -->
 <div class="page" id="page-catalog">
   <div style="margin-bottom:14px">
     <div style="font-size:13px;color:var(--text2);line-height:1.6" data-i18n="catalog.description">
       Gestiona los valores de referencia. Puedes renombrar cualquier entrada (actualizará todos los cafés que la usen) o eliminar las que no estén en uso.
     </div>
-    <button class="btn-purge-all" onclick="purgeAll()" style="margin-top:10px" data-i18n="catalog.purge_all_btn">🧹 Eliminar todos los huérfanos</button>
+    <button class="btn-purge-all" onclick="purgeAll()" style="margin-top:10px">
+      <svg class="ic ic-sm" viewBox="0 0 24 24"><use href="#ic-broom"/></svg>
+      <span data-i18n="catalog.purge_all_btn">Eliminar todos los huérfanos</span>
+    </button>
   </div>
   <div id="catalog-content"><div class="loading" data-i18n="loading">Cargando...</div></div>
 </div>
+
+<!-- Navegación inferior -->
 <nav class="bottom-nav" id="bottom-nav">
   <button class="bnav-item active" onclick="showPage('list',this)" data-page="list">
-    <span class="bnav-icon">☕</span><span class="bnav-label" data-i18n="nav.tab.coffees">Cafés</span>
+    <span class="bnav-icon"><svg class="ic" viewBox="0 0 24 24"><use href="#ic-coffee"/></svg></span>
+    <span class="bnav-label" data-i18n="nav.tab.coffees">Cafés</span>
   </button>
   <button class="bnav-item" onclick="showPage('brews',this)" data-page="brews">
-    <span class="bnav-icon">🫖</span><span class="bnav-label" data-i18n="nav.tab.brews">Prepas</span>
+    <span class="bnav-icon"><svg class="ic" viewBox="0 0 24 24"><use href="#ic-beaker"/></svg></span>
+    <span class="bnav-label" data-i18n="nav.tab.brews">Prepas</span>
   </button>
   <button class="bnav-item" onclick="showPage('stats',this)" data-page="stats">
-    <span class="bnav-icon">📊</span><span class="bnav-label" data-i18n="nav.tab.stats">Stats</span>
+    <span class="bnav-icon"><svg class="ic" viewBox="0 0 24 24"><use href="#ic-chart"/></svg></span>
+    <span class="bnav-label" data-i18n="nav.tab.stats">Stats</span>
   </button>
   <button class="bnav-item" onclick="showPage('catalog',this)" data-page="catalog">
-    <span class="bnav-icon">🗂</span><span class="bnav-label" data-i18n="nav.tab.catalog">Catálogos</span>
+    <span class="bnav-icon"><svg class="ic" viewBox="0 0 24 24"><use href="#ic-layers"/></svg></span>
+    <span class="bnav-label" data-i18n="nav.tab.catalog">Catálogos</span>
   </button>
 </nav>
 
+<!-- MODAL: FORMULARIO DE CAFÉ -->
 <div class="modal-overlay" id="modal-form">
   <div class="modal">
     <div class="modal-header">
       <div class="modal-title" id="modal-title" data-i18n="modal.form.new">Nuevo café</div>
-      <button class="modal-close" onclick="closeModal('modal-form')">✕</button>
+      <button class="modal-close" onclick="closeModal('modal-form')">
+        <svg class="ic" viewBox="0 0 24 24"><use href="#ic-x"/></svg>
+      </button>
     </div>
     <form onsubmit="submitForm(event)" id="coffee-form">
       <input type="hidden" id="f-id">
@@ -339,28 +510,32 @@
   </div>
 </div>
 
-<!-- DETAIL MODAL -->
+<!-- MODAL: DETALLE -->
 <div class="modal-overlay" id="modal-detail">
   <div class="modal">
     <div class="modal-header">
       <div class="modal-title" id="detail-title" data-i18n="modal.detail">Detalle</div>
-      <button class="modal-close" onclick="closeModal('modal-detail')">✕</button>
+      <button class="modal-close" onclick="closeModal('modal-detail')">
+        <svg class="ic" viewBox="0 0 24 24"><use href="#ic-x"/></svg>
+      </button>
     </div>
     <div id="detail-content"></div>
     <div class="btn-row" style="margin-top:16px">
-      <button class="btn-primary" style="margin-top:0" onclick="editCurrent()" data-i18n="detail.btn.edit">✏️ Editar</button>
-      <button class="btn-secondary" onclick="duplicateCurrent()" data-i18n="detail.btn.new_bag">⧉ Nueva bolsa</button>
-      <button class="btn-secondary" id="unrate-btn" onclick="unrateCurrent()" style="display:none" data-i18n="detail.btn.remove_rating">☆ Quitar valoración</button>
+      <button class="btn-primary" style="margin-top:0" onclick="editCurrent()" data-i18n="detail.btn.edit">Editar</button>
+      <button class="btn-secondary" onclick="duplicateCurrent()" data-i18n="detail.btn.new_bag">Nueva bolsa</button>
+      <button class="btn-secondary" id="unrate-btn" onclick="unrateCurrent()" style="display:none" data-i18n="detail.btn.remove_rating">Quitar ★</button>
     </div>
   </div>
 </div>
 
-<!-- RECIPE MODAL -->
+<!-- MODAL: RECETA -->
 <div class="modal-overlay" id="modal-recipe">
   <div class="modal" style="max-width:360px">
     <div class="modal-header">
-      <div class="modal-title" data-i18n="modal.recipe">📋 Receta</div>
-      <button class="modal-close" onclick="closeModal('modal-recipe')">✕</button>
+      <div class="modal-title" data-i18n="modal.recipe">Receta</div>
+      <button class="modal-close" onclick="closeModal('modal-recipe')">
+        <svg class="ic" viewBox="0 0 24 24"><use href="#ic-x"/></svg>
+      </button>
     </div>
     <div class="form-group">
       <label class="form-label" data-i18n="recipe.field.dose">Café (g)</label>
@@ -370,7 +545,7 @@
       <label class="form-label" data-i18n="recipe.field.yield">Salida (g)</label>
       <input class="form-input" id="r-yield" type="number" step="0.1" min="0" placeholder="ej. 36" oninput="updateRatioDisplay()">
     </div>
-    <div style="font-size:13px;color:var(--accent);min-height:18px;margin-bottom:8px" id="r-ratio-display"></div>
+    <div style="font-size:13px;color:var(--accent2);min-height:18px;margin-bottom:8px" id="r-ratio-display"></div>
     <div class="form-group">
       <label class="form-label" data-i18n="recipe.field.grind">Grado de molienda</label>
       <input class="form-input" id="r-grind" type="number" min="0" placeholder="ej. 15">
@@ -383,12 +558,14 @@
   </div>
 </div>
 
-<!-- BREW MODAL -->
+<!-- MODAL: PREPARACIÓN -->
 <div class="modal-overlay" id="modal-brew">
   <div class="modal" style="max-width:400px">
     <div class="modal-header">
-      <div class="modal-title" data-i18n="modal.brew">🫖 Preparar café</div>
-      <button class="modal-close" onclick="closeModal('modal-brew')">✕</button>
+      <div class="modal-title" data-i18n="modal.brew">Preparar café</div>
+      <button class="modal-close" onclick="closeModal('modal-brew')">
+        <svg class="ic" viewBox="0 0 24 24"><use href="#ic-x"/></svg>
+      </button>
     </div>
     <div class="form-row">
       <div class="form-group">
@@ -400,7 +577,7 @@
         <input class="form-input" id="b-yield" type="number" step="0.1" min="0" placeholder="36" oninput="updateBrewRatioDisplay()">
       </div>
     </div>
-    <div style="font-size:13px;color:var(--accent);min-height:18px;margin-bottom:8px" id="b-ratio-display"></div>
+    <div style="font-size:13px;color:var(--accent2);min-height:18px;margin-bottom:8px" id="b-ratio-display"></div>
     <div class="form-row">
       <div class="form-group">
         <label class="form-label" data-i18n="brew.field.grind">Molienda</label>
@@ -434,10 +611,10 @@
   </div>
 </div>
 
-<!-- CONFIRM MODAL -->
+<!-- MODAL: CONFIRMAR -->
 <div class="modal-overlay" id="modal-confirm">
   <div class="modal modal-confirm-inner">
-    <div class="confirm-icon" id="confirm-icon">🗑</div>
+    <div class="confirm-icon" id="confirm-icon"></div>
     <div class="modal-title" id="confirm-title" style="margin-bottom:8px" data-i18n="modal.confirm.default_title">¿Confirmar?</div>
     <div class="confirm-msg" id="confirm-msg"></div>
     <div class="btn-row">
@@ -447,12 +624,14 @@
   </div>
 </div>
 
-<!-- SETTINGS MODAL -->
+<!-- MODAL: AJUSTES -->
 <div class="modal-overlay" id="modal-settings">
   <div class="modal" style="max-width:360px">
     <div class="modal-header">
-      <div class="modal-title" data-i18n="modal.settings">⚙️ Ajustes</div>
-      <button class="modal-close" onclick="closeModal('modal-settings')">✕</button>
+      <div class="modal-title" data-i18n="modal.settings">Ajustes</div>
+      <button class="modal-close" onclick="closeModal('modal-settings')">
+        <svg class="ic" viewBox="0 0 24 24"><use href="#ic-x"/></svg>
+      </button>
     </div>
     <div class="form-section" data-i18n="settings.section.consumption">Consumo</div>
     <div class="form-group">

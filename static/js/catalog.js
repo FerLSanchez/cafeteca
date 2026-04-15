@@ -20,19 +20,19 @@ async function loadCatalog() {
         <span class="catalog-count ${r.coffee_count===0?'zero':''}" title="${r.coffee_count} café(s)">
           ${r.coffee_count===0?'✕':r.coffee_count}
         </span>
-        <button class="btn-icon" id="cedit-${table}-${r.id}" onclick="catalogStartEdit('${table}',${r.id})" title="Renombrar">✏️</button>
+        <button class="btn-icon" id="cedit-${table}-${r.id}" onclick="catalogStartEdit('${table}',${r.id})" title="Renombrar">${icon('edit')}</button>
         <button class="btn-icon save" id="csave-${table}-${r.id}" style="display:none" onclick="catalogSave('${table}',${r.id})" title="Guardar">✓</button>
-        <button class="btn-icon" id="ccancel-${table}-${r.id}" style="display:none" onclick="catalogCancelEdit('${table}',${r.id})" title="Cancelar">✕</button>
-        <button class="btn-icon danger" onclick="catalogDelete('${table}',${r.id},${r.coffee_count})" title="Eliminar" ${r.coffee_count>0?'disabled style="opacity:0.3;cursor:not-allowed"':''}>🗑</button>
+        <button class="btn-icon" id="ccancel-${table}-${r.id}" style="display:none" onclick="catalogCancelEdit('${table}',${r.id})" title="Cancelar">${icon('x')}</button>
+        <button class="btn-icon danger" onclick="catalogDelete('${table}',${r.id},${r.coffee_count})" title="Eliminar" ${r.coffee_count>0?'disabled style="opacity:0.3;cursor:not-allowed"':''}>${icon('trash')}</button>
       </div>`).join('');
-    const purgeBtn = orphans ? `<div class="catalog-purge"><button class="btn-purge" onclick="catalogPurge('${table}')">🧹 ${t('catalog.unused_count', {count: orphans})}</button></div>` : '';
+    const purgeBtn = orphans ? `<div class="catalog-purge"><button class="btn-purge" onclick="catalogPurge('${table}')">${icon('broom', 'ic-sm')} ${t('catalog.unused_count', {count: orphans})}</button></div>` : '';
     return `<div class="catalog-section">
       <div class="catalog-header" onclick="toggleCatalogSection('${table}')">
         <div class="catalog-header-left">
           <span class="catalog-title">${getCatalogLabels()[table]}</span>
           ${badge}
         </div>
-        <span id="cat-arrow-${table}" style="color:var(--text3)">›</span>
+        <span id="cat-arrow-${table}" style="color:var(--text3)">${icon('chevron-right', 'ic-sm')}</span>
       </div>
       <div class="catalog-body" id="catbody-${table}">
         ${rows || `<div style="padding:14px 16px;color:var(--text3);font-size:13px">${t('catalog.no_entries')}</div>`}
@@ -46,7 +46,7 @@ function toggleCatalogSection(table) {
   const body = document.getElementById('catbody-'+table);
   const arrow = document.getElementById('cat-arrow-'+table);
   body.classList.toggle('open');
-  arrow.textContent = body.classList.contains('open') ? '⌄' : '›';
+  arrow.innerHTML = body.classList.contains('open') ? icon('chevron-down', 'ic-sm') : icon('chevron-right', 'ic-sm');
 }
 
 function catalogStartEdit(table, id) {
@@ -78,7 +78,7 @@ async function catalogSave(table, id) {
   const newName = input.value.trim();
   if (!newName) return;
   const r = await api('/lookup/'+table+'/'+id, {method:'PUT', body:JSON.stringify({name:newName})});
-  if (r.error) { showToast('⚠️ '+r.error); return; }
+  if (r.error) { showToast(r.error); return; }
   // Update name in UI without full reload
   document.getElementById('cname-'+table+'-'+id).textContent = newName;
   catalogCancelEdit(table, id);
@@ -97,7 +97,7 @@ function catalogDelete(table, id, count) {
     btnLabel: t('confirm.catalog_delete.btn'), btnClass: 'btn-danger',
     onConfirm: async () => {
       const r = await api('/lookup/'+table+'/'+id, {method:'DELETE'});
-      if (r.error) { showToast('⚠️ '+r.error); return; }
+      if (r.error) { showToast(r.error); return; }
       document.getElementById('crow-'+table+'-'+id).remove();
       await loadOptions(); populateFilterSelects();
       // Update section badge without full reload
@@ -114,7 +114,7 @@ function catalogDelete(table, id, count) {
       if (!orphans && purgeEl) purgeEl.remove();
       else if (orphans && purgeEl) {
         const btn = purgeEl.querySelector('.btn-purge');
-        if (btn) btn.textContent = `🧹 ${t('catalog.unused_count', {count: orphans})}`;
+        if (btn) btn.innerHTML = `${icon('broom', 'ic-sm')} ${t('catalog.unused_count', {count: orphans})}`;
       }
       showToast(t('toast.catalog_entry_deleted'));
     }

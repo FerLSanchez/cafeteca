@@ -47,7 +47,7 @@ function renderList() {
   const total = displayedCoffees.length;
   if (total === 0) {
     info.textContent = '';
-    el.innerHTML = `<div class="empty-state"><div class="empty-icon">☕</div><h3>${t('list.empty_title')}</h3><p>${t('list.empty_hint')}</p></div>`;
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">${icon('coffee')}</div><h3>${t('list.empty_title')}</h3><p>${t('list.empty_hint')}</p></div>`;
     return;
   }
   const sorted = sortedCoffees();
@@ -84,12 +84,12 @@ function renderList() {
         <span class="tag ${status.cls}">${status.label}</span>
         ${freshTag}
         ${daysOpenTag}
-        ${origin?`<span class="tag">📍 ${origin}</span>`:''}
-        ${c.varieties&&c.varieties.length?`<span class="tag">🌱 ${c.varieties.map(esc).join(', ')}</span>`:''}
-        ${c.processes&&c.processes.length?`<span class="tag">⚙️ ${c.processes.map(esc).join(', ')}</span>`:''}
-        ${c.milk_types&&c.milk_types.length?`<span class="tag milk">🥛 ${c.milk_types.map(esc).join(', ')}</span>`:''}
-        ${c.quantity_g?`<span class="tag">⚖️ ${c.quantity_g}g</span>`:''}
-        ${price?`<span class="tag price">💰 ${price}</span>`:''}
+        ${origin?`<span class="tag">${icon('mappin')} ${origin}</span>`:''}
+        ${c.varieties&&c.varieties.length?`<span class="tag">${icon('leaf')} ${c.varieties.map(esc).join(', ')}</span>`:''}
+        ${c.processes&&c.processes.length?`<span class="tag">${icon('activity')} ${c.processes.map(esc).join(', ')}</span>`:''}
+        ${c.milk_types&&c.milk_types.length?`<span class="tag milk">${icon('droplet')} ${c.milk_types.map(esc).join(', ')}</span>`:''}
+        ${c.quantity_g?`<span class="tag">${icon('package')} ${c.quantity_g}g</span>`:''}
+        ${price?`<span class="tag price">${icon('tag')} ${price}</span>`:''}
       </div>
       ${c.notes?`<div class="coffee-notes">${esc(c.notes)}</div>`:''}
       ${actions}

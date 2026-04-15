@@ -108,7 +108,7 @@ function showDetail(id) {
       <div class="detail-cell-label">${t('detail.label.remaining')}</div>
       <div class="detail-cell-val" style="display:flex;align-items:center;gap:8px">
         <span id="remaining-display">${c.remaining_g != null ? c.remaining_g + 'g' : '—'}</span>
-        <button class="btn-inline-edit" onclick="editRemainingInline(${c.id})" title="Editar">✏️</button>
+        <button class="btn-inline-edit" onclick="editRemainingInline(${c.id})" title="Editar">${icon('edit')}</button>
       </div>
     </div>
     <div class="detail-cell span2" id="remaining-edit-row" style="display:none">
@@ -212,7 +212,7 @@ async function consumeCoffee() {
   renderList();
   if (result.remaining_g <= 0) {
     showConfirm({
-      icon: '☕',
+      icon: '☕', /* confirm icon */
       title: t('confirm.consume_finish.title'),
       msg: t('confirm.consume_finish.msg', {name: updated.name}),
       btnLabel: t('confirm.consume_finish.btn'),

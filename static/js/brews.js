@@ -32,7 +32,7 @@ function renderBrewsPage(brews) {
       <div class="brew-card-header">
         <span class="brew-date">${fmtDate(b.brew_date)}</span>
         <span class="brew-rating">${b.rating ? stars(b.rating) : `<span style="color:var(--text3)">${t('brew.unrated')}</span>`}</span>
-        <button class="btn-brew-delete" onclick="deleteBrew(${b.id})" title="Eliminar preparación">✕</button>
+        <button class="btn-brew-delete" onclick="deleteBrew(${b.id})" title="Eliminar preparación">${icon('x')}</button>
       </div>
       <div class="brew-coffees">${b.coffees.map(n=>`<span class="brew-coffee-tag">${esc(n)}</span>`).join('')}</div>
       <div class="brew-summary">${esc(brewSummaryLine(b))}</div>
@@ -65,8 +65,8 @@ async function renderRecipeSection(coffeeId) {
       <div class="recipe-section">
         <div class="recipe-header">
           <span class="recipe-label">${t('recipe.label')}</span>
-          <button class="btn-inline-edit" onclick="openRecipeModal(${coffeeId})" title="Editar receta">✏️</button>
-          <button class="btn-inline-edit" onclick="confirmDeleteRecipe(${coffeeId})" title="Quitar receta" style="color:var(--text3)">✕</button>
+          <button class="btn-inline-edit" onclick="openRecipeModal(${coffeeId})" title="Editar receta">${icon('edit')}</button>
+          <button class="btn-inline-edit" onclick="confirmDeleteRecipe(${coffeeId})" title="Quitar receta" style="color:var(--text3)">${icon('x')}</button>
         </div>
         <div class="recipe-summary">${esc(parts.join(' · ') || '—')}</div>
       </div>`;
@@ -98,7 +98,7 @@ async function renderBrewsSection(coffeeId) {
         <span class="detail-brew-date">${fmtDate(b.brew_date)}</span>
         <span class="detail-brew-summary">${esc(brewSummaryLine(b))}</span>
         <span class="detail-brew-rating">${b.rating ? stars(b.rating) : '—'}</span>
-        <button class="btn-inline-edit" onclick="deleteBrew(${b.id}, ${coffeeId})" title="Eliminar" style="color:var(--text3);font-size:12px">✕</button>
+        <button class="btn-inline-edit" onclick="deleteBrew(${b.id}, ${coffeeId})" title="Eliminar" style="color:var(--text3)">${icon('x')}</button>
       </div>`).join('')}`;
 }
 
