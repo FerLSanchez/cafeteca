@@ -1,4 +1,4 @@
-const CACHE = 'cafeteca-v10';
+const CACHE = 'cafeteca-__CACHE_VERSION__';
 const SHELL = [
   '/',
   '/manifest.json',
@@ -40,6 +40,8 @@ self.addEventListener('activate', e => {
     caches.keys()
       .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
       .then(() => self.clients.claim())
+      .then(() => self.clients.matchAll({ type: 'window' }))
+      .then(clients => clients.forEach(c => c.postMessage({ type: 'SW_UPDATED' })))
   );
 });
 
