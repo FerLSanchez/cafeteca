@@ -162,6 +162,38 @@ def add_brew(cid):
     return jsonify(dict(row)), 201
 
 
+@bp.route('/api/brews/<int:bid>', methods=['PUT'])
+@login_required
+def update_brew(bid):
+    data = request.get_json(silent=True) or {}
+    brew_date = data.get('brew_date')
+    dose_g  = data.get('dose_g')
+    yield_g = data.get('yield_g')
+    grind   = data.get('grind')
+    temp_c  = data.get('temp_c')
+    notes   = data.get('notes') or None
+    rating  = data.get('rating')
+    if rating is not None:
+        try:
+            rating = int(rating)
+            if not (1 <= rating <= 5):
+                rating = None
+        except (ValueError, TypeError):
+            rating = None
+    with db_conn() as conn:
+        cur = conn.execute(
+            'UPDATE brews SET brew_date=?, dose_g=?, yield_g=?, grind=?, temp_c=?, rating=?, notes=? WHERE id=?',
+            (brew_date, dose_g, yield_g, grind, temp_c, rating, notes, bid)
+        )
+        if cur.rowcount == 0:
+            return jsonify({'error': 'Preparación no encontrada', 'error_key': 'error.brew.not_found'}), 404
+        row = conn.execute(
+            'SELECT id, brew_date, dose_g, yield_g, grind, temp_c, rating, notes, created_at FROM brews WHERE id=?',
+            (bid,)
+        ).fetchone()
+    return jsonify(dict(row))
+
+
 @bp.route('/api/brews/<int:bid>', methods=['DELETE'])
 @login_required
 def delete_brew(bid):
