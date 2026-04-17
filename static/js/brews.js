@@ -27,12 +27,16 @@ function renderBrewsPage(brews) {
     el.innerHTML = `<div style="text-align:center;padding:40px;color:var(--text3)">${t('brew.empty')}</div>`;
     return;
   }
+  brews.forEach(b => { _brewCache[b.id] = b; });
   el.innerHTML = brews.map(b => `
     <div class="brew-card">
       <div class="brew-card-header">
         <span class="brew-date">${fmtDate(b.brew_date)}</span>
         <span class="brew-rating">${b.rating ? stars(b.rating) : `<span style="color:var(--text3)">${t('brew.unrated')}</span>`}</span>
-        <button class="btn-brew-delete" onclick="deleteBrew(${b.id})" title="Eliminar preparación">${icon('x')}</button>
+        <div class="brew-card-actions">
+          <button class="btn-brew-edit" onclick="openBrewModal(null,${b.id})" title="Editar preparación">${icon('edit')}</button>
+          <button class="btn-brew-delete" onclick="deleteBrew(${b.id})" title="Eliminar preparación">${icon('x')}</button>
+        </div>
       </div>
       <div class="brew-coffees">${b.coffees.map(n=>`<span class="brew-coffee-tag">${esc(n)}</span>`).join('')}</div>
       <div class="brew-summary">${esc(brewSummaryLine(b))}</div>
@@ -91,6 +95,7 @@ async function renderBrewsSection(coffeeId) {
     if (r.ok) brews = await r.json();
   } catch (_) {}
   if (!brews.length) { el.innerHTML = ''; return; }
+  brews.forEach(b => { _brewCache[b.id] = b; });
   el.innerHTML = `
     <div class="detail-brews-header">${t('detail.brews_header', {count: brews.length})}</div>
     ${brews.map(b => `
@@ -98,6 +103,7 @@ async function renderBrewsSection(coffeeId) {
         <span class="detail-brew-date">${fmtDate(b.brew_date)}</span>
         <span class="detail-brew-summary">${esc(brewSummaryLine(b))}</span>
         <span class="detail-brew-rating">${b.rating ? stars(b.rating) : '—'}</span>
+        <button class="btn-inline-edit" onclick="openBrewModal(${coffeeId},${b.id})" title="Editar preparación">${icon('edit')}</button>
         <button class="btn-inline-edit" onclick="deleteBrew(${b.id}, ${coffeeId})" title="Eliminar" style="color:var(--text3)">${icon('x')}</button>
       </div>`).join('')}`;
 }
@@ -169,31 +175,56 @@ function confirmDeleteRecipe(coffeeId) {
 // ---------------------------------------------------------------------------
 let _brewTargetId = null;
 let _brewRating   = 0;
+let _editBrewId   = null;
+let _brewCache    = {};
 
-async function openBrewModal() {
-  if (!currentDetail) return;
-  _brewTargetId = currentDetail.id;
+async function openBrewModal(coffeeId = null, brewId = null) {
+  _brewTargetId = coffeeId ?? currentDetail?.id ?? null;
+  _editBrewId   = brewId ?? null;
   _brewRating   = 0;
-  document.getElementById('b-dose').value  = '';
-  document.getElementById('b-yield').value = '';
-  document.getElementById('b-grind').value = '';
-  document.getElementById('b-temp').value  = '';
-  document.getElementById('b-date').value  = new Date().toISOString().split('T')[0];
-  document.getElementById('b-notes').value = '';
-  document.querySelectorAll('.brew-star').forEach(s => s.classList.remove('active'));
-  updateBrewRatioDisplay();
-  // Pre-fill from recipe
-  try {
-    const r = await fetch('/api/coffees/' + _brewTargetId + '/recipe', {headers:{'Content-Type':'application/json'}});
-    if (r.ok) {
-      const recipe = await r.json();
-      document.getElementById('b-dose').value  = recipe.dose_g  ?? '';
-      document.getElementById('b-yield').value = recipe.yield_g ?? '';
-      document.getElementById('b-grind').value = recipe.grind   ?? '';
-      document.getElementById('b-temp').value  = recipe.temp_c  ?? '';
-      updateBrewRatioDisplay();
+
+  const titleEl  = document.querySelector('#modal-brew .modal-title');
+  const submitEl = document.querySelector('#modal-brew .btn-primary');
+
+  if (_editBrewId && _brewCache[_editBrewId]) {
+    // Modo edición: pre-rellenar con datos existentes
+    const b = _brewCache[_editBrewId];
+    document.getElementById('b-dose').value  = b.dose_g  ?? '';
+    document.getElementById('b-yield').value = b.yield_g ?? '';
+    document.getElementById('b-grind').value = b.grind   ?? '';
+    document.getElementById('b-temp').value  = b.temp_c  ?? '';
+    document.getElementById('b-date').value  = b.brew_date ?? new Date().toISOString().split('T')[0];
+    document.getElementById('b-notes').value = b.notes  ?? '';
+    _brewRating = b.rating ?? 0;
+    document.querySelectorAll('.brew-star').forEach(s =>
+      s.classList.toggle('active', parseInt(s.dataset.val) <= _brewRating));
+    if (titleEl)  titleEl.textContent  = t('modal.edit_brew');
+    if (submitEl) submitEl.textContent = t('brew.btn.update');
+  } else {
+    // Modo creación: limpiar y pre-rellenar desde receta
+    document.getElementById('b-dose').value  = '';
+    document.getElementById('b-yield').value = '';
+    document.getElementById('b-grind').value = '';
+    document.getElementById('b-temp').value  = '';
+    document.getElementById('b-date').value  = new Date().toISOString().split('T')[0];
+    document.getElementById('b-notes').value = '';
+    document.querySelectorAll('.brew-star').forEach(s => s.classList.remove('active'));
+    if (titleEl)  titleEl.textContent  = t('modal.brew');
+    if (submitEl) submitEl.textContent = t('brew.btn.submit');
+    if (_brewTargetId) {
+      try {
+        const r = await fetch('/api/coffees/' + _brewTargetId + '/recipe', {headers:{'Content-Type':'application/json'}});
+        if (r.ok) {
+          const recipe = await r.json();
+          document.getElementById('b-dose').value  = recipe.dose_g  ?? '';
+          document.getElementById('b-yield').value = recipe.yield_g ?? '';
+          document.getElementById('b-grind').value = recipe.grind   ?? '';
+          document.getElementById('b-temp').value  = recipe.temp_c  ?? '';
+        }
+      } catch (_) {}
     }
-  } catch (_) {}
+  }
+  updateBrewRatioDisplay();
   openModal('modal-brew');
 }
 
@@ -211,7 +242,6 @@ function setBrewRating(val) {
 }
 
 async function submitBrew() {
-  if (!_brewTargetId) return;
   const dose_g    = parseFloat(document.getElementById('b-dose').value)  || null;
   const yield_g   = parseFloat(document.getElementById('b-yield').value) || null;
   const grind     = parseInt(document.getElementById('b-grind').value)   || null;
@@ -219,15 +249,29 @@ async function submitBrew() {
   const brew_date = document.getElementById('b-date').value || null;
   const notes     = document.getElementById('b-notes').value || null;
   const rating    = _brewRating >= 1 ? _brewRating : null;
-  await api('/coffees/' + _brewTargetId + '/brews', {
-    method: 'POST',
-    body: JSON.stringify({ dose_g, yield_g, grind, temp_c, brew_date, notes, rating })
-  });
-  closeModal('modal-brew');
-  showToast(t('toast.brew_registered'));
-  renderBrewsSection(_brewTargetId);
-  // If brews tab is active, refresh it
-  if (document.getElementById('page-brews')?.classList.contains('active')) loadBrews();
+
+  if (_editBrewId) {
+    // Editar preparación existente
+    await api('/brews/' + _editBrewId, {
+      method: 'PUT',
+      body: JSON.stringify({ dose_g, yield_g, grind, temp_c, brew_date, notes, rating })
+    });
+    closeModal('modal-brew');
+    showToast(t('toast.brew_updated'));
+    if (_brewTargetId) renderBrewsSection(_brewTargetId);
+    if (document.getElementById('page-brews')?.classList.contains('active')) loadBrews();
+  } else {
+    // Nueva preparación
+    if (!_brewTargetId) return;
+    await api('/coffees/' + _brewTargetId + '/brews', {
+      method: 'POST',
+      body: JSON.stringify({ dose_g, yield_g, grind, temp_c, brew_date, notes, rating })
+    });
+    closeModal('modal-brew');
+    showToast(t('toast.brew_registered'));
+    renderBrewsSection(_brewTargetId);
+    if (document.getElementById('page-brews')?.classList.contains('active')) loadBrews();
+  }
 }
 
 async function deleteBrew(id, coffeeId) {

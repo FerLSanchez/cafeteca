@@ -1,26 +1,26 @@
 /* ================================================================
    CAFETECA — STYLE.CSS — Redesign v2
-   Fuentes: Cormorant Garamond (display) + Figtree (cuerpo)
+   Fuentes: Playfair Display (display) + Figtree (cuerpo/números)
    ================================================================ */
 
 :root {
   /* Fondos */
-  --bg:      #0c0907;
-  --surface: #141009;
-  --surface2:#1d1611;
-  --surface3:#261e15;
+  --bg:      #070504;
+  --surface: #0f0c0a;
+  --surface2:#181310;
+  --surface3:#201a14;
   /* Bordes */
-  --border:  #30210f;
-  --border2: #3d2b17;
+  --border:  #2a1d0d;
+  --border2: #382615;
   /* Acento — terracota espresso */
   --accent:  #bf5b26;
   --accent2: #dba055;
-  --accent-dim:  rgba(191,91,38,0.11);
-  --accent-glow: rgba(191,91,38,0.22);
+  --accent-dim:  rgba(191,91,38,0.13);
+  --accent-glow: rgba(191,91,38,0.32);
   /* Texto */
-  --text:  #ede3d7;
-  --text2: #9c8d80;
-  --text3: #5d5047;
+  --text:  #f2ebe0;
+  --text2: #a89585;
+  --text3: #614f3f;
   /* Estados */
   --green:        #5da86e;
   --green-dim:    rgba(93,168,110,0.1);
@@ -48,7 +48,7 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: 'Figtree', 'DM Sans', sans-serif;
-  font-size: 15px;
+  font-size: 16px;
   line-height: 1.5;
   min-height: 100vh;
 }
@@ -78,9 +78,9 @@ body {
   top: 0;
   z-index: 100;
   height: 60px;
-  background: rgba(12,9,7,0.92);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
+  background: rgba(7,5,4,0.94);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
   border-bottom: 1px solid var(--border);
   padding: 0 16px;
   display: flex;
@@ -96,7 +96,7 @@ body {
   text-decoration: none;
 }
 .nav-logo-name {
-  font-family: 'Cormorant Garamond', 'Playfair Display', serif;
+  font-family: 'Playfair Display', serif;
   font-weight: 600;
   font-size: 21px;
   color: var(--accent2);
@@ -222,7 +222,7 @@ body {
 }
 .bnav-icon .ic { width: 22px; height: 22px; }
 .bnav-label {
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.4px;
   text-transform: uppercase;
@@ -381,6 +381,7 @@ body {
   transition: border-color 0.2s, background 0.15s;
   position: relative;
   overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.45);
 }
 .coffee-card::before {
   content: '';
@@ -403,14 +404,14 @@ body {
   gap: 10px;
 }
 .coffee-name {
-  font-family: 'Cormorant Garamond', 'Playfair Display', serif;
+  font-family: 'Playfair Display', serif;
   font-weight: 600;
-  font-size: 18px;
+  font-size: 20px;
   line-height: 1.2;
   color: var(--text);
 }
 .coffee-sub {
-  font-size: 10.5px;
+  font-size: 11px;
   color: var(--accent2);
   margin-top: 2px;
   font-weight: 700;
@@ -442,7 +443,7 @@ body {
 .tag.milk { color: #7ab8d4; border-color: rgba(122,184,212,0.28); background: rgba(122,184,212,0.08); }
 
 .coffee-notes {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--text2);
   margin-top: 8px;
   line-height: 1.5;
@@ -526,7 +527,7 @@ body {
 .empty-icon .ic { width: 48px; height: 48px; stroke-width: 1.2; }
 .empty-state h3 {
   color: var(--text2);
-  font-family: 'Cormorant Garamond', 'Playfair Display', serif;
+  font-family: 'Playfair Display', serif;
   font-size: 20px;
   font-weight: 600;
   margin-bottom: 6px;
@@ -561,15 +562,15 @@ body {
   padding: 16px;
 }
 .stat-val {
-  font-family: 'Cormorant Garamond', 'Playfair Display', serif;
+  font-family: 'Figtree', sans-serif;
   font-weight: 700;
-  font-size: 34px;
+  font-size: 36px;
   color: var(--accent2);
   line-height: 1;
   letter-spacing: -0.5px;
 }
 .stat-label {
-  font-size: 10px;
+  font-size: 11px;
   color: var(--text3);
   margin-top: 5px;
   font-weight: 700;
@@ -626,6 +627,7 @@ body.modal-open { overflow: hidden; touch-action: none; }
   max-width: 480px;
   margin: 0 auto;
   padding: 22px 18px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.6);
 }
 .modal-header {
   display: flex;
@@ -634,9 +636,9 @@ body.modal-open { overflow: hidden; touch-action: none; }
   margin-bottom: 20px;
 }
 .modal-title {
-  font-family: 'Cormorant Garamond', 'Playfair Display', serif;
+  font-family: 'Playfair Display', serif;
   font-weight: 600;
-  font-size: 22px;
+  font-size: 24px;
   color: var(--accent2);
 }
 .modal-close {
@@ -670,7 +672,7 @@ body.modal-open { overflow: hidden; touch-action: none; }
 .form-group { margin-bottom: 12px; position: relative; }
 .form-label {
   display: block;
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--text3);
   margin-bottom: 5px;
@@ -1093,7 +1095,7 @@ body.modal-open { overflow: hidden; touch-action: none; }
   margin-bottom: 14px;
 }
 .cal-title-text {
-  font-family: 'Cormorant Garamond', 'Playfair Display', serif;
+  font-family: 'Playfair Display', serif;
   font-size: 17px;
   font-weight: 600;
   color: var(--accent2);
@@ -1191,7 +1193,7 @@ body.modal-open { overflow: hidden; touch-action: none; }
   padding: 24px;
 }
 .pin-lock-brand {
-  font-family: 'Cormorant Garamond', 'Playfair Display', serif;
+  font-family: 'Playfair Display', serif;
   font-weight: 600;
   font-size: 36px;
   color: var(--accent2);
@@ -1246,3 +1248,83 @@ body.modal-open { overflow: hidden; touch-action: none; }
 .modal-confirm-inner { max-width: 320px; text-align: center; }
 .confirm-icon { font-size: 28px; margin-bottom: 10px; line-height: 1; }
 .confirm-msg { font-size: 14px; color: var(--text2); margin-bottom: 20px; line-height: 1.5; }
+
+/* ── Nav tabs (solo desktop) ── */
+.nav-tabs {
+  display: none;
+  gap: 4px;
+  flex: 1;
+  justify-content: center;
+}
+.nav-tab-btn {
+  flex-direction: row;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 8px;
+  height: auto;
+  min-width: 0;
+}
+.nav-tab-btn::before { display: none; }
+.nav-tab-btn.active { color: var(--accent2); background: var(--accent-dim); }
+.nav-tab-btn.active::before { display: none; }
+
+/* ── Botones de edición de brew ── */
+.brew-card-actions { display: flex; gap: 4px; }
+.btn-brew-edit {
+  background: none;
+  border: none;
+  color: var(--text3);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  border-radius: 6px;
+  transition: color 0.15s;
+}
+.btn-brew-edit:hover { color: var(--accent2); }
+
+/* ═══════════════════════════════════════════════════════════
+   RESPONSIVE — Tablet (≥768px)
+   ═══════════════════════════════════════════════════════════ */
+@media (min-width: 768px) {
+  /* Bottom nav → ocultar; top tabs → mostrar */
+  .bottom-nav { display: none; }
+  .nav-tabs { display: flex; }
+
+  /* Nav: altura mayor para acomodar tabs */
+  .nav { height: auto; padding: 0 24px; gap: 16px; }
+
+  /* Páginas: más padding lateral y sin margen de bottom-nav */
+  .page { padding: 20px 28px 32px; }
+
+  /* Coffee list: 2 columnas */
+  .coffee-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+
+  /* Panel de filtros: 4 columnas */
+  .filter-panel { grid-template-columns: repeat(4, 1fr); }
+
+  /* Stats: 4 columnas */
+  .stats-grid { grid-template-columns: repeat(4, 1fr); }
+
+  /* Modales más anchos */
+  .modal { max-width: 600px; }
+  #modal-detail .modal { max-width: 720px; }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   RESPONSIVE — Desktop (≥1200px)
+   ═══════════════════════════════════════════════════════════ */
+@media (min-width: 1200px) {
+  /* Coffee list: 3 columnas */
+  .coffee-list { grid-template-columns: repeat(3, 1fr); }
+
+  /* Ancho máximo del contenido */
+  #page-list, #page-brews, #page-stats, #page-catalog {
+    max-width: 1440px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  /* Nav acotada */
+  .nav { max-width: 1440px; margin: 0 auto; left: 0; right: 0; }
+}

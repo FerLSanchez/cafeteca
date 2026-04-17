@@ -114,7 +114,7 @@ function showPage(name, tab) {
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.bnav-item').forEach(t=>t.classList.remove('active'));
   document.getElementById('page-'+name).classList.add('active');
-  tab.classList.add('active');
+  document.querySelectorAll(`[data-page="${name}"]`).forEach(t=>t.classList.add('active'));
   if (name==='stats') loadStats();
   if (name==='catalog') loadCatalog();
   if (name==='brews') loadBrews();
