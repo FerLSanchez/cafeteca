@@ -1,5 +1,5 @@
-import os, secrets, logging
-from flask import Flask, send_from_directory
+import os, secrets, logging, hashlib, glob
+from flask import Flask, send_from_directory, Response
 from schema import init_db
 from blueprints.auth import bp as auth_bp
 from blueprints.coffees import bp as coffees_bp
@@ -7,6 +7,17 @@ from blueprints.stats import bp as stats_bp
 from blueprints.settings import bp as settings_bp
 from blueprints.lookup import bp as lookup_bp
 from blueprints.brews import bp as brews_bp
+
+def _static_version():
+    """Hash MD5 de todos los ficheros en static/ — cambia en cada deploy con modificaciones."""
+    h = hashlib.md5()
+    for path in sorted(glob.glob('static/**/*', recursive=True)):
+        if os.path.isfile(path):
+            with open(path, 'rb') as f:
+                h.update(f.read())
+    return h.hexdigest()[:10]
+
+STATIC_VERSION = _static_version()
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
 app.config['MAX_CONTENT_LENGTH'] = 1 * 1024 * 1024  # 1 MB request size limit
@@ -74,7 +85,9 @@ def index():
 
 @app.route('/sw.js')
 def service_worker():
-    response = send_from_directory('static', 'sw.js', mimetype='application/javascript')
+    with open(os.path.join('static', 'sw.js'), 'r') as f:
+        content = f.read().replace('__CACHE_VERSION__', STATIC_VERSION)
+    response = Response(content, mimetype='application/javascript')
     response.headers['Cache-Control'] = 'no-cache'
     return response
 
