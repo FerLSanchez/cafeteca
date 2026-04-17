@@ -1257,9 +1257,11 @@ body.modal-open { overflow: hidden; touch-action: none; }
   justify-content: center;
 }
 .nav-tab-btn {
+  flex: none;
   flex-direction: row;
+  align-items: center;
   gap: 6px;
-  padding: 7px 14px;
+  padding: 8px 16px;
   border-radius: 8px;
   height: auto;
   min-width: 0;
@@ -1291,14 +1293,16 @@ body.modal-open { overflow: hidden; touch-action: none; }
   .bottom-nav { display: none; }
   .nav-tabs { display: flex; }
 
-  /* Nav: altura mayor para acomodar tabs */
-  .nav { height: auto; padding: 0 24px; gap: 16px; }
+  /* Nav: padding vertical para dar aire a los tabs */
+  .nav { height: auto; min-height: 60px; padding: 10px 24px; gap: 16px; }
 
   /* Páginas: más padding lateral y sin margen de bottom-nav */
   .page { padding: 20px 28px 32px; }
 
-  /* Coffee list: 2 columnas */
+  /* Coffee list y brews list: 2 columnas */
   .coffee-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  #brews-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  #brews-list .brew-card { margin-bottom: 0; }
 
   /* Panel de filtros: 4 columnas */
   .filter-panel { grid-template-columns: repeat(4, 1fr); }
@@ -1315,8 +1319,9 @@ body.modal-open { overflow: hidden; touch-action: none; }
    RESPONSIVE — Desktop (≥1200px)
    ═══════════════════════════════════════════════════════════ */
 @media (min-width: 1200px) {
-  /* Coffee list: 3 columnas */
+  /* Coffee list y brews list: 3 columnas */
   .coffee-list { grid-template-columns: repeat(3, 1fr); }
+  #brews-list { grid-template-columns: repeat(3, 1fr); }
 
   /* Ancho máximo del contenido */
   #page-list, #page-brews, #page-stats, #page-catalog {
