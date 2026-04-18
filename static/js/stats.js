@@ -16,8 +16,7 @@ async function loadStats() {
   `;
 
   renderStatsHero(s);
-  renderStatsGantt(s);
-  renderCalendar();
+  renderStatsGantt();
 
   const chartsEl = document.getElementById('stats-charts');
   chartsEl.textContent = '';
@@ -44,42 +43,53 @@ function renderStatsHero(s) {
   `;
 }
 
-function renderStatsGantt(s) {
+function renderStatsGantt() {
   const el = document.getElementById('stats-gantt');
-  if (!el || !s.active_bags || !s.active_bags.length) return;
-  const now = new Date();
-  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  const monthLabel = now.toLocaleDateString(navigator.language || 'es', { month: 'long', year: 'numeric' });
+  if (!el) return;
 
-  const bars = s.active_bags.map(b => {
-    const opened = new Date(b.opened_date);
-    const finished = b.finished_date ? new Date(b.finished_date) : now;
-    const startDay = opened < monthStart ? 1 : opened.getDate();
-    const endDay = finished > now ? now.getDate() : finished.getDate();
-    return { name: b.name, start: startDay, end: endDay, finished: !!b.finished_date };
+  const firstDay = new Date(calYear, calMonth, 1);
+  const lastDay  = new Date(calYear, calMonth + 1, 0);
+  const dim      = lastDay.getDate();
+  const today    = new Date(); today.setHours(0, 0, 0, 0);
+  const atCurrentMonth = calYear === today.getFullYear() && calMonth === today.getMonth();
+  const monthLabel = firstDay.toLocaleDateString(navigator.language || 'es', { month: 'long', year: 'numeric' });
+
+  const active = calCoffees.filter(c => {
+    if (!c.opened_date) return false;
+    const o = new Date(c.opened_date);
+    const e = c.finished_date ? new Date(c.finished_date) : today;
+    return o <= lastDay && e >= firstDay;
   });
 
-  const ticks = [1, 5, 10, 15, 20, 25, daysInMonth];
+  const ticks = [1, 5, 10, 15, 20, 25, dim];
+
+  const rows = active.map(c => {
+    const opened   = new Date(c.opened_date);
+    const closed   = c.finished_date ? new Date(c.finished_date) : today;
+    const startDay = Math.max(1,   Math.round((opened - firstDay) / 86400000) + 1);
+    const endDay   = Math.min(dim, Math.round((closed - firstDay) / 86400000) + 1);
+    const isOpen   = !c.finished_date;
+    return `
+      <div class="stats-gantt-row-label" title="${esc(c.name)}">${esc(c.name)}</div>
+      <div class="stats-gantt-row-track">
+        <div class="stats-gantt-bar ${isOpen ? 'open' : 'finished'}"
+          style="left:${((startDay - 1) / dim * 100).toFixed(1)}%; width:${((endDay - startDay + 1) / dim * 100).toFixed(1)}%"></div>
+      </div>`;
+  }).join('');
+
   el.innerHTML = `
     <div class="stats-gantt">
       <div class="stats-gantt-head">
-        <button class="stats-gantt-nav" aria-label="prev" style="opacity:.4">‹</button>
+        <button class="stats-gantt-nav" onclick="ganttNav(-1)">‹</button>
         <div class="stats-gantt-title">${monthLabel}</div>
-        <button class="stats-gantt-nav" aria-label="next" style="opacity:.4">›</button>
+        <button class="stats-gantt-nav" onclick="ganttNav(1)" ${atCurrentMonth ? 'disabled style="opacity:.3"' : ''}>›</button>
       </div>
       <div class="stats-gantt-grid">
         <div></div>
         <div class="stats-gantt-scale">
-          ${ticks.map(d => `<span class="stats-gantt-scale-tick" style="left:${((d - 0.5) / daysInMonth * 100).toFixed(1)}%">${d}</span>`).join('')}
+          ${ticks.map(d => `<span class="stats-gantt-scale-tick" style="left:${((d - 0.5) / dim * 100).toFixed(1)}%">${d}</span>`).join('')}
         </div>
-        ${bars.map(b => `
-          <div class="stats-gantt-row-label" title="${esc(b.name)}">${esc(b.name)}</div>
-          <div class="stats-gantt-row-track">
-            <div class="stats-gantt-bar ${b.finished ? 'finished' : 'open'}"
-              style="left:${((b.start - 1) / daysInMonth * 100).toFixed(1)}%; width:${((b.end - b.start + 1) / daysInMonth * 100).toFixed(1)}%"></div>
-          </div>
-        `).join('')}
+        ${rows || `<div style="grid-column:1/-1;font-size:12px;color:var(--text3);padding:8px 0">${t('stats.no_consumption', {month: getMonthNames()[calMonth].toLowerCase(), year: calYear})}</div>`}
       </div>
     </div>
   `;
@@ -99,81 +109,14 @@ function buildBarChart(title, data) {
   return `<div class="stats-section"><h3>${title}</h3>${rows}</div>`;
 }
 
-function calNav(delta) {
+function ganttNav(delta) {
   calMonth += delta;
   if (calMonth < 0)  { calMonth = 11; calYear--; }
   if (calMonth > 11) { calMonth = 0;  calYear++; }
-  // Don't navigate beyond current month
   const now = new Date();
   if (calYear > now.getFullYear() || (calYear === now.getFullYear() && calMonth > now.getMonth())) {
     calYear = now.getFullYear();
     calMonth = now.getMonth();
   }
-  renderCalendar();
-}
-
-function renderCalendar() {
-  const el = document.getElementById('stats-calendar');
-  if (!el) return;
-
-  const firstDay = new Date(calYear, calMonth, 1);
-  const lastDay  = new Date(calYear, calMonth + 1, 0);
-  const dim      = lastDay.getDate();
-  const today    = new Date(); today.setHours(0,0,0,0);
-
-  // coffees that overlap this month and have been opened
-  const active = calCoffees.filter(c => {
-    if (!c.opened_date) return false;
-    const o = new Date(c.opened_date);
-    const e = c.finished_date ? new Date(c.finished_date) : today;
-    return o <= lastDay && e >= firstDay;
-  });
-
-  // day tick marks: 1, every 5, last day
-  const ticks = new Set([1]);
-  for (let d = 5; d < dim; d += 5) ticks.add(d);
-  ticks.add(dim);
-
-  const dayHeader = Array.from({length: dim}, (_,i) => {
-    const d = i + 1;
-    const left = ((i + 0.5) / dim * 100).toFixed(2);
-    return ticks.has(d) ? `<span class="cal-day-tick" style="left:${left}%">${d}</span>` : '';
-  }).join('');
-
-  let namesHTML = '', tracksHTML = '';
-  active.forEach(c => {
-    const opened   = new Date(c.opened_date);
-    const closed   = c.finished_date ? new Date(c.finished_date) : today;
-    const isOpen   = !c.finished_date;
-    const startIdx = Math.max(0,     Math.round((opened - firstDay) / 86400000));
-    const endIdx   = Math.min(dim-1, Math.round((closed - firstDay) / 86400000));
-    const leftPct  = (startIdx / dim * 100).toFixed(2);
-    const widthPct = ((endIdx - startIdx + 1) / dim * 100).toFixed(2);
-    const color    = isOpen ? 'var(--green)' : 'var(--accent)';
-
-    namesHTML  += `<div class="cal-name" title="${esc(c.name)}">${esc(c.name)}</div>`;
-    tracksHTML += `<div class="cal-track">
-      <div class="cal-bar" style="left:${leftPct}%;width:${widthPct}%;background:${color}">
-        <span class="cal-bar-label">${esc(c.name)}</span>
-      </div>
-    </div>`;
-  });
-
-  const now2 = new Date();
-  const atCurrentMonth = calYear === now2.getFullYear() && calMonth === now2.getMonth();
-  el.innerHTML = `<div class="stats-section" style="margin-bottom:10px">
-    <div class="cal-nav-header">
-      <button class="cal-nav-btn" onclick="calNav(-1)">‹</button>
-      <span class="cal-title-text">${getMonthNames()[calMonth]} ${calYear}</span>
-      <button class="cal-nav-btn" onclick="calNav(1)" ${atCurrentMonth ? 'disabled' : ''}>›</button>
-    </div>
-    ${active.length ? `
-    <div class="cal-layout">
-      <div class="cal-names-col">${namesHTML}</div>
-      <div class="cal-tracks-col">
-        <div class="cal-days-header">${dayHeader}</div>
-        ${tracksHTML}
-      </div>
-    </div>` : `<div class="cal-empty">${t('stats.no_consumption', {month: getMonthNames()[calMonth].toLowerCase(), year: calYear})}</div>`}
-  </div>`;
+  renderStatsGantt();
 }
