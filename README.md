@@ -161,8 +161,9 @@ Al arrancar se ejecutan `migrate_v1` a `migrate_v6` — todas idempotentes:
 - **v4** — añade `remaining_g`, inicializa con `quantity_g`
 - **v5** — crea índice FTS5 para búsqueda full-text (silencioso si no está disponible)
 - **v6** — añade tablas `recipes`, `brews` y sus junctions para historial de preparaciones
+- **v7** — añade tiempo de extracción a  `recipes` y `brews`
 
-Para añadir nuevos cambios de esquema, crear `migrate_v7()` en `schema.py` y llamarla desde `init_db()`.
+Para añadir nuevos cambios de esquema, crear `migrate_v8()` en `schema.py` y llamarla desde `init_db()`.
 
 ## API
 
