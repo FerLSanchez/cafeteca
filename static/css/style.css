@@ -1526,7 +1526,7 @@ body.modal-open { overflow: hidden; touch-action: none; }
   .filter-panel { grid-template-columns: repeat(4, 1fr); }
 
   /* Stats: hero+stock izq | gantt der; rankings full-width en 2 cols */
-  #page-stats   { display: grid; grid-template-columns: 1fr 1fr; column-gap: 20px; align-items: start; }
+  #page-stats.active { display: grid; grid-template-columns: 1fr 1fr; column-gap: 20px; align-items: start; }
   #stats-hero   { grid-column: 1; grid-row: 1; }
   #stats-grid   { grid-column: 1; grid-row: 2; }
   #stats-gantt  { grid-column: 2; grid-row: 1 / span 2; }
