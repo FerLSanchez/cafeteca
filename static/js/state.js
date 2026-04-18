@@ -21,6 +21,9 @@ const CHIP_FIELDS = {
   milk_types: { state: () => selectedMilkTypes,  set: v => { selectedMilkTypes = v; },  inputId: 'f-milk-input',    chipsId: 'milk-chips' },
 };
 
+// List view mode
+let compactList = localStorage.getItem('compactList') === '1';
+
 // Pagination
 const PAGE_SIZE = 15;
 let visibleCount = PAGE_SIZE;

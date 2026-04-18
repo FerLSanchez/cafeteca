@@ -41,7 +41,41 @@ function sortedCoffees() {
   }
 }
 
+function renderCompactCard(c) {
+  const status = getStatus(c);
+  const finished = !!c.finished_date, opened = !!c.opened_date && !finished;
+  const sub = [c.roaster, c.producer].filter(Boolean).map(esc).join(' / ');
+  const actions = !finished ? `
+    <div class="cc-actions" onclick="event.stopPropagation()">
+      ${!c.opened_date ? `<button class="btn-cc open" onclick="showOpenDatePicker(event,${c.id})" title="${t('list.btn.open_today')}">+</button>` : ''}
+      ${c.opened_date  ? `<button class="btn-cc finish" onclick="quickFinish(event,${c.id})" title="${t('list.btn.finish_today')}">✓</button>` : ''}
+      ${opened && c.remaining_g != null ? `<button class="btn-cc consume" onclick="consumeShot(${c.id})" title="${t('list.consume_shot')}">−</button>` : ''}
+    </div>` : '';
+  return `<div class="coffee-card coffee-card-compact ${finished?'finished-coffee':opened?'active-coffee':''}" onclick="showDetail(${c.id})">
+    <div class="cc-row1">
+      <div class="coffee-name">${esc(c.name)}</div>
+      <div class="cc-right">
+        <div class="coffee-rating">${stars(c.rating)}</div>
+        ${actions}
+      </div>
+    </div>
+    <div class="cc-row2">
+      <div class="coffee-sub" style="margin-top:0">${sub || ''}</div>
+      <div class="cc-meta2">
+        <span class="tag ${status.cls}">${status.label}</span>
+        ${opened && c.remaining_g != null ? `<span class="cc-qty">${c.remaining_g}g<small> / ${c.quantity_g}g</small></span>` : ''}
+      </div>
+    </div>
+  </div>`;
+}
+
 function renderList() {
+  const btn = document.getElementById('view-toggle-btn');
+  if (btn) {
+    btn.classList.toggle('active', compactList);
+    btn.querySelector('use')?.setAttribute('href', compactList ? '#ic-view-full' : '#ic-view-compact');
+  }
+
   const el = document.getElementById('coffee-list');
   const info = document.getElementById('results-info');
   const total = displayedCoffees.length;
@@ -58,6 +92,7 @@ function renderList() {
 
   const visible = sorted.slice(0, showing);
   el.innerHTML = visible.map(c => {
+    if (compactList) return renderCompactCard(c);
     const status = getStatus(c);
     const finished = !!c.finished_date, opened = !!c.opened_date && !finished;
     const origin = [c.origin, c.region].filter(Boolean).map(esc).join(' · ');
@@ -92,6 +127,20 @@ function renderList() {
         ${price?`<span class="tag price">${icon('tag')} ${price}</span>`:''}
       </div>
       ${c.notes?`<div class="coffee-notes">${esc(c.notes)}</div>`:''}
+      ${opened && c.remaining_g != null ? `
+        <div class="consume-block" onclick="event.stopPropagation()">
+          <div class="consume-block-head">
+            <span class="consume-block-label">${t('list.remaining')}</span>
+            <span class="consume-block-value">${c.remaining_g}g <small>/ ${c.quantity_g}g</small></span>
+          </div>
+          <div class="consume-block-track">
+            <div class="consume-block-fill" style="width:${Math.min(100, Math.max(0, (c.remaining_g / c.quantity_g) * 100)).toFixed(1)}%"></div>
+          </div>
+          <button class="btn-consume" onclick="event.stopPropagation(); consumeShot(${c.id})">
+            − ${t('list.consume_shot')} (17g)
+          </button>
+        </div>
+      ` : ''}
       ${actions}
     </div>`;
   }).join('');
@@ -108,6 +157,19 @@ function renderList() {
 function loadMore() {
   visibleCount += PAGE_SIZE;
   renderList();
+}
+
+function toggleCompactView() {
+  compactList = !compactList;
+  localStorage.setItem('compactList', compactList ? '1' : '0');
+  renderList();
+}
+
+async function consumeShot(id) {
+  const result = await api('/coffees/' + id + '/consume', { method: 'POST' });
+  if (!result || result.error) { showToast(result?.error || t('error.generic')); return; }
+  showToast(t('toast.consume_summary', { consumed_g: result.consumed_g, remaining_g: result.remaining_g }));
+  await fetchAndRender();
 }
 
 function showPage(name, tab) {

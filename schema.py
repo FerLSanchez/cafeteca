@@ -67,6 +67,7 @@ def init_db():
         migrate_v4(conn)
         migrate_v5(conn)
         migrate_v6(conn)
+        migrate_v7(conn)
         if not col_exists(conn, 'coffees', 'altitude'):
             conn.execute('ALTER TABLE coffees ADD COLUMN altitude INTEGER')
 
@@ -258,6 +259,15 @@ def migrate_v6(conn):
         PRIMARY KEY (coffee_id, brew_id)
     )''')
     logging.info('[migration v6] recipes and brews tables ready.')
+
+
+def migrate_v7(conn):
+    """Phase 7: add time_s (extraction time in seconds) to recipes and brews."""
+    for table in ('recipes', 'brews'):
+        cols = [r[1] for r in conn.execute(f'PRAGMA table_info({table})').fetchall()]
+        if 'time_s' not in cols:
+            conn.execute(f'ALTER TABLE {table} ADD COLUMN time_s INTEGER')
+            logging.info('[migration v7] Added time_s to %s.', table)
 
 
 def _rebuild_table_v1(conn):

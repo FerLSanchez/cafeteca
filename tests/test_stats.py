@@ -114,5 +114,17 @@ class TestStats:
         data = auth_client.get('/api/stats').get_json()
         expected_keys = {'total', 'finished', 'active', 'pending_weight_g', 'active_weight_g',
                          'avg_rating', 'total_spent', 'avg_cost_kg', 'days_per_kg',
-                         'top_roasters', 'origins_breakdown', 'processes_breakdown', 'varieties_breakdown'}
+                         'top_roasters', 'origins_breakdown', 'processes_breakdown', 'varieties_breakdown',
+                         'current_month', 'active_bags'}
         assert expected_keys.issubset(set(data.keys()))
+
+    def test_current_month_structure(self, auth_client):
+        data = auth_client.get('/api/stats').get_json()
+        cm = data['current_month']
+        assert 'consumed_g' in cm
+        assert 'brews_count' in cm
+        assert 'avg_rating' in cm
+
+    def test_active_bags_is_list(self, auth_client):
+        data = auth_client.get('/api/stats').get_json()
+        assert isinstance(data['active_bags'], list)

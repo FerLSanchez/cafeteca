@@ -1,3 +1,4 @@
+from datetime import date
 from flask import Blueprint, jsonify
 from db import db_conn
 from schema import login_required
@@ -38,19 +39,38 @@ def stats():
         origins_bd = conn.execute('''
             SELECT o.name, COUNT(*) cnt, AVG(c.rating) avg_rating
             FROM coffees c JOIN origins o ON c.origin_id=o.id
-            GROUP BY o.id ORDER BY avg_rating DESC NULLS LAST, cnt DESC LIMIT 8''').fetchall()
+            GROUP BY o.id ORDER BY avg_rating DESC NULLS LAST, cnt DESC LIMIT 5''').fetchall()
         processes_bd = conn.execute('''
             SELECT pr.name, COUNT(DISTINCT cp.coffee_id) cnt, AVG(c.rating) avg_rating
             FROM coffee_processes cp
             JOIN processes pr ON cp.process_id=pr.id
             JOIN coffees c ON cp.coffee_id=c.id
-            GROUP BY pr.id ORDER BY avg_rating DESC NULLS LAST, cnt DESC LIMIT 6''').fetchall()
+            GROUP BY pr.id ORDER BY avg_rating DESC NULLS LAST, cnt DESC LIMIT 5''').fetchall()
         varieties_bd = conn.execute('''
             SELECT v.name, COUNT(DISTINCT cv.coffee_id) cnt, AVG(c.rating) avg_rating
             FROM coffee_varieties cv
             JOIN varieties v ON cv.variety_id=v.id
             JOIN coffees c ON cv.coffee_id=c.id
-            GROUP BY v.id ORDER BY avg_rating DESC NULLS LAST, cnt DESC LIMIT 6''').fetchall()
+            GROUP BY v.id ORDER BY avg_rating DESC NULLS LAST, cnt DESC LIMIT 5''').fetchall()
+
+        month_start = date.today().replace(day=1).isoformat()
+        month_consumed_g = conn.execute(
+            'SELECT COALESCE(SUM(dose_g), 0) FROM brews WHERE brew_date >= ?', (month_start,)
+        ).fetchone()[0]
+        month_brews_count = conn.execute(
+            'SELECT COUNT(*) FROM brews WHERE brew_date >= ?', (month_start,)
+        ).fetchone()[0]
+        month_avg_rating = conn.execute(
+            'SELECT AVG(rating) FROM brews WHERE brew_date >= ? AND rating IS NOT NULL', (month_start,)
+        ).fetchone()[0]
+        active_bags = conn.execute('''
+            SELECT id, name, opened_date, finished_date
+            FROM coffees
+            WHERE opened_date IS NOT NULL AND opened_date != ''
+              AND (finished_date IS NULL OR finished_date >= ?)
+            ORDER BY opened_date
+        ''', (month_start,)).fetchall()
+
     return jsonify({
         'total': total, 'finished': finished, 'active': active,
         'pending_weight_g': pending_weight_g,
@@ -63,4 +83,13 @@ def stats():
         'origins_breakdown': [{'name': r['name'], 'cnt': r['cnt'], 'avg_rating': round(r['avg_rating'], 1) if r['avg_rating'] else None} for r in origins_bd],
         'processes_breakdown': [{'name': r['name'], 'cnt': r['cnt'], 'avg_rating': round(r['avg_rating'], 1) if r['avg_rating'] else None} for r in processes_bd],
         'varieties_breakdown': [{'name': r['name'], 'cnt': r['cnt'], 'avg_rating': round(r['avg_rating'], 1) if r['avg_rating'] else None} for r in varieties_bd],
+        'current_month': {
+            'consumed_g': round(month_consumed_g) if month_consumed_g else 0,
+            'brews_count': month_brews_count,
+            'avg_rating': round(month_avg_rating, 1) if month_avg_rating else None,
+        },
+        'active_bags': [
+            {'id': r['id'], 'name': r['name'], 'opened_date': r['opened_date'], 'finished_date': r['finished_date']}
+            for r in active_bags
+        ],
     })

@@ -65,6 +65,13 @@ class TestAddBrew:
         assert body['grind'] == 20
         assert body['temp_c'] == 93
 
+    def test_add_brew_with_time_s(self, auth_client):
+        coffee = make_coffee(auth_client)
+        resp = auth_client.post(f'/api/coffees/{coffee["id"]}/brews',
+                                json={'dose_g': 18.0, 'yield_g': 36.0, 'time_s': 28})
+        assert resp.status_code == 201
+        assert resp.get_json()['time_s'] == 28
+
 
 class TestListCoffeeBrews:
     def test_requires_auth(self, client):
@@ -149,6 +156,13 @@ class TestRecipe:
     def test_upsert_recipe_coffee_not_found(self, auth_client):
         resp = auth_client.put('/api/coffees/999/recipe', json={'dose_g': 18.0})
         assert resp.status_code == 404
+
+    def test_upsert_recipe_with_time_s(self, auth_client):
+        coffee = make_coffee(auth_client)
+        resp = auth_client.put(f'/api/coffees/{coffee["id"]}/recipe',
+                               json={'dose_g': 18.0, 'yield_g': 36.0, 'time_s': 28})
+        assert resp.status_code == 200
+        assert resp.get_json()['time_s'] == 28
 
     def test_upsert_recipe_updates_existing(self, auth_client, db):
         """Two PUT calls should result in exactly one recipe row."""

@@ -4,6 +4,7 @@ const SHELL = [
   '/manifest.json',
   '/static/icon-192.png',
   '/static/icon-512.png',
+  '/static/icon.svg',
   '/static/css/style.css',
   '/static/js/state.js',
   '/static/js/api.js',

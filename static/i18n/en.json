@@ -276,5 +276,14 @@
   "error.model.field_too_long": "Field \"{field}\" cannot exceed 200 characters",
   "error.model.field_not_list": "Field \"{field}\" must be a list",
   "error.model.field_item_too_long": "A value in \"{field}\" exceeds 200 characters",
-  "error.model.notes_too_long": "Notes cannot exceed 5000 characters"
+  "error.model.notes_too_long": "Notes cannot exceed 5000 characters",
+  "list.remaining": "Remaining",
+  "list.consume_shot": "Consume shot",
+  "stats.this_month": "This month",
+  "stats.consumed": "consumed",
+  "stats.preparations": "Brews",
+  "stats.per_kg": "Per kg",
+  "stats.bags": "bags",
+  "stats.based_on_brews": "based on registered brews",
+  "brew.field.time": "Extraction time (s)"
 }

@@ -12,10 +12,18 @@ function fmtRatio(dose, yld) {
   return '1:' + (yld / dose).toFixed(2);
 }
 
+function fmtFlow(yld, time_s) {
+  if (!yld || !time_s) return null;
+  return (yld / time_s).toFixed(2) + ' g/s';
+}
+
 function brewSummaryLine(b) {
   const parts = [];
   if (b.dose_g && b.yield_g) parts.push(`${b.dose_g}g → ${b.yield_g}g (${fmtRatio(b.dose_g, b.yield_g)})`);
   else if (b.dose_g)         parts.push(`${b.dose_g}g café`);
+  if (b.time_s) parts.push(`${b.time_s}s`);
+  const flow = fmtFlow(b.yield_g, b.time_s);
+  if (flow) parts.push(flow);
   if (b.grind)  parts.push(t('brew.grind_label', {grind: b.grind}));
   if (b.temp_c) parts.push(`${b.temp_c}°C`);
   return parts.join(' · ') || '—';
@@ -116,10 +124,11 @@ let _recipeTargetId = null;
 async function openRecipeModal(coffeeId) {
   _recipeTargetId = coffeeId;
   // Pre-fill if recipe exists
-  document.getElementById('r-dose').value = '';
+  document.getElementById('r-dose').value  = '';
   document.getElementById('r-yield').value = '';
+  document.getElementById('r-time').value  = '';
   document.getElementById('r-grind').value = '';
-  document.getElementById('r-temp').value = '';
+  document.getElementById('r-temp').value  = '';
   updateRatioDisplay();
   try {
     const r = await fetch('/api/coffees/' + coffeeId + '/recipe', {headers:{'Content-Type':'application/json'}});
@@ -127,6 +136,7 @@ async function openRecipeModal(coffeeId) {
       const recipe = await r.json();
       document.getElementById('r-dose').value  = recipe.dose_g  ?? '';
       document.getElementById('r-yield').value = recipe.yield_g ?? '';
+      document.getElementById('r-time').value  = recipe.time_s  ?? '';
       document.getElementById('r-grind').value = recipe.grind   ?? '';
       document.getElementById('r-temp').value  = recipe.temp_c  ?? '';
       updateRatioDisplay();
@@ -136,21 +146,28 @@ async function openRecipeModal(coffeeId) {
 }
 
 function updateRatioDisplay() {
-  const dose  = parseFloat(document.getElementById('r-dose').value);
-  const yld   = parseFloat(document.getElementById('r-yield').value);
-  const el    = document.getElementById('r-ratio-display');
-  if (el) el.textContent = (dose && yld) ? 'Ratio: 1:' + (yld / dose).toFixed(2) : '';
+  const dose = parseFloat(document.getElementById('r-dose').value);
+  const yld  = parseFloat(document.getElementById('r-yield').value);
+  const time = parseInt(document.getElementById('r-time').value);
+  const el   = document.getElementById('r-ratio-display');
+  if (!el) return;
+  const parts = [];
+  if (dose && yld) parts.push('Ratio: 1:' + (yld / dose).toFixed(2));
+  const flow = fmtFlow(yld, time);
+  if (flow) parts.push('Flujo: ' + flow);
+  el.textContent = parts.join('  ·  ');
 }
 
 async function submitRecipe() {
   if (!_recipeTargetId) return;
   const dose_g  = parseFloat(document.getElementById('r-dose').value)  || null;
   const yield_g = parseFloat(document.getElementById('r-yield').value) || null;
+  const time_s  = parseInt(document.getElementById('r-time').value)    || null;
   const grind   = parseInt(document.getElementById('r-grind').value)   || null;
   const temp_c  = parseInt(document.getElementById('r-temp').value)    || null;
   await api('/coffees/' + _recipeTargetId + '/recipe', {
     method: 'PUT',
-    body: JSON.stringify({ dose_g, yield_g, grind, temp_c })
+    body: JSON.stringify({ dose_g, yield_g, time_s, grind, temp_c })
   });
   closeModal('modal-recipe');
   showToast(t('toast.recipe_saved'));
@@ -191,6 +208,7 @@ async function openBrewModal(coffeeId = null, brewId = null) {
     const b = _brewCache[_editBrewId];
     document.getElementById('b-dose').value  = b.dose_g  ?? '';
     document.getElementById('b-yield').value = b.yield_g ?? '';
+    document.getElementById('b-time').value  = b.time_s  ?? '';
     document.getElementById('b-grind').value = b.grind   ?? '';
     document.getElementById('b-temp').value  = b.temp_c  ?? '';
     document.getElementById('b-date').value  = b.brew_date ?? new Date().toISOString().split('T')[0];
@@ -204,6 +222,7 @@ async function openBrewModal(coffeeId = null, brewId = null) {
     // Modo creación: limpiar y pre-rellenar desde receta
     document.getElementById('b-dose').value  = '';
     document.getElementById('b-yield').value = '';
+    document.getElementById('b-time').value  = '';
     document.getElementById('b-grind').value = '';
     document.getElementById('b-temp').value  = '';
     document.getElementById('b-date').value  = new Date().toISOString().split('T')[0];
@@ -218,6 +237,7 @@ async function openBrewModal(coffeeId = null, brewId = null) {
           const recipe = await r.json();
           document.getElementById('b-dose').value  = recipe.dose_g  ?? '';
           document.getElementById('b-yield').value = recipe.yield_g ?? '';
+          document.getElementById('b-time').value  = recipe.time_s  ?? '';
           document.getElementById('b-grind').value = recipe.grind   ?? '';
           document.getElementById('b-temp').value  = recipe.temp_c  ?? '';
         }
@@ -229,10 +249,16 @@ async function openBrewModal(coffeeId = null, brewId = null) {
 }
 
 function updateBrewRatioDisplay() {
-  const dose  = parseFloat(document.getElementById('b-dose').value);
-  const yld   = parseFloat(document.getElementById('b-yield').value);
-  const el    = document.getElementById('b-ratio-display');
-  if (el) el.textContent = (dose && yld) ? 'Ratio: 1:' + (yld / dose).toFixed(2) : '';
+  const dose = parseFloat(document.getElementById('b-dose').value);
+  const yld  = parseFloat(document.getElementById('b-yield').value);
+  const time = parseInt(document.getElementById('b-time').value);
+  const el   = document.getElementById('b-ratio-display');
+  if (!el) return;
+  const parts = [];
+  if (dose && yld) parts.push('Ratio: 1:' + (yld / dose).toFixed(2));
+  const flow = fmtFlow(yld, time);
+  if (flow) parts.push('Flujo: ' + flow);
+  el.textContent = parts.join('  ·  ');
 }
 
 function setBrewRating(val) {
@@ -244,6 +270,7 @@ function setBrewRating(val) {
 async function submitBrew() {
   const dose_g    = parseFloat(document.getElementById('b-dose').value)  || null;
   const yield_g   = parseFloat(document.getElementById('b-yield').value) || null;
+  const time_s    = parseInt(document.getElementById('b-time').value)    || null;
   const grind     = parseInt(document.getElementById('b-grind').value)   || null;
   const temp_c    = parseInt(document.getElementById('b-temp').value)    || null;
   const brew_date = document.getElementById('b-date').value || null;
@@ -254,7 +281,7 @@ async function submitBrew() {
     // Editar preparación existente
     await api('/brews/' + _editBrewId, {
       method: 'PUT',
-      body: JSON.stringify({ dose_g, yield_g, grind, temp_c, brew_date, notes, rating })
+      body: JSON.stringify({ dose_g, yield_g, time_s, grind, temp_c, brew_date, notes, rating })
     });
     closeModal('modal-brew');
     showToast(t('toast.brew_updated'));
@@ -265,7 +292,7 @@ async function submitBrew() {
     if (!_brewTargetId) return;
     await api('/coffees/' + _brewTargetId + '/brews', {
       method: 'POST',
-      body: JSON.stringify({ dose_g, yield_g, grind, temp_c, brew_date, notes, rating })
+      body: JSON.stringify({ dose_g, yield_g, time_s, grind, temp_c, brew_date, notes, rating })
     });
     closeModal('modal-brew');
     showToast(t('toast.brew_registered'));
