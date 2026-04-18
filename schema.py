@@ -3,8 +3,9 @@ from flask import session, jsonify
 from db import DB, db_conn, col_exists
 from lookup_config import create_lookup_tables, get_or_create
 
-SETTING_PIN_HASH      = 'pin_hash'
-SETTING_GRAMS_PER_SHOT = 'grams_per_shot'
+SETTING_PIN_HASH           = 'pin_hash'
+SETTING_GRAMS_PER_SHOT     = 'grams_per_shot'
+SETTING_LOW_STOCK_THRESHOLD = 'low_stock_threshold'
 
 FTS_ENABLED = False
 
@@ -23,6 +24,7 @@ def init_settings(conn):
         (SETTING_PIN_HASH, _pin_hash('1111'))
     )
     conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES (?, '17')", (SETTING_GRAMS_PER_SHOT,))
+    conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES (?, '5')", (SETTING_LOW_STOCK_THRESHOLD,))
 
 
 def login_required(f):

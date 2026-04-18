@@ -34,7 +34,7 @@ python -m venv .venv
 .venv/Scripts/pip install -r requirements.txt -r requirements-test.txt  # Windows
 # source .venv/bin/activate && pip install ...  # macOS/Linux
 
-.venv/Scripts/pytest          # suite completa (227 tests)
+.venv/Scripts/pytest          # suite completa (242 tests)
 .venv/Scripts/pytest --cov=. --cov-report=term-missing --cov-omit="tests/*"  # con cobertura
 ```
 

@@ -91,6 +91,7 @@ La app está protegida con un PIN de 4 dígitos. Por defecto es `1111`.
 - `init_db()` se llama al arrancar y es idempotente — incluye todas las migraciones
 - Hay dos fases de migración: `migrate_v1()` (texto→FK, legado) y `migrate_v2()` (FK→M2M + link región-país)
 - Añadir un nuevo cambio de esquema: crear `migrate_v8()` y llamarla desde `init_db()` (la última es `migrate_v7`: añade `time_s INTEGER` a `recipes` y `brews`)
+- `SETTING_LOW_STOCK_THRESHOLD` — umbral configurable (1-50, default 5) en `schema.py`; cuando `floor(remaining_g / grams_per_shot) <= threshold` se muestra ⚠️ en la ficha
 - Todos los endpoints de lookup comprueban que `table` esté en `LOOKUP_TABLES` antes de ejecutar
 - Las fechas se guardan como TEXT en formato `YYYY-MM-DD`
 - `rating NULL` = sin valorar (nunca se guarda 0)

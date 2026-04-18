@@ -550,6 +550,10 @@ body {
   color: var(--text3);
   font-weight: 400;
 }
+.shots-remaining { font-size: 12px; color: var(--text2); font-weight: 500; }
+.shots-remaining.low-stock { color: var(--accent2); font-weight: 700; }
+.low-stock-icon { font-style: normal; }
+.cc-qty.low-stock { color: var(--accent2); font-weight: 700; }
 .consume-block-track {
   height: 4px;
   background: var(--surface3);

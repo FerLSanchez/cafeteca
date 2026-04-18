@@ -682,6 +682,11 @@
       <input class="form-input" id="s-grams" type="number" min="1" max="100" placeholder="17">
       <div style="font-size:12px;color:var(--text3);margin-top:4px" data-i18n="settings.grams_hint">Gramos que se restan al pulsar "Consumir" en la ficha del café.</div>
     </div>
+    <div class="form-group">
+      <label class="form-label" data-i18n="settings.field.low_stock_threshold">Alerta de stock bajo (tomas)</label>
+      <input class="form-input" id="s-low-stock" type="number" min="1" max="50" placeholder="5">
+      <div style="font-size:12px;color:var(--text3);margin-top:4px" data-i18n="settings.low_stock_hint">Muestra ⚠️ en la ficha cuando quedan esta cantidad de tomas o menos.</div>
+    </div>
     <button class="btn-primary" onclick="saveSettings()" style="margin-bottom:18px" data-i18n="settings.btn.save">Guardar ajustes</button>
     <div class="form-section" data-i18n="settings.section.security">Seguridad</div>
     <div class="form-group">
