@@ -7,9 +7,27 @@ async function loadStats() {
 
   const pending = s.total - s.active - s.finished;
   document.getElementById('stats-grid').innerHTML = `
-    <div class="stat-card"><div class="stat-val">${pending}</div><div class="stat-label">${t('stats.available')}</div>${s.pending_weight_g?`<div class="stat-sub">${fmtWeight(s.pending_weight_g)}</div>`:''}</div>
-    <div class="stat-card"><div class="stat-val">${s.active}</div><div class="stat-label">${t('stats.in_use')}</div>${s.active_weight_g?`<div class="stat-sub">${t('stats.remaining_weight', {weight: fmtWeight(s.active_weight_g)})}</div>`:''}</div>
-    <div class="stat-card" style="grid-column:1/-1"><div class="stat-val">${s.avg_cost_kg?s.avg_cost_kg+'€/kg':'–'}</div><div class="stat-label">${t('stats.avg_cost')}</div></div>
+    <div class="stat-card" style="grid-column:1/-1">
+      <div class="stat-inline-row">
+        <div class="stat-inline-item">
+          <div class="stat-val">${pending}</div>
+          <div class="stat-label">${t('stats.available')}</div>
+          ${s.pending_weight_g ? `<div class="stat-sub">${fmtWeight(s.pending_weight_g)}</div>` : ''}
+        </div>
+        <div class="stat-inline-sep"></div>
+        <div class="stat-inline-item">
+          <div class="stat-val">${s.active}</div>
+          <div class="stat-label">${t('stats.in_use')}</div>
+          ${s.active_weight_g ? `<div class="stat-sub">${t('stats.remaining_weight', {weight: fmtWeight(s.active_weight_g)})}</div>` : ''}
+        </div>
+        <div class="stat-inline-sep"></div>
+        <div class="stat-inline-item">
+          <div class="stat-val">${s.avg_cost_kg ? s.avg_cost_kg + '€' : '–'}</div>
+          <div class="stat-label">${t('stats.avg_cost')}</div>
+          ${s.avg_cost_kg ? `<div class="stat-sub">/kg</div>` : ''}
+        </div>
+      </div>
+    </div>
   `;
 
   renderStatsHero(s);
@@ -56,6 +74,11 @@ function renderStatsGantt() {
     const o = new Date(c.opened_date);
     const e = c.finished_date ? new Date(c.finished_date) : today;
     return o <= lastDay && e >= firstDay;
+  }).sort((a, b) => {
+    const aOpen = !a.finished_date, bOpen = !b.finished_date;
+    if (aOpen !== bOpen) return aOpen ? -1 : 1;
+    if (aOpen) return new Date(a.opened_date) - new Date(b.opened_date);
+    return new Date(b.finished_date) - new Date(a.finished_date);
   });
 
   const ticks = [1, 5, 10, 15, 20, 25, dim];

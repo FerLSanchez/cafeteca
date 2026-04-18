@@ -630,6 +630,11 @@ body {
   letter-spacing: 0.6px;
 }
 .stat-sub { font-size: 12px; color: var(--text2); margin-top: 6px; font-weight: 500; }
+.stat-inline-row { display: flex; align-items: flex-start; }
+.stat-inline-item { flex: 1; padding: 0 14px; }
+.stat-inline-item:first-child { padding-left: 0; }
+.stat-inline-item:last-child { padding-right: 0; }
+.stat-inline-sep { width: 1px; background: var(--border); align-self: stretch; flex-shrink: 0; }
 .stats-section {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -649,8 +654,8 @@ body {
 .bar-label {
   font-size: 12px;
   color: var(--text2);
-  min-width: 90px;
-  max-width: 110px;
+  width: 90px;
+  flex-shrink: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
