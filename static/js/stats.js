@@ -24,7 +24,6 @@ async function loadStats() {
         <div class="stat-inline-item">
           <div class="stat-val">${s.avg_cost_kg ? s.avg_cost_kg + '€' : '–'}</div>
           <div class="stat-label">${t('stats.avg_cost')}</div>
-          ${s.avg_cost_kg ? `<div class="stat-sub">/kg</div>` : ''}
         </div>
       </div>
     </div>
