@@ -284,5 +284,6 @@
   "stats.preparations": "Brews",
   "stats.per_kg": "Per kg",
   "stats.bags": "bags",
-  "stats.based_on_brews": "based on registered brews"
+  "stats.based_on_brews": "based on registered brews",
+  "brew.field.time": "Extraction time (s)"
 }

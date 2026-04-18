@@ -577,6 +577,10 @@
       <label class="form-label" data-i18n="recipe.field.yield">Salida (g)</label>
       <input class="form-input" id="r-yield" type="number" step="0.1" min="0" placeholder="ej. 36" oninput="updateRatioDisplay()">
     </div>
+    <div class="form-group">
+      <label class="form-label" data-i18n="brew.field.time">Tiempo de extracción (s)</label>
+      <input class="form-input" id="r-time" type="number" min="0" placeholder="ej. 27" oninput="updateRatioDisplay()">
+    </div>
     <div style="font-size:13px;color:var(--accent2);min-height:18px;margin-bottom:8px" id="r-ratio-display"></div>
     <div class="form-group">
       <label class="form-label" data-i18n="recipe.field.grind">Grado de molienda</label>
@@ -608,6 +612,13 @@
         <label class="form-label" data-i18n="brew.field.yield">Salida (g)</label>
         <input class="form-input" id="b-yield" type="number" step="0.1" min="0" placeholder="36" oninput="updateBrewRatioDisplay()">
       </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label" data-i18n="brew.field.time">Tiempo (s)</label>
+        <input class="form-input" id="b-time" type="number" min="0" placeholder="27" oninput="updateBrewRatioDisplay()">
+      </div>
+      <div></div>
     </div>
     <div style="font-size:13px;color:var(--accent2);min-height:18px;margin-bottom:8px" id="b-ratio-display"></div>
     <div class="form-row">
