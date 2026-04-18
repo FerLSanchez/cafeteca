@@ -3,7 +3,7 @@ import sqlite3
 import pytest
 import schema as schema_mod
 from schema import (
-    init_settings, migrate_v3, migrate_v4, migrate_v5, migrate_v6,
+    init_settings, migrate_v3, migrate_v4, migrate_v5, migrate_v6, migrate_v7,
     _pin_hash,
 )
 from lookup_config import create_lookup_tables
@@ -178,6 +178,30 @@ def test_migrate_v6_idempotent():
     _base_schema(conn)
     migrate_v6(conn)
     migrate_v6(conn)  # must not raise
+    conn.close()
+
+
+# ---------------------------------------------------------------------------
+# migrate_v7
+# ---------------------------------------------------------------------------
+def test_migrate_v7_adds_time_s_to_recipes_and_brews():
+    conn = fresh_conn()
+    _base_schema(conn)
+    migrate_v6(conn)
+    migrate_v7(conn)
+    recipe_cols = [r[1] for r in conn.execute("PRAGMA table_info(recipes)").fetchall()]
+    brew_cols = [r[1] for r in conn.execute("PRAGMA table_info(brews)").fetchall()]
+    assert 'time_s' in recipe_cols
+    assert 'time_s' in brew_cols
+    conn.close()
+
+
+def test_migrate_v7_idempotent():
+    conn = fresh_conn()
+    _base_schema(conn)
+    migrate_v6(conn)
+    migrate_v7(conn)
+    migrate_v7(conn)  # must not raise
     conn.close()
 
 

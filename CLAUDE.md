@@ -90,7 +90,7 @@ La app está protegida con un PIN de 4 dígitos. Por defecto es `1111`.
 - La BD vive en `/data/coffee.db` (variable `DB` en `app.py`)
 - `init_db()` se llama al arrancar y es idempotente — incluye todas las migraciones
 - Hay dos fases de migración: `migrate_v1()` (texto→FK, legado) y `migrate_v2()` (FK→M2M + link región-país)
-- Añadir un nuevo cambio de esquema: crear `migrate_v3()` y llamarla desde `init_db()`
+- Añadir un nuevo cambio de esquema: crear `migrate_v8()` y llamarla desde `init_db()` (la última es `migrate_v7`: añade `time_s INTEGER` a `recipes` y `brews`)
 - Todos los endpoints de lookup comprueban que `table` esté en `LOOKUP_TABLES` antes de ejecutar
 - Las fechas se guardan como TEXT en formato `YYYY-MM-DD`
 - `rating NULL` = sin valorar (nunca se guarda 0)
@@ -103,6 +103,8 @@ La app está protegida con un PIN de 4 dígitos. Por defecto es `1111`.
 - **Cascada región→país**: `onOriginChange()` actualiza el hint de región en el formulario; `onFilterOriginChange()` filtra el desplegable de región en el panel de filtros avanzados
 - `renderAC()` filtra automáticamente los chips ya seleccionados y las regiones por país
 - `consumeShot(id)` — función global en `list.js` que llama a `POST /api/coffees/:id/consume` y refresca la lista; usada desde el `.consume-block` inline en tarjetas de bolsas abiertas
+- **Vista compacta**: `toggleCompactView()` alterna `compactList` (boolean en `state.js`), persiste en `localStorage('compactList')`, y llama `renderList()`; `renderCompactCard(c)` en `list.js`
+- **time_s (tiempo de extracción)**: campo opcional en recetas y brews; `fmtFlow(yld, time_s)` en `brews.js` calcula el flujo en g/s; el ratio y flujo se muestran en `#r-ratio-display` / `#b-ratio-display`
 
 ## Internacionalización (i18n)
 
