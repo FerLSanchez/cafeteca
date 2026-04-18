@@ -41,7 +41,41 @@ function sortedCoffees() {
   }
 }
 
+function renderCompactCard(c) {
+  const status = getStatus(c);
+  const finished = !!c.finished_date, opened = !!c.opened_date && !finished;
+  const sub = [c.roaster, c.producer].filter(Boolean).map(esc).join(' / ');
+  const actions = !finished ? `
+    <div class="cc-actions" onclick="event.stopPropagation()">
+      ${!c.opened_date ? `<button class="btn-cc open" onclick="showOpenDatePicker(event,${c.id})" title="${t('list.btn.open_today')}">+</button>` : ''}
+      ${c.opened_date  ? `<button class="btn-cc finish" onclick="quickFinish(event,${c.id})" title="${t('list.btn.finish_today')}">✓</button>` : ''}
+      ${opened && c.remaining_g != null ? `<button class="btn-cc consume" onclick="consumeShot(${c.id})" title="${t('list.consume_shot')}">−</button>` : ''}
+    </div>` : '';
+  return `<div class="coffee-card coffee-card-compact ${finished?'finished-coffee':opened?'active-coffee':''}" onclick="showDetail(${c.id})">
+    <div class="cc-row1">
+      <div class="coffee-name">${esc(c.name)}</div>
+      <div class="cc-right">
+        <div class="coffee-rating">${stars(c.rating)}</div>
+        ${actions}
+      </div>
+    </div>
+    <div class="cc-row2">
+      <div class="coffee-sub" style="margin-top:0">${sub || ''}</div>
+      <div class="cc-meta2">
+        <span class="tag ${status.cls}">${status.label}</span>
+        ${opened && c.remaining_g != null ? `<span class="cc-qty">${c.remaining_g}g<small> / ${c.quantity_g}g</small></span>` : ''}
+      </div>
+    </div>
+  </div>`;
+}
+
 function renderList() {
+  const btn = document.getElementById('view-toggle-btn');
+  if (btn) {
+    btn.classList.toggle('active', compactList);
+    btn.querySelector('use')?.setAttribute('href', compactList ? '#ic-view-full' : '#ic-view-compact');
+  }
+
   const el = document.getElementById('coffee-list');
   const info = document.getElementById('results-info');
   const total = displayedCoffees.length;
@@ -58,6 +92,7 @@ function renderList() {
 
   const visible = sorted.slice(0, showing);
   el.innerHTML = visible.map(c => {
+    if (compactList) return renderCompactCard(c);
     const status = getStatus(c);
     const finished = !!c.finished_date, opened = !!c.opened_date && !finished;
     const origin = [c.origin, c.region].filter(Boolean).map(esc).join(' · ');
@@ -121,6 +156,12 @@ function renderList() {
 
 function loadMore() {
   visibleCount += PAGE_SIZE;
+  renderList();
+}
+
+function toggleCompactView() {
+  compactList = !compactList;
+  localStorage.setItem('compactList', compactList ? '1' : '0');
   renderList();
 }
 

@@ -444,6 +444,35 @@ body {
 .tag.fresh-warning { color: var(--amber); border-color: var(--amber-border); background: var(--amber-dim); }
 .tag.milk { color: #7ab8d4; border-color: rgba(122,184,212,0.28); background: rgba(122,184,212,0.08); }
 
+/* ── Tarjeta compacta ── */
+.coffee-card-compact { padding: 9px 12px; }
+.cc-row1 { display: flex; align-items: center; gap: 8px; }
+.coffee-card-compact .coffee-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 16px; line-height: 1.2; }
+.cc-right { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.cc-row2 { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 4px; }
+.coffee-card-compact .coffee-sub { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 0; }
+.cc-meta2 { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
+.cc-qty { font-size: 10.5px; color: var(--text2); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.cc-qty small { color: var(--text3); font-weight: 400; }
+.cc-actions { display: flex; gap: 3px; }
+.btn-cc {
+  width: 28px; height: 28px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text2);
+  font-size: 15px;
+  font-weight: 700;
+  font-family: 'Figtree', 'DM Sans', sans-serif;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s;
+  line-height: 1;
+}
+.btn-cc.open    { border-color: var(--green-border); color: var(--green); }
+.btn-cc.finish  { border-color: rgba(191,91,38,0.4); color: var(--accent2); }
+.btn-cc.consume { border-color: var(--accent); color: var(--accent2); background: var(--accent-dim); }
+
 .coffee-notes {
   font-size: 14px;
   color: var(--text2);
