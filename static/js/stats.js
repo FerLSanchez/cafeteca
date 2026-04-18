@@ -67,7 +67,7 @@ function renderStatsGantt() {
   const dim      = lastDay.getDate();
   const today    = new Date(); today.setHours(0, 0, 0, 0);
   const atCurrentMonth = calYear === today.getFullYear() && calMonth === today.getMonth();
-  const monthLabel = firstDay.toLocaleDateString(navigator.language || 'es', { month: 'long', year: 'numeric' });
+  const monthLabel = `${getMonthNames()[calMonth]} ${calYear}`;
 
   const active = calCoffees.filter(c => {
     if (!c.opened_date) return false;
