@@ -7,18 +7,18 @@ async function loadStats() {
 
   const pending = s.total - s.active - s.finished;
   document.getElementById('stats-grid').innerHTML = `
-    <div class="stat-card" style="grid-column:1/-1">
+    <div class="stat-card stat-card-stock" style="grid-column:1/-1">
       <div class="stat-inline-row">
-        <div class="stat-inline-item">
-          <div class="stat-val">${pending}</div>
-          <div class="stat-label">${t('stats.available')}</div>
-          ${s.pending_weight_g ? `<div class="stat-sub">${fmtWeight(s.pending_weight_g)}</div>` : ''}
-        </div>
-        <div class="stat-inline-sep"></div>
         <div class="stat-inline-item">
           <div class="stat-val">${s.active_weight_g ? fmtWeight(s.active_weight_g) : '–'}</div>
           <div class="stat-label">${t('stats.in_use')}</div>
           ${s.active ? `<div class="stat-sub">${s.active} ${t('stats.bags')}</div>` : ''}
+        </div>
+        <div class="stat-inline-sep"></div>
+        <div class="stat-inline-item">
+          <div class="stat-val">${pending}</div>
+          <div class="stat-label">${t('status.unopened')}</div>
+          ${s.pending_weight_g ? `<div class="stat-sub">${fmtWeight(s.pending_weight_g)}</div>` : ''}
         </div>
         <div class="stat-inline-sep"></div>
         <div class="stat-inline-item">
@@ -116,15 +116,13 @@ function renderStatsGantt() {
 
 function buildBarChart(title, data) {
   const max = Math.max(...data.map(r=>r.cnt));
-  const rows = data.map(r=>{
-    const rating = r.avg_rating != null ? ` · ★${r.avg_rating}` : '';
-    return `
+  const rows = data.map(r=>`
     <div class="bar-row">
       <span class="bar-label" title="${esc(r.name)}">${esc(r.name)}</span>
       <div class="bar-track"><div class="bar-fill" style="width:${Math.round(r.cnt/max*100)}%"></div></div>
-      <span class="bar-cnt">${r.cnt}${rating}</span>
-    </div>`;
-  }).join('');
+      <span class="bar-cnt">${r.cnt}</span>
+      <span class="bar-rating">${r.avg_rating != null ? `<span class="bar-star">★</span>${r.avg_rating.toFixed(1)}` : ''}</span>
+    </div>`).join('');
   return `<div class="stats-section"><h3>${title}</h3>${rows}</div>`;
 }
 
