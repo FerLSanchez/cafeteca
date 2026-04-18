@@ -9,7 +9,8 @@ let activeStatus = 'in_use';
 let searchQuery = '';
 let searchTimer = null;
 let currentSort = 'smart';
-let gramsPerShot = 17;      // loaded from /api/settings
+let gramsPerShot = 17;         // loaded from /api/settings
+let lowStockThreshold = 5;    // loaded from /api/settings
 
 // Multi-select chip state for m2m fields
 let selectedVarieties = [];

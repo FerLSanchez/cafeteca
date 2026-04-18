@@ -73,6 +73,53 @@ class TestAddBrew:
         assert resp.get_json()['time_s'] == 28
 
 
+class TestAddBrewDeductsRemaining:
+    def test_brew_deducts_dose_from_open_coffee(self, auth_client):
+        coffee = make_coffee(auth_client, {'quantity_g': 250, 'opened_date': '2026-01-20'})
+        auth_client.post(f'/api/coffees/{coffee["id"]}/brews', json={'dose_g': 18.0})
+        updated = auth_client.get(f'/api/coffees/{coffee["id"]}').get_json()
+        assert updated['remaining_g'] == 232  # 250 - 18
+
+    def test_brew_response_includes_remaining_g_when_deducted(self, auth_client):
+        coffee = make_coffee(auth_client, {'quantity_g': 250, 'opened_date': '2026-01-20'})
+        resp = auth_client.post(f'/api/coffees/{coffee["id"]}/brews', json={'dose_g': 20.0})
+        assert resp.get_json()['remaining_g'] == 230
+
+    def test_brew_without_dose_does_not_change_remaining(self, auth_client):
+        coffee = make_coffee(auth_client, {'quantity_g': 250, 'opened_date': '2026-01-20'})
+        auth_client.post(f'/api/coffees/{coffee["id"]}/brews', json={})
+        updated = auth_client.get(f'/api/coffees/{coffee["id"]}').get_json()
+        assert updated['remaining_g'] == 250
+
+    def test_brew_on_pending_coffee_does_not_deduct(self, auth_client):
+        coffee = make_coffee(auth_client, {'quantity_g': 250})  # no opened_date
+        auth_client.post(f'/api/coffees/{coffee["id"]}/brews', json={'dose_g': 18.0})
+        updated = auth_client.get(f'/api/coffees/{coffee["id"]}').get_json()
+        assert updated['remaining_g'] == 250
+
+    def test_brew_on_finished_coffee_does_not_deduct(self, auth_client):
+        coffee = make_coffee(auth_client, {
+            'quantity_g': 250, 'opened_date': '2026-01-20', 'finished_date': '2026-02-01'
+        })
+        before = auth_client.get(f'/api/coffees/{coffee["id"]}').get_json()['remaining_g']
+        auth_client.post(f'/api/coffees/{coffee["id"]}/brews', json={'dose_g': 18.0})
+        updated = auth_client.get(f'/api/coffees/{coffee["id"]}').get_json()
+        assert updated['remaining_g'] == before
+
+    def test_brew_deduction_floors_at_zero(self, auth_client):
+        coffee = make_coffee(auth_client, {
+            'quantity_g': 250, 'remaining_g': 10, 'opened_date': '2026-01-20'
+        })
+        auth_client.post(f'/api/coffees/{coffee["id"]}/brews', json={'dose_g': 50.0})
+        updated = auth_client.get(f'/api/coffees/{coffee["id"]}').get_json()
+        assert updated['remaining_g'] == 0
+
+    def test_brew_response_has_no_remaining_g_when_not_deducted(self, auth_client):
+        coffee = make_coffee(auth_client)  # pending, no opened_date
+        resp = auth_client.post(f'/api/coffees/{coffee["id"]}/brews', json={'dose_g': 18.0})
+        assert 'remaining_g' not in resp.get_json()
+
+
 class TestListCoffeeBrews:
     def test_requires_auth(self, client):
         assert client.get('/api/coffees/1/brews').status_code == 401

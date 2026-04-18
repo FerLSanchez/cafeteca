@@ -298,6 +298,7 @@ async function submitBrew() {
     showToast(t('toast.brew_registered'));
     renderBrewsSection(_brewTargetId);
     if (document.getElementById('page-brews')?.classList.contains('active')) loadBrews();
+    fetchAndRender();
   }
 }
 

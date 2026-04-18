@@ -12,6 +12,11 @@ class TestGetSettings:
         assert resp.status_code == 200
         assert resp.get_json()['grams_per_shot'] == 17
 
+    def test_default_low_stock_threshold(self, auth_client):
+        resp = auth_client.get('/api/settings')
+        assert resp.status_code == 200
+        assert resp.get_json()['low_stock_threshold'] == 5
+
 
 class TestUpdateSettings:
     def test_requires_auth(self, client):
@@ -56,6 +61,41 @@ class TestUpdateSettings:
     def test_missing_field_returns_400(self, auth_client):
         resp = auth_client.put('/api/settings', json={})
         assert resp.status_code == 400
+
+    def test_update_low_stock_threshold(self, auth_client):
+        resp = auth_client.put('/api/settings', json={'low_stock_threshold': 3})
+        assert resp.status_code == 200
+        assert resp.get_json()['ok'] is True
+
+    def test_low_stock_threshold_persists(self, auth_client):
+        auth_client.put('/api/settings', json={'low_stock_threshold': 8})
+        resp = auth_client.get('/api/settings')
+        assert resp.get_json()['low_stock_threshold'] == 8
+
+    def test_low_stock_threshold_boundary_1(self, auth_client):
+        assert auth_client.put('/api/settings', json={'low_stock_threshold': 1}).status_code == 200
+
+    def test_low_stock_threshold_boundary_50(self, auth_client):
+        assert auth_client.put('/api/settings', json={'low_stock_threshold': 50}).status_code == 200
+
+    def test_low_stock_threshold_zero_returns_400(self, auth_client):
+        resp = auth_client.put('/api/settings', json={'low_stock_threshold': 0})
+        assert resp.status_code == 400
+
+    def test_low_stock_threshold_over_50_returns_400(self, auth_client):
+        resp = auth_client.put('/api/settings', json={'low_stock_threshold': 51})
+        assert resp.status_code == 400
+
+    def test_low_stock_threshold_float_returns_400(self, auth_client):
+        resp = auth_client.put('/api/settings', json={'low_stock_threshold': 3.5})
+        assert resp.status_code == 400
+
+    def test_update_both_settings_at_once(self, auth_client):
+        resp = auth_client.put('/api/settings', json={'grams_per_shot': 18, 'low_stock_threshold': 7})
+        assert resp.status_code == 200
+        data = auth_client.get('/api/settings').get_json()
+        assert data['grams_per_shot'] == 18
+        assert data['low_stock_threshold'] == 7
 
 
 class TestOptions:

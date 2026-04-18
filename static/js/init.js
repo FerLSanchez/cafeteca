@@ -4,6 +4,7 @@
 async function init() {
   const [, settings] = await Promise.all([loadOptions(), api('/settings')]);
   gramsPerShot = settings.grams_per_shot || 17;
+  lowStockThreshold = settings.low_stock_threshold ?? 5;
   await fetchAndRender();
 }
 

@@ -113,6 +113,16 @@ def add_coffee():
     return jsonify(row), 201
 
 
+@bp.route('/api/coffees/<int:cid>')
+@login_required
+def get_coffee(cid):
+    with db_conn() as conn:
+        row = get_coffee_by_id(conn, cid)
+    if row is None:
+        return jsonify({'error': 'Café no encontrado', 'error_key': 'error.coffee.not_found'}), 404
+    return jsonify(row)
+
+
 @bp.route('/api/coffees/<int:cid>', methods=['PUT'])
 @login_required
 def update_coffee(cid):

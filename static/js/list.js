@@ -41,10 +41,17 @@ function sortedCoffees() {
   }
 }
 
+function shotsLeft(c) {
+  if (c.remaining_g == null || !gramsPerShot) return null;
+  return Math.floor(c.remaining_g / gramsPerShot);
+}
+
 function renderCompactCard(c) {
   const status = getStatus(c);
   const finished = !!c.finished_date, opened = !!c.opened_date && !finished;
   const sub = [c.roaster, c.producer].filter(Boolean).map(esc).join(' / ');
+  const shots = opened ? shotsLeft(c) : null;
+  const lowStock = shots !== null && shots <= lowStockThreshold;
   const actions = !finished ? `
     <div class="cc-actions" onclick="event.stopPropagation()">
       ${!c.opened_date ? `<button class="btn-cc open" onclick="showOpenDatePicker(event,${c.id})" title="${t('list.btn.open_today')}">+</button>` : ''}
@@ -63,7 +70,7 @@ function renderCompactCard(c) {
       <div class="coffee-sub" style="margin-top:0">${sub || ''}</div>
       <div class="cc-meta2">
         <span class="tag ${status.cls}">${status.label}</span>
-        ${opened && c.remaining_g != null ? `<span class="cc-qty">${c.remaining_g}g<small> / ${c.quantity_g}g</small></span>` : ''}
+        ${opened && c.remaining_g != null ? `<span class="cc-qty${lowStock?' low-stock':''}">${c.remaining_g}g<small> / ${c.quantity_g}g</small>${shots !== null ? ` <small>(${shots}${t('list.shots_unit')})</small>` : ''}${lowStock ? ' <span class="low-stock-icon" title="'+t('list.low_stock_alert')+'">⚠️</span>' : ''}</span>` : ''}
       </div>
     </div>
   </div>`;
@@ -127,20 +134,26 @@ function renderList() {
         ${price?`<span class="tag price">${icon('tag')} ${price}</span>`:''}
       </div>
       ${c.notes?`<div class="coffee-notes">${esc(c.notes)}</div>`:''}
-      ${opened && c.remaining_g != null ? `
+      ${opened && c.remaining_g != null ? (() => {
+          const shots = shotsLeft(c);
+          const lowStock = shots !== null && shots <= lowStockThreshold;
+          const shotsLabel = shots !== null
+            ? ` <span class="shots-remaining${lowStock?' low-stock':''}">(${t('list.shots_count', {shots, s: shots !== 1 ? 's' : ''})}${lowStock ? ' <span class="low-stock-icon" title="'+t('list.low_stock_alert')+'">⚠️</span>' : ''})</span>`
+            : '';
+          return `
         <div class="consume-block" onclick="event.stopPropagation()">
           <div class="consume-block-head">
             <span class="consume-block-label">${t('list.remaining')}</span>
-            <span class="consume-block-value">${c.remaining_g}g <small>/ ${c.quantity_g}g</small></span>
+            <span class="consume-block-value">${c.remaining_g}g <small>/ ${c.quantity_g}g</small>${shotsLabel}</span>
           </div>
           <div class="consume-block-track">
             <div class="consume-block-fill" style="width:${Math.min(100, Math.max(0, (c.remaining_g / c.quantity_g) * 100)).toFixed(1)}%"></div>
           </div>
           <button class="btn-consume" onclick="event.stopPropagation(); consumeShot(${c.id})">
-            − ${t('list.consume_shot')} (17g)
+            − ${t('list.consume_shot')} (${gramsPerShot}g)
           </button>
-        </div>
-      ` : ''}
+        </div>`;
+        })() : ''}
       ${actions}
     </div>`;
   }).join('');
