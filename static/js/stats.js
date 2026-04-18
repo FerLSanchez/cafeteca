@@ -16,9 +16,9 @@ async function loadStats() {
         </div>
         <div class="stat-inline-sep"></div>
         <div class="stat-inline-item">
-          <div class="stat-val">${s.active}</div>
+          <div class="stat-val">${s.active_weight_g ? fmtWeight(s.active_weight_g) : '–'}</div>
           <div class="stat-label">${t('stats.in_use')}</div>
-          ${s.active_weight_g ? `<div class="stat-sub">${t('stats.remaining_weight', {weight: fmtWeight(s.active_weight_g)})}</div>` : ''}
+          ${s.active ? `<div class="stat-sub">${s.active} ${t('stats.bags')}</div>` : ''}
         </div>
         <div class="stat-inline-sep"></div>
         <div class="stat-inline-item">

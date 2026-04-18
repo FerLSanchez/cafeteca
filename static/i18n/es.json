@@ -282,5 +282,6 @@
   "stats.this_month": "Este mes",
   "stats.consumed": "consumidos",
   "stats.preparations": "Preparaciones",
-  "stats.per_kg": "Por kg"
+  "stats.per_kg": "Por kg",
+  "stats.bags": "bolsas"
 }
