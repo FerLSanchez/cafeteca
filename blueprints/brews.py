@@ -148,7 +148,10 @@ def add_brew(cid):
         except (ValueError, TypeError):
             rating = None
     with db_conn() as conn:
-        if not conn.execute('SELECT 1 FROM coffees WHERE id=?', (cid,)).fetchone():
+        coffee_row = conn.execute(
+            'SELECT remaining_g, opened_date, finished_date FROM coffees WHERE id=?', (cid,)
+        ).fetchone()
+        if not coffee_row:
             return jsonify({'error': 'Café no encontrado', 'error_key': 'error.coffee.not_found'}), 404
         cur = conn.execute(
             'INSERT INTO brews (brew_date, dose_g, yield_g, time_s, grind, temp_c, rating, notes) '
@@ -157,11 +160,19 @@ def add_brew(cid):
         )
         bid = cur.lastrowid
         conn.execute('INSERT INTO coffee_brews (coffee_id, brew_id) VALUES (?,?)', (cid, bid))
+        new_remaining = None
+        if (dose_g is not None and coffee_row['opened_date'] and not coffee_row['finished_date']
+                and coffee_row['remaining_g'] is not None):
+            new_remaining = max(0, int(coffee_row['remaining_g'] - dose_g))
+            conn.execute('UPDATE coffees SET remaining_g=? WHERE id=?', (new_remaining, cid))
         row = conn.execute(
             'SELECT id, brew_date, dose_g, yield_g, time_s, grind, temp_c, rating, notes, created_at '
             'FROM brews WHERE id=?', (bid,)
         ).fetchone()
-    return jsonify(dict(row)), 201
+    result = dict(row)
+    if new_remaining is not None:
+        result['remaining_g'] = new_remaining
+    return jsonify(result), 201
 
 
 @bp.route('/api/brews/<int:bid>', methods=['PUT'])
