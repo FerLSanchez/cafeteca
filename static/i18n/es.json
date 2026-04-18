@@ -276,5 +276,11 @@
   "error.model.field_too_long": "El campo \"{field}\" no puede superar los 200 caracteres",
   "error.model.field_not_list": "El campo \"{field}\" debe ser una lista",
   "error.model.field_item_too_long": "Un valor en \"{field}\" supera los 200 caracteres",
-  "error.model.notes_too_long": "Las notas no pueden superar los 5000 caracteres"
+  "error.model.notes_too_long": "Las notas no pueden superar los 5000 caracteres",
+  "list.remaining": "Restante",
+  "list.consume_shot": "Consumir toma",
+  "stats.this_month": "Este mes",
+  "stats.consumed": "consumidos",
+  "stats.preparations": "Preparaciones",
+  "stats.per_kg": "Por kg"
 }

@@ -13,7 +13,7 @@ App web personal para registrar cafés de especialidad. Flask + SQLite + HTML/CS
 - `docker-compose.yml` — monta `./data` como volumen para persistir la BD
 - `Dockerfile` — imagen Python 3.12-slim, solo depende de Flask
 - `static/js/i18n.js` — helper de internacionalización: `t()`, `initI18n()`, `applyI18n()`, `changeLang()`
-- `static/i18n/es.json` — todas las cadenas de la UI en español (~200 claves)
+- `static/i18n/es.json` — todas las cadenas de la UI en español (~290 claves)
 
 ## Arquitectura de datos
 
@@ -53,6 +53,7 @@ Los endpoints de lookup (`/api/lookup/<table>`) y las funciones de conteo/borrad
 - Variedades y procesos: el frontend envía **arrays** (`varieties: ["Heirloom", "SL28"]`), el backend los gestiona con `set_m2m()`
 - Las respuestas incluyen `varieties: [...]`, `variety_ids: [...]`, `processes: [...]`, `process_ids: [...]`
 - `/api/options` devuelve regiones con `origin_id` para que el frontend pueda filtrar por país
+- `/api/stats` devuelve además `current_month` (`consumed_g`, `brews_count`, `avg_rating`) y `active_bags` (bolsas abiertas o terminadas en el mes actual, con `opened_date`/`finished_date`) para el hero y el Gantt de stats
 
 ### Errores de API con clave i18n
 
@@ -101,6 +102,7 @@ La app está protegida con un PIN de 4 dígitos. Por defecto es `1111`.
 - `CHIP_FIELDS` — mapa que conecta tabla lookup con su estado y elementos DOM de chips
 - **Cascada región→país**: `onOriginChange()` actualiza el hint de región en el formulario; `onFilterOriginChange()` filtra el desplegable de región en el panel de filtros avanzados
 - `renderAC()` filtra automáticamente los chips ya seleccionados y las regiones por país
+- `consumeShot(id)` — función global en `list.js` que llama a `POST /api/coffees/:id/consume` y refresca la lista; usada desde el `.consume-block` inline en tarjetas de bolsas abiertas
 
 ## Internacionalización (i18n)
 

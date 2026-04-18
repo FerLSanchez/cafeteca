@@ -15,6 +15,8 @@ async function loadStats() {
     <div class="stat-card" style="grid-column:1/-1"><div class="stat-val" style="font-size:22px">${dpkg}</div><div class="stat-label">${t('stats.consumption_rate')}</div></div>
   `;
 
+  renderStatsHero(s);
+  renderStatsGantt(s);
   renderCalendar();
 
   const chartsEl = document.getElementById('stats-charts');
@@ -23,6 +25,64 @@ async function loadStats() {
   if (s.origins_breakdown?.length) chartsEl.insertAdjacentHTML('beforeend', buildBarChart(t('stats.chart.by_origin'), s.origins_breakdown));
   if (s.processes_breakdown?.length) chartsEl.insertAdjacentHTML('beforeend', buildBarChart(t('stats.chart.by_process'), s.processes_breakdown));
   if (s.varieties_breakdown?.length) chartsEl.insertAdjacentHTML('beforeend', buildBarChart(t('stats.chart.by_variety'), s.varieties_breakdown));
+}
+
+function renderStatsHero(s) {
+  const el = document.getElementById('stats-hero');
+  if (!el) return;
+  const m = s.current_month || {};
+  el.innerHTML = `
+    <div class="stats-hero">
+      <div class="stats-hero-label">${t('stats.this_month')}</div>
+      <div class="stats-hero-big">${m.consumed_g ?? 0}<span class="stats-hero-big-unit">g ${t('stats.consumed')}</span></div>
+      <div class="stats-hero-row">
+        <div><div class="v">${m.brews_count ?? 0}</div><div class="k">${t('stats.preparations')}</div></div>
+        <div><div class="v">★ ${m.avg_rating != null ? m.avg_rating.toFixed(1) : '—'}</div><div class="k">${t('stats.avg_rating')}</div></div>
+        <div><div class="v">${s.days_per_kg != null ? s.days_per_kg + 'd' : '—'}</div><div class="k">${t('stats.per_kg')}</div></div>
+      </div>
+    </div>
+  `;
+}
+
+function renderStatsGantt(s) {
+  const el = document.getElementById('stats-gantt');
+  if (!el || !s.active_bags || !s.active_bags.length) return;
+  const now = new Date();
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const monthLabel = now.toLocaleDateString(navigator.language || 'es', { month: 'long', year: 'numeric' });
+
+  const bars = s.active_bags.map(b => {
+    const opened = new Date(b.opened_date);
+    const finished = b.finished_date ? new Date(b.finished_date) : now;
+    const startDay = opened < monthStart ? 1 : opened.getDate();
+    const endDay = finished > now ? now.getDate() : finished.getDate();
+    return { name: b.name, start: startDay, end: endDay, finished: !!b.finished_date };
+  });
+
+  const ticks = [1, 5, 10, 15, 20, 25, daysInMonth];
+  el.innerHTML = `
+    <div class="stats-gantt">
+      <div class="stats-gantt-head">
+        <button class="stats-gantt-nav" aria-label="prev" style="opacity:.4">‹</button>
+        <div class="stats-gantt-title">${monthLabel}</div>
+        <button class="stats-gantt-nav" aria-label="next" style="opacity:.4">›</button>
+      </div>
+      <div class="stats-gantt-grid">
+        <div></div>
+        <div class="stats-gantt-scale">
+          ${ticks.map(d => `<span class="stats-gantt-scale-tick" style="left:${((d - 0.5) / daysInMonth * 100).toFixed(1)}%">${d}</span>`).join('')}
+        </div>
+        ${bars.map(b => `
+          <div class="stats-gantt-row-label" title="${esc(b.name)}">${esc(b.name)}</div>
+          <div class="stats-gantt-row-track">
+            <div class="stats-gantt-bar ${b.finished ? 'finished' : 'open'}"
+              style="left:${((b.start - 1) / daysInMonth * 100).toFixed(1)}%; width:${((b.end - b.start + 1) / daysInMonth * 100).toFixed(1)}%"></div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
 }
 
 function buildBarChart(title, data) {

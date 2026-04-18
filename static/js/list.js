@@ -92,6 +92,20 @@ function renderList() {
         ${price?`<span class="tag price">${icon('tag')} ${price}</span>`:''}
       </div>
       ${c.notes?`<div class="coffee-notes">${esc(c.notes)}</div>`:''}
+      ${opened && c.remaining_g != null ? `
+        <div class="consume-block" onclick="event.stopPropagation()">
+          <div class="consume-block-head">
+            <span class="consume-block-label">${t('list.remaining')}</span>
+            <span class="consume-block-value">${c.remaining_g}g <small>/ ${c.quantity_g}g</small></span>
+          </div>
+          <div class="consume-block-track">
+            <div class="consume-block-fill" style="width:${Math.min(100, Math.max(0, (c.remaining_g / c.quantity_g) * 100)).toFixed(1)}%"></div>
+          </div>
+          <button class="btn-consume" onclick="event.stopPropagation(); consumeShot(${c.id})">
+            − ${t('list.consume_shot')} (17g)
+          </button>
+        </div>
+      ` : ''}
       ${actions}
     </div>`;
   }).join('');
@@ -108,6 +122,13 @@ function renderList() {
 function loadMore() {
   visibleCount += PAGE_SIZE;
   renderList();
+}
+
+async function consumeShot(id) {
+  const result = await api('/coffees/' + id + '/consume', { method: 'POST' });
+  if (!result || result.error) { showToast(result?.error || t('error.generic')); return; }
+  showToast(t('toast.consume_summary', { consumed_g: result.consumed_g, remaining_g: result.remaining_g }));
+  await fetchAndRender();
 }
 
 function showPage(name, tab) {
