@@ -710,6 +710,13 @@ body {
   font-weight: 700;
   position: relative;
 }
+.stats-hero-sublabel {
+  font-size: 10px;
+  color: var(--text3);
+  position: relative;
+  margin-top: 2px;
+  font-style: italic;
+}
 .stats-hero-big {
   font-family: 'Playfair Display', serif;
   font-size: 40px;
@@ -1518,8 +1525,12 @@ body.modal-open { overflow: hidden; touch-action: none; }
   /* Panel de filtros: 4 columnas */
   .filter-panel { grid-template-columns: repeat(4, 1fr); }
 
-  /* Stats: 4 columnas */
-  .stats-grid { grid-template-columns: repeat(4, 1fr); }
+  /* Stats: layout 2 columnas */
+  #page-stats { display: grid; grid-template-columns: 1fr 1fr; column-gap: 20px; align-items: start; }
+  #stats-hero   { grid-column: 1; grid-row: 1; }
+  #stats-grid   { grid-column: 1; grid-row: 2; }
+  #stats-gantt  { grid-column: 2; grid-row: 1; }
+  #stats-charts { grid-column: 2; grid-row: 2; }
 
   /* Modales más anchos */
   .modal { max-width: 600px; }

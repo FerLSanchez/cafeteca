@@ -47,6 +47,7 @@ function renderStatsHero(s) {
   el.innerHTML = `
     <div class="stats-hero">
       <div class="stats-hero-label">${t('stats.this_month')}</div>
+      <div class="stats-hero-sublabel">${t('stats.based_on_brews')}</div>
       <div class="stats-hero-big">${m.consumed_g ?? 0}<span class="stats-hero-big-unit">g ${t('stats.consumed')}</span></div>
       <div class="stats-hero-row">
         <div><div class="v">${m.brews_count ?? 0}</div><div class="k">${t('stats.preparations')}</div></div>

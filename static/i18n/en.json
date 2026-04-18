@@ -283,5 +283,6 @@
   "stats.consumed": "consumed",
   "stats.preparations": "Brews",
   "stats.per_kg": "Per kg",
-  "stats.bags": "bags"
+  "stats.bags": "bags",
+  "stats.based_on_brews": "based on registered brews"
 }
