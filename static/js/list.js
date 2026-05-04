@@ -182,7 +182,9 @@ async function consumeShot(id) {
   const result = await api('/coffees/' + id + '/consume', { method: 'POST' });
   if (!result || result.error) { showToast(result?.error || t('error.generic')); return; }
   showToast(t('toast.consume_summary', { consumed_g: result.consumed_g, remaining_g: result.remaining_g }));
-  await fetchAndRender();
+  const idx = displayedCoffees.findIndex(c => c.id === id);
+  if (idx !== -1) displayedCoffees[idx] = result.coffee;
+  renderList();
 }
 
 function showPage(name, tab) {
