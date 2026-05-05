@@ -1,10 +1,73 @@
 // ---------------------------------------------------------------------------
-// Brews tab
+// Brews tab — infinite scroll
 // ---------------------------------------------------------------------------
-async function loadBrews() {
-  document.getElementById('brews-list').innerHTML = `<div class="loading">${t('loading')}</div>`;
-  const brews = await api('/brews');
-  renderBrewsPage(brews);
+const BREWS_PAGE = 20;
+let _brewsOffset  = 0;
+let _brewsLoading = false;
+let _brewsHasMore = true;
+let _brewsObserver = null;
+
+async function loadBrews(reset = true) {
+  if (reset) {
+    _brewsOffset  = 0;
+    _brewsHasMore = true;
+    if (_brewsObserver) { _brewsObserver.disconnect(); _brewsObserver = null; }
+    document.getElementById('brews-list').innerHTML = `<div class="loading">${t('loading')}</div>`;
+  }
+  if (_brewsLoading || !_brewsHasMore) return;
+  _brewsLoading = true;
+
+  const data = await api(`/brews?limit=${BREWS_PAGE}&offset=${_brewsOffset}`);
+  _brewsLoading = false;
+  if (!data) return;
+
+  const brews    = data.brews || [];
+  _brewsHasMore  = data.has_more;
+  _brewsOffset  += brews.length;
+
+  const el = document.getElementById('brews-list');
+  if (reset && !brews.length) {
+    el.innerHTML = `<div style="text-align:center;padding:40px;color:var(--text3)">${t('brew.empty')}</div>`;
+    return;
+  }
+  if (reset) el.innerHTML = '';
+
+  _appendBrewCards(brews, el);
+  _setupBrewsObserver(el);
+}
+
+function _appendBrewCards(brews, el) {
+  brews.forEach(b => { _brewCache[b.id] = b; });
+  const sentinel = document.getElementById('brews-sentinel');
+  if (sentinel) sentinel.remove();
+  el.insertAdjacentHTML('beforeend', brews.map(b => `
+    <div class="brew-card">
+      <div class="brew-card-header">
+        <span class="brew-date">${fmtDate(b.brew_date)}</span>
+        <span class="brew-rating">${b.rating ? stars(b.rating) : `<span style="color:var(--text3)">${t('brew.unrated')}</span>`}</span>
+        <div class="brew-card-actions">
+          <button class="btn-brew-edit" onclick="openBrewModal(null,${b.id})" title="Editar preparación">${icon('edit')}</button>
+          <button class="btn-brew-delete" onclick="deleteBrew(${b.id})" title="Eliminar preparación">${icon('x')}</button>
+        </div>
+      </div>
+      <div class="brew-coffees">${b.coffees.map(n=>`<span class="brew-coffee-tag">${esc(n)}</span>`).join('')}</div>
+      <div class="brew-summary">${esc(brewSummaryLine(b))}</div>
+      ${b.notes ? `<div class="brew-notes">"${esc(b.notes)}"</div>` : ''}
+    </div>
+  `).join(''));
+  if (_brewsHasMore) {
+    el.insertAdjacentHTML('beforeend', '<div id="brews-sentinel" style="height:1px;margin-top:8px"></div>');
+  }
+}
+
+function _setupBrewsObserver(el) {
+  if (_brewsObserver) { _brewsObserver.disconnect(); _brewsObserver = null; }
+  const sentinel = document.getElementById('brews-sentinel');
+  if (!sentinel) return;
+  _brewsObserver = new IntersectionObserver(entries => {
+    if (entries[0].isIntersecting) loadBrews(false);
+  }, { rootMargin: '200px' });
+  _brewsObserver.observe(sentinel);
 }
 
 function fmtRatio(dose, yld) {
@@ -29,29 +92,6 @@ function brewSummaryLine(b) {
   return parts.join(' · ') || '—';
 }
 
-function renderBrewsPage(brews) {
-  const el = document.getElementById('brews-list');
-  if (!brews.length) {
-    el.innerHTML = `<div style="text-align:center;padding:40px;color:var(--text3)">${t('brew.empty')}</div>`;
-    return;
-  }
-  brews.forEach(b => { _brewCache[b.id] = b; });
-  el.innerHTML = brews.map(b => `
-    <div class="brew-card">
-      <div class="brew-card-header">
-        <span class="brew-date">${fmtDate(b.brew_date)}</span>
-        <span class="brew-rating">${b.rating ? stars(b.rating) : `<span style="color:var(--text3)">${t('brew.unrated')}</span>`}</span>
-        <div class="brew-card-actions">
-          <button class="btn-brew-edit" onclick="openBrewModal(null,${b.id})" title="Editar preparación">${icon('edit')}</button>
-          <button class="btn-brew-delete" onclick="deleteBrew(${b.id})" title="Eliminar preparación">${icon('x')}</button>
-        </div>
-      </div>
-      <div class="brew-coffees">${b.coffees.map(n=>`<span class="brew-coffee-tag">${esc(n)}</span>`).join('')}</div>
-      <div class="brew-summary">${esc(brewSummaryLine(b))}</div>
-      ${b.notes ? `<div class="brew-notes">"${esc(b.notes)}"</div>` : ''}
-    </div>
-  `).join('');
-}
 
 // ---------------------------------------------------------------------------
 // Recipe section inside detail modal

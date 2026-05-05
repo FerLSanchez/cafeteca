@@ -93,6 +93,9 @@ La app está protegida con un PIN de 4 dígitos. Por defecto es `1111`.
 - Añadir un nuevo cambio de esquema: crear `migrate_v8()` y llamarla desde `init_db()` (la última es `migrate_v7`: añade `time_s INTEGER` a `recipes` y `brews`)
 - `SETTING_LOW_STOCK_THRESHOLD` — umbral configurable (1-50, default 5) en `schema.py`; cuando `floor(remaining_g / grams_per_shot) <= threshold` se muestra ⚠️ en la ficha
 - Registrar un brew descuenta `dose_g` de `remaining_g` del café si está abierto y tiene restante definido (se descuenta solo al crear, no al editar ni borrar)
+- **Pulsar "Consumir"** (`POST /api/coffees/:id/consume`) también crea un registro de brew automáticamente con los datos de la receta del café si existe, o solo con `dose_g = grams_per_shot`. El descuento de `remaining_g` lo hace el propio endpoint de consume; el brew creado **no** vuelve a descontarlo.
+- **`GET /api/brews`** soporta paginación vía `?limit=20&offset=0`; devuelve `{brews, total, has_more}`. La pestaña de prepas usa scroll infinito cargando 20 a la vez.
+- **`DELETE /api/brews/purge`** (body JSON `{months: N}`) elimina preparaciones con `brew_date` anterior a N meses; devuelve `{ok, deleted}`. Configurable desde el modal de Ajustes.
 - Todos los endpoints de lookup comprueban que `table` esté en `LOOKUP_TABLES` antes de ejecutar
 - Las fechas se guardan como TEXT en formato `YYYY-MM-DD`
 - `rating NULL` = sin valorar (nunca se guarda 0)
@@ -104,7 +107,9 @@ La app está protegida con un PIN de 4 dígitos. Por defecto es `1111`.
 - `CHIP_FIELDS` — mapa que conecta tabla lookup con su estado y elementos DOM de chips
 - **Cascada región→país**: `onOriginChange()` actualiza el hint de región en el formulario; `onFilterOriginChange()` filtra el desplegable de región en el panel de filtros avanzados
 - `renderAC()` filtra automáticamente los chips ya seleccionados y las regiones por país
-- `consumeShot(id)` — función global en `list.js` que llama a `POST /api/coffees/:id/consume` y refresca la lista; usada desde el `.consume-block` inline en tarjetas de bolsas abiertas
+- `consumeShot(id)` — función global en `list.js` que llama a `POST /api/coffees/:id/consume` y refresca la lista; usada desde el `.consume-block` inline en tarjetas de bolsas abiertas. El endpoint además crea un brew automáticamente.
+- `purgeOldBrews()` — en `form.js`; muestra confirmación y llama `DELETE /api/brews/purge` con los meses seleccionados en `#s-purge-months`
+- **Scroll infinito en pestaña Prepas**: `loadBrews(reset=true)` en `brews.js`; carga 20 registros por página usando IntersectionObserver sobre `#brews-sentinel`
 - **Vista compacta**: `toggleCompactView()` alterna `compactList` (boolean en `state.js`), persiste en `localStorage('compactList')`, y llama `renderList()`; `renderCompactCard(c)` en `list.js`
 - **time_s (tiempo de extracción)**: campo opcional en recetas y brews; `fmtFlow(yld, time_s)` en `brews.js` calcula el flujo en g/s; el ratio y flujo se muestran en `#r-ratio-display` / `#b-ratio-display`
 

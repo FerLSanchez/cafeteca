@@ -208,6 +208,22 @@ def consume_coffee(cid):
         current = coffee_row['remaining_g'] if coffee_row['remaining_g'] is not None else 0
         new_val = max(0, current - grams)
         conn.execute('UPDATE coffees SET remaining_g=? WHERE id=?', (new_val, cid))
+        recipe = conn.execute('''
+            SELECT r.dose_g, r.yield_g, r.time_s, r.grind, r.temp_c
+            FROM recipes r JOIN coffee_recipes cr ON cr.recipe_id = r.id
+            WHERE cr.coffee_id = ? LIMIT 1
+        ''', (cid,)).fetchone()
+        dose_g  = float(recipe['dose_g'])  if recipe and recipe['dose_g']  is not None else float(grams)
+        yield_g = float(recipe['yield_g']) if recipe and recipe['yield_g'] is not None else None
+        time_s  = recipe['time_s']         if recipe else None
+        grind   = recipe['grind']          if recipe else None
+        temp_c  = recipe['temp_c']         if recipe else None
+        today   = datetime.now().strftime('%Y-%m-%d')
+        cur = conn.execute(
+            'INSERT INTO brews (brew_date, dose_g, yield_g, time_s, grind, temp_c) VALUES (?,?,?,?,?,?)',
+            (today, dose_g, yield_g, time_s, grind, temp_c)
+        )
+        conn.execute('INSERT INTO coffee_brews (coffee_id, brew_id) VALUES (?,?)', (cid, cur.lastrowid))
         row = get_coffee_by_id(conn, cid)
     return jsonify({'coffee': row, 'consumed_g': grams, 'remaining_g': new_val})
 

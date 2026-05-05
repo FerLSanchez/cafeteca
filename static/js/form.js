@@ -142,3 +142,18 @@ async function saveSettings() {
   renderList();
   showToast(t('toast.settings_saved'));
 }
+
+function purgeOldBrews() {
+  const months = parseInt(document.getElementById('s-purge-months').value, 10);
+  showConfirm({
+    icon: '🗑️', title: t('confirm.purge_brews.title'),
+    msg: t('confirm.purge_brews.msg', {months}),
+    btnLabel: t('confirm.purge_brews.btn'), btnClass: 'btn-danger',
+    onConfirm: async () => {
+      const res = await api('/brews/purge', {method:'DELETE', body:JSON.stringify({months})});
+      if (!res) return;
+      showToast(t('toast.brews_purged', {count: res.deleted}));
+      if (document.getElementById('page-brews')?.classList.contains('active')) loadBrews();
+    }
+  });
+}

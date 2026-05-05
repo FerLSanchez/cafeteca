@@ -18,7 +18,13 @@ def _purge_orphans(conn):
 @bp.route('/api/brews')
 @login_required
 def list_brews():
+    try:
+        limit  = min(max(int(request.args.get('limit', 20)), 1), 100)
+        offset = max(int(request.args.get('offset', 0)), 0)
+    except (ValueError, TypeError):
+        limit, offset = 20, 0
     with db_conn() as conn:
+        total = conn.execute('SELECT COUNT(*) FROM brews').fetchone()[0]
         rows = conn.execute('''
             SELECT b.id, b.brew_date, b.dose_g, b.yield_g, b.time_s, b.grind, b.temp_c,
                    b.rating, b.notes, b.created_at,
@@ -28,14 +34,38 @@ def list_brews():
             LEFT JOIN coffees c ON c.id = cb.coffee_id
             GROUP BY b.id
             ORDER BY b.brew_date DESC, b.created_at DESC
-        ''').fetchall()
+            LIMIT ? OFFSET ?
+        ''', (limit, offset)).fetchall()
     result = []
     for r in rows:
         d = dict(r)
         names = d.pop('coffee_names') or ''
         d['coffees'] = [n for n in names.split('|||') if n] if names else []
         result.append(d)
-    return jsonify(result)
+    return jsonify({'brews': result, 'total': total, 'has_more': offset + len(result) < total})
+
+
+@bp.route('/api/brews/purge', methods=['DELETE'])
+@login_required
+def purge_old_brews():
+    data = request.get_json(silent=True) or {}
+    try:
+        months = int(data.get('months', 3))
+        if months < 1:
+            months = 1
+    except (ValueError, TypeError):
+        months = 3
+    with db_conn() as conn:
+        cur = conn.execute(
+            "DELETE FROM brews WHERE id IN ("
+            "  SELECT b.id FROM brews b"
+            "  LEFT JOIN coffee_brews cb ON cb.brew_id = b.id"
+            "  WHERE b.brew_date < date('now', ?)"
+            ")", (f'-{months} months',)
+        )
+        deleted = cur.rowcount
+        _purge_orphans(conn)
+    return jsonify({'ok': True, 'deleted': deleted})
 
 
 # ---------------------------------------------------------------------------

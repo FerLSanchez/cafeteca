@@ -8,20 +8,23 @@ class TestListBrews:
         assert client.get('/api/brews').status_code == 401
 
     def test_empty_list(self, auth_client):
-        assert auth_client.get('/api/brews').get_json() == []
+        data = auth_client.get('/api/brews').get_json()
+        assert data['brews'] == []
+        assert data['total'] == 0
+        assert data['has_more'] is False
 
     def test_list_includes_coffee_names(self, auth_client):
         coffee = make_coffee(auth_client, {'name': 'Named Coffee'})
         make_brew(auth_client, coffee['id'])
         resp = auth_client.get('/api/brews')
-        data = resp.get_json()
+        data = resp.get_json()['brews']
         assert len(data) == 1
         assert 'Named Coffee' in data[0]['coffees']
 
     def test_list_brew_structure(self, auth_client):
         coffee = make_coffee(auth_client)
         make_brew(auth_client, coffee['id'])
-        brew = auth_client.get('/api/brews').get_json()[0]
+        brew = auth_client.get('/api/brews').get_json()['brews'][0]
         assert 'id' in brew
         assert 'brew_date' in brew
         assert 'coffees' in brew

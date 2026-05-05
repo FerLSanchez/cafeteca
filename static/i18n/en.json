@@ -285,5 +285,20 @@
   "stats.per_kg": "Per kg",
   "stats.bags": "bags",
   "stats.based_on_brews": "based on registered brews",
-  "brew.field.time": "Extraction time (s)"
+  "brew.field.time": "Extraction time (s)",
+
+  "settings.section.data": "Data",
+  "settings.field.purge_brews": "Purge old brews",
+  "settings.purge_hint": "Permanently deletes brews older than the selected period.",
+  "settings.btn.purge": "Purge",
+  "settings.purge.months_1": "1 month",
+  "settings.purge.months_3": "3 months",
+  "settings.purge.months_6": "6 months",
+  "settings.purge.months_12": "12 months",
+
+  "confirm.purge_brews.title": "Purge brews?",
+  "confirm.purge_brews.msg": "All brews older than {months} month(s) will be permanently deleted. This cannot be undone.",
+  "confirm.purge_brews.btn": "Purge",
+
+  "toast.brews_purged": "{count} brew(s) deleted"
 }
