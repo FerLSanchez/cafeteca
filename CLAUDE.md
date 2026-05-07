@@ -8,16 +8,21 @@ App web personal para registrar cafés de especialidad. Flask + SQLite + HTML/CS
 
 ## Ficheros relevantes
 
-- `app.py` — toda la lógica backend: init de BD, migración automática, endpoints REST
+- `app.py` — app factory Flask: registra blueprints, secret key, security headers, PWA routes
+- `schema.py` — esquema de BD, init y migraciones (`init_db()`, `migrate_v1()` … `migrate_v7()`)
+- `models.py` — helpers de datos: `row_to_coffee()`, `COFFEE_SELECT`, `resolve_ids()`, `set_m2m()`
+- `db.py` — conexión SQLite y variable `DB`
+- `lookup_config.py` — constantes `LOOKUP_TABLES`, `LOOKUP_FK`, `JUNCTION_TABLES` y `get_or_create()`
+- `blueprints/` — endpoints REST por dominio: `auth`, `coffees`, `stats`, `settings`, `lookup`, `brews`
 - `templates/index.html` — todo el frontend en un único fichero (HTML + CSS + JS)
 - `docker-compose.yml` — monta `./data` como volumen para persistir la BD
 - `Dockerfile` — imagen Python 3.12-slim, solo depende de Flask
 - `static/js/i18n.js` — helper de internacionalización: `t()`, `initI18n()`, `applyI18n()`, `changeLang()`
-- `static/i18n/es.json` — todas las cadenas de la UI en español (~290 claves)
+- `static/i18n/es.json` — todas las cadenas de la UI en español; `en.json` — traducción inglesa
 
 ## Arquitectura de datos
 
-SQLite con 7 tablas de referencia normalizadas (roasters, producers, varieties, origins, regions, processes, shops).
+SQLite con 8 tablas de referencia normalizadas (roasters, producers, varieties, origins, regions, processes, shops, milk_types).
 
 ### Relaciones
 
@@ -35,17 +40,17 @@ SQLite con 7 tablas de referencia normalizadas (roasters, producers, varieties, 
 ### Dos categorías de lookup tables
 
 - **`LOOKUP_FK`** — relación directa con FK en `coffees`: `roasters`, `producers`, `origins`, `regions`, `shops`
-- **`JUNCTION_TABLES`** — relación M2M vía tabla de unión: `varieties` → `coffee_varieties`, `processes` → `coffee_processes`
+- **`JUNCTION_TABLES`** — relación M2M vía tabla de unión: `varieties` → `coffee_varieties`, `processes` → `coffee_processes`, `milk_types` → `coffee_milk_types`
 
 Los endpoints de lookup (`/api/lookup/<table>`) y las funciones de conteo/borrado/purga distinguen ambas categorías internamente.
 
-### Helpers clave en app.py
+### Helpers clave
 
-- `get_or_create(conn, table, name)` — crea o reutiliza una entrada en cualquier lookup table
-- `resolve_ids(conn, data)` — resuelve strings de lookup a IDs y auto-vincula región→país
-- `set_m2m(conn, coffee_id, values, ...)` — reemplaza todas las relaciones M2M de un café
-- `row_to_coffee(row)` — convierte una fila SQLite a dict con arrays `varieties` y `processes`
-- `COFFEE_SELECT` — query base con subconsultas GROUP_CONCAT para variedades y procesos
+- `get_or_create(conn, table, name)` — en `lookup_config.py`; crea o reutiliza una entrada en cualquier lookup table
+- `resolve_ids(conn, data)` — en `models.py`; resuelve strings de lookup a IDs y auto-vincula región→país
+- `set_m2m(conn, coffee_id, values, ...)` — en `models.py`; reemplaza todas las relaciones M2M de un café
+- `row_to_coffee(row)` — en `models.py`; convierte una fila SQLite a dict con arrays `varieties` y `processes`
+- `COFFEE_SELECT` — en `models.py`; query base con subconsultas GROUP_CONCAT para variedades y procesos
 
 ### Formato del API
 
@@ -90,7 +95,7 @@ La app está protegida con un PIN de 4 dígitos. Por defecto es `1111`.
 - La BD vive en `/data/coffee.db` (variable `DB` en `app.py`)
 - `init_db()` se llama al arrancar y es idempotente — incluye todas las migraciones
 - Hay dos fases de migración: `migrate_v1()` (texto→FK, legado) y `migrate_v2()` (FK→M2M + link región-país)
-- Añadir un nuevo cambio de esquema: crear `migrate_v8()` y llamarla desde `init_db()` (la última es `migrate_v7`: añade `time_s INTEGER` a `recipes` y `brews`)
+- Añadir un nuevo cambio de esquema: crear `migrate_v8()` en `schema.py` y llamarla desde `init_db()` (la última es `migrate_v7`: añade `time_s INTEGER` a `recipes` y `brews`)
 - `SETTING_LOW_STOCK_THRESHOLD` — umbral configurable (1-50, default 5) en `schema.py`; cuando `floor(remaining_g / grams_per_shot) <= threshold` se muestra ⚠️ en la ficha
 - Registrar un brew descuenta `dose_g` de `remaining_g` del café si está abierto y tiene restante definido (se descuenta solo al crear, no al editar ni borrar)
 - **Pulsar "Consumir"** (`POST /api/coffees/:id/consume`) también crea un registro de brew automáticamente con los datos de la receta del café si existe, o solo con `dose_g = grams_per_shot`. El descuento de `remaining_g` lo hace el propio endpoint de consume; el brew creado **no** vuelve a descontarlo.
@@ -121,6 +126,7 @@ La UI está internacionalizada mediante un sistema de traducción JSON sin depen
 
 - `static/js/i18n.js` — debe cargarse **primero** (antes que `state.js` y cualquier otro JS)
 - `static/i18n/es.json` — cadenas en español (idioma por defecto)
+- `static/i18n/en.json` — cadenas en inglés (ya implementado)
 - `static/i18n/<lang>.json` — añadir este fichero para soportar un nuevo idioma
 
 ### API de traducción
@@ -213,6 +219,16 @@ O con Docker:
 ```bash
 docker compose up -d
 ```
+
+## Tests
+
+```bash
+pip install -r requirements-test.txt
+pytest                         # suite completa
+pytest tests/test_brews.py     # un módulo específico
+```
+
+Los tests usan una BD SQLite en memoria. `conftest.py` provee el fixture `client`.
 
 ## Posibles mejoras pendientes
 
