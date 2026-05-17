@@ -59,17 +59,13 @@ self.addEventListener('fetch', e => {
       e.request.method === 'GET' &&
       CACHEABLE_API.some(p => url.pathname === p || url.pathname.startsWith(p + '?'))
     ) {
+      // Network-first: always get fresh data so mutations are reflected immediately.
+      // Falls back to cache only when offline.
       e.respondWith(
-        caches.open(CACHE).then(c =>
-          c.match(e.request).then(cached => {
-            const networkFetch = fetch(e.request).then(res => {
-              if (res.ok) c.put(e.request, res.clone());
-              return res;
-            }).catch(() => cached);
-            // Serve cached response immediately if available, otherwise wait for network
-            return cached || networkFetch;
-          })
-        )
+        fetch(e.request).then(res => {
+          if (res.ok) caches.open(CACHE).then(c => c.put(e.request, res.clone()));
+          return res;
+        }).catch(() => caches.match(e.request))
       );
     }
     // All other API calls (mutations, auth): always network, never cache
