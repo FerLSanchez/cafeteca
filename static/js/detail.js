@@ -252,5 +252,6 @@ async function saveRemaining(id) {
   if (i!==-1) displayedCoffees[i]=updated;
   currentDetail = updated;
   showDetail(updated.id);
+  renderList();
   showToast(t('toast.remaining_saved'));
 }
