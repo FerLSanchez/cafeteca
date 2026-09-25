@@ -15,6 +15,13 @@ function stars(rating) {
   return [1,2,3,4,5].map(i=>`<span class="star ${i<=r?'filled':''}">★</span>`).join('');
 }
 
+// Local calendar date as YYYY-MM-DD (toISOString() is UTC and gives
+// yesterday's date shortly after local midnight in UTC+ timezones).
+function todayLocal() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
 function fmtDate(d) {
   if (!d) return null;
   const [y,m,day] = d.split('-'); return `${day}/${m}/${y}`;

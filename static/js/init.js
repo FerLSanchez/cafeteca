@@ -10,7 +10,7 @@ async function init() {
 
 // Close modals on overlay click
 document.querySelectorAll('.modal-overlay').forEach(m=>{
-  m.addEventListener('click', e=>{ if(e.target===m) m.classList.remove('open'); });
+  m.addEventListener('click', e=>{ if(e.target===m) closeModal(m.id); });
 });
 
 async function startup() {

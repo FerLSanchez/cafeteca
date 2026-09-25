@@ -316,3 +316,66 @@ class TestConsumeCoffee:
 
     def test_consume_not_found(self, auth_client):
         assert auth_client.post('/api/coffees/999/consume').status_code == 404
+
+    def test_consume_without_quantity_rejected(self, auth_client):
+        coffee = make_coffee(auth_client, {'quantity_g': None})
+        resp = auth_client.post(f'/api/coffees/{coffee["id"]}/consume')
+        assert resp.status_code == 409
+        assert resp.get_json()['error_key'] == 'error.coffee.consume_no_stock'
+        assert auth_client.get(f'/api/coffees/{coffee["id"]}').get_json()['remaining_g'] is None
+        assert auth_client.get('/api/brews').get_json()['total'] == 0
+
+    def test_consume_finished_rejected(self, auth_client):
+        coffee = make_coffee(auth_client, {'quantity_g': 250})
+        auth_client.post(f'/api/coffees/{coffee["id"]}/finish')
+        resp = auth_client.post(f'/api/coffees/{coffee["id"]}/consume')
+        assert resp.status_code == 409
+        assert resp.get_json()['error_key'] == 'error.coffee.consume_finished'
+        assert auth_client.get(f'/api/coffees/{coffee["id"]}').get_json()['remaining_g'] == 250
+
+    def test_consume_uses_client_date(self, auth_client):
+        coffee = make_coffee(auth_client, {'quantity_g': 250})
+        auth_client.post(f'/api/coffees/{coffee["id"]}/consume', json={'date': '2026-03-04'})
+        assert auth_client.get('/api/brews').get_json()['brews'][0]['brew_date'] == '2026-03-04'
+
+    def test_consume_invalid_date(self, auth_client):
+        coffee = make_coffee(auth_client, {'quantity_g': 250})
+        resp = auth_client.post(f'/api/coffees/{coffee["id"]}/consume', json={'date': 'hoy'})
+        assert resp.status_code == 400
+
+
+class TestFinishDate:
+    def test_finish_uses_client_date(self, auth_client):
+        coffee = make_coffee(auth_client)
+        body = auth_client.post(f'/api/coffees/{coffee["id"]}/finish', json={'date': '2026-02-03'}).get_json()
+        assert body['finished_date'] == '2026-02-03'
+
+    def test_finish_invalid_date(self, auth_client):
+        coffee = make_coffee(auth_client)
+        assert auth_client.post(f'/api/coffees/{coffee["id"]}/finish', json={'date': 'x'}).status_code == 400
+
+
+class TestUpdateCoffeePartial:
+    def test_partial_update_keeps_other_fields(self, auth_client):
+        coffee = make_coffee(auth_client, {'varieties': ['Gesha'], 'notes': 'floral'})
+        body = auth_client.put(f'/api/coffees/{coffee["id"]}', json={'rating': 5}).get_json()
+        assert body['rating'] == 5
+        assert body['name'] == 'Test Coffee'
+        assert body['roaster'] == 'Roaster A'
+        assert body['varieties'] == ['Gesha']
+        assert body['notes'] == 'floral'
+        assert body['price_kg'] == 30.0
+
+    def test_explicit_null_clears_field(self, auth_client):
+        coffee = make_coffee(auth_client)
+        body = auth_client.put(f'/api/coffees/{coffee["id"]}', json={'roaster': None, 'varieties': []}).get_json()
+        assert body['roaster'] is None
+        assert body['varieties'] == []
+        assert body['origin'] == 'Ethiopia'
+
+    def test_empty_name_rejected(self, auth_client):
+        coffee = make_coffee(auth_client)
+        assert auth_client.put(f'/api/coffees/{coffee["id"]}', json={'name': ''}).status_code == 400
+
+    def test_update_not_found(self, auth_client):
+        assert auth_client.put('/api/coffees/999', json={'name': 'X'}).status_code == 404

@@ -2,6 +2,16 @@ from datetime import datetime
 from flask import Blueprint, request, jsonify
 from db import db_conn
 from schema import login_required
+from models import validate_brew
+
+BREW_FIELDS = ['brew_date', 'dose_g', 'yield_g', 'time_s', 'grind', 'temp_c', 'rating', 'notes']
+
+
+def _validation_error(err):
+    body = {'error': err['msg'], 'error_key': err['key']}
+    if err.get('params'):
+        body['error_key_params'] = err['params']
+    return jsonify(body), 400
 
 bp = Blueprint('brews', __name__)
 
@@ -57,11 +67,7 @@ def purge_old_brews():
         months = 3
     with db_conn() as conn:
         cur = conn.execute(
-            "DELETE FROM brews WHERE id IN ("
-            "  SELECT b.id FROM brews b"
-            "  LEFT JOIN coffee_brews cb ON cb.brew_id = b.id"
-            "  WHERE b.brew_date < date('now', ?)"
-            ")", (f'-{months} months',)
+            "DELETE FROM brews WHERE brew_date < date('now', ?)", (f'-{months} months',)
         )
         deleted = cur.rowcount
         _purge_orphans(conn)
@@ -94,6 +100,9 @@ def get_recipe(cid):
 @login_required
 def upsert_recipe(cid):
     data = request.get_json(silent=True) or {}
+    err = validate_brew(data, recipe=True)
+    if err:
+        return _validation_error(err)
     dose_g  = data.get('dose_g')
     yield_g = data.get('yield_g')
     time_s  = data.get('time_s')
@@ -132,6 +141,8 @@ def upsert_recipe(cid):
 @login_required
 def delete_recipe(cid):
     with db_conn() as conn:
+        if not conn.execute('SELECT 1 FROM coffees WHERE id=?', (cid,)).fetchone():
+            return jsonify({'error': 'Café no encontrado', 'error_key': 'error.coffee.not_found'}), 404
         conn.execute('DELETE FROM coffee_recipes WHERE coffee_id=?', (cid,))
         _purge_orphans(conn)
     return jsonify({'ok': True})
@@ -162,6 +173,9 @@ def list_coffee_brews(cid):
 @login_required
 def add_brew(cid):
     data = request.get_json(silent=True) or {}
+    err = validate_brew(data)
+    if err:
+        return _validation_error(err)
     brew_date = data.get('brew_date') or datetime.now().strftime('%Y-%m-%d')
     dose_g  = data.get('dose_g')
     yield_g = data.get('yield_g')
@@ -170,13 +184,6 @@ def add_brew(cid):
     temp_c  = data.get('temp_c')
     notes   = data.get('notes') or None
     rating  = data.get('rating')
-    if rating is not None:
-        try:
-            rating = int(rating)
-            if not (1 <= rating <= 5):
-                rating = None
-        except (ValueError, TypeError):
-            rating = None
     with db_conn() as conn:
         coffee_row = conn.execute(
             'SELECT remaining_g, opened_date, finished_date FROM coffees WHERE id=?', (cid,)
@@ -208,29 +215,23 @@ def add_brew(cid):
 @bp.route('/api/brews/<int:bid>', methods=['PUT'])
 @login_required
 def update_brew(bid):
+    """Partial update: only the fields present in the body are modified."""
     data = request.get_json(silent=True) or {}
-    brew_date = data.get('brew_date')
-    dose_g  = data.get('dose_g')
-    yield_g = data.get('yield_g')
-    time_s  = data.get('time_s')
-    grind   = data.get('grind')
-    temp_c  = data.get('temp_c')
-    notes   = data.get('notes') or None
-    rating  = data.get('rating')
-    if rating is not None:
-        try:
-            rating = int(rating)
-            if not (1 <= rating <= 5):
-                rating = None
-        except (ValueError, TypeError):
-            rating = None
+    err = validate_brew(data)
+    if err:
+        return _validation_error(err)
+    if 'brew_date' in data and not data['brew_date']:
+        return _validation_error({'key': 'error.model.date_invalid',
+                                  'msg': 'brew_date no puede estar vacío', 'params': {'field': 'brew_date'}})
+    updates = {f: data[f] for f in BREW_FIELDS if f in data}
+    if 'notes' in updates:
+        updates['notes'] = updates['notes'] or None
     with db_conn() as conn:
-        cur = conn.execute(
-            'UPDATE brews SET brew_date=?, dose_g=?, yield_g=?, time_s=?, grind=?, temp_c=?, rating=?, notes=? WHERE id=?',
-            (brew_date, dose_g, yield_g, time_s, grind, temp_c, rating, notes, bid)
-        )
-        if cur.rowcount == 0:
+        if not conn.execute('SELECT 1 FROM brews WHERE id=?', (bid,)).fetchone():
             return jsonify({'error': 'Preparación no encontrada', 'error_key': 'error.brew.not_found'}), 404
+        if updates:
+            sets = ', '.join(f'{f}=?' for f in updates)
+            conn.execute(f'UPDATE brews SET {sets} WHERE id=?', list(updates.values()) + [bid])
         row = conn.execute(
             'SELECT id, brew_date, dose_g, yield_g, time_s, grind, temp_c, rating, notes, created_at FROM brews WHERE id=?',
             (bid,)

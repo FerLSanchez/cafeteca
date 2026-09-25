@@ -5,7 +5,7 @@ DB = '/data/coffee.db'
 
 
 def get_db():
-    conn = sqlite3.connect(DB)
+    conn = sqlite3.connect(DB, timeout=10)  # wait up to 10 s on a locked DB
     conn.row_factory = sqlite3.Row
     conn.execute('PRAGMA foreign_keys = ON')
     return conn

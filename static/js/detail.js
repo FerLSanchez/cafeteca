@@ -3,18 +3,18 @@
 // ---------------------------------------------------------------------------
 function showOpenDatePicker(e, id) {
   e.stopPropagation();
-  const today = new Date().toISOString().split('T')[0];
+  const today = todayLocal();
   document.getElementById('actions-'+id).innerHTML = `
     <div class="open-date-row" onclick="event.stopPropagation()">
       <input type="date" class="form-input" id="open-date-${id}" value="${today}">
-      <button class="btn-quick open" onclick="confirmOpen(event,${id})">✓ Confirmar</button>
+      <button class="btn-quick open" onclick="confirmOpen(event,${id})">${t('list.btn.confirm_open')}</button>
       <button class="btn-quick" onclick="event.stopPropagation();renderList()">✕</button>
     </div>`;
 }
 
 async function confirmOpen(e, id) {
   e.stopPropagation();
-  const date = document.getElementById('open-date-'+id)?.value || new Date().toISOString().split('T')[0];
+  const date = document.getElementById('open-date-'+id)?.value || todayLocal();
   const updated = await api('/coffees/'+id+'/open', {method:'POST', body:JSON.stringify({date})});
   const i = displayedCoffees.findIndex(c=>c.id===id);
   if (i!==-1) displayedCoffees[i]=updated;
@@ -25,7 +25,7 @@ async function confirmOpen(e, id) {
 
 async function quickFinish(e, id) {
   e.stopPropagation();
-  const updated = await api('/coffees/'+id+'/finish', {method:'POST'});
+  const updated = await api('/coffees/'+id+'/finish', {method:'POST', body:JSON.stringify({date: todayLocal()})});
   const i = displayedCoffees.findIndex(c=>c.id===id);
   if (i!==-1) displayedCoffees[i]=updated;
   if (currentDetail?.id===id) currentDetail=updated;
@@ -182,7 +182,7 @@ function duplicateCurrent() {
   document.getElementById('f-price').value = c.price_kg || '';
   document.getElementById('f-altitude').value = c.altitude || '';
   document.getElementById('f-notes').value = c.notes || '';
-  document.getElementById('f-purchase').value = new Date().toISOString().split('T')[0];
+  document.getElementById('f-purchase').value = todayLocal();
   // leave roast_date, opened_date, finished_date, rating blank (new bag)
   openModal('modal-form');
 }
@@ -203,7 +203,7 @@ async function unrateCurrent() {
 // ---------------------------------------------------------------------------
 async function consumeCoffee() {
   if (!currentDetail) return;
-  const result = await api('/coffees/'+currentDetail.id+'/consume', {method:'POST'});
+  const result = await api('/coffees/'+currentDetail.id+'/consume', {method:'POST', body:JSON.stringify({date: todayLocal()})});
   const updated = result.coffee;
   const i = displayedCoffees.findIndex(c=>c.id===updated.id);
   if (i!==-1) displayedCoffees[i]=updated;
@@ -218,7 +218,7 @@ async function consumeCoffee() {
       btnLabel: t('confirm.consume_finish.btn'),
       btnClass: 'btn-primary',
       onConfirm: async () => {
-        const finished = await api('/coffees/'+updated.id+'/finish', {method:'POST'});
+        const finished = await api('/coffees/'+updated.id+'/finish', {method:'POST', body:JSON.stringify({date: todayLocal()})});
         const j = displayedCoffees.findIndex(c=>c.id===finished.id);
         if (j!==-1) displayedCoffees[j]=finished;
         currentDetail = finished;

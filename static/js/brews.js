@@ -251,7 +251,7 @@ async function openBrewModal(coffeeId = null, brewId = null) {
     document.getElementById('b-time').value  = b.time_s  ?? '';
     document.getElementById('b-grind').value = b.grind   ?? '';
     document.getElementById('b-temp').value  = b.temp_c  ?? '';
-    document.getElementById('b-date').value  = b.brew_date ?? new Date().toISOString().split('T')[0];
+    document.getElementById('b-date').value  = b.brew_date ?? todayLocal();
     document.getElementById('b-notes').value = b.notes  ?? '';
     _brewRating = b.rating ?? 0;
     document.querySelectorAll('.brew-star').forEach(s =>
@@ -265,7 +265,7 @@ async function openBrewModal(coffeeId = null, brewId = null) {
     document.getElementById('b-time').value  = '';
     document.getElementById('b-grind').value = '';
     document.getElementById('b-temp').value  = '';
-    document.getElementById('b-date').value  = new Date().toISOString().split('T')[0];
+    document.getElementById('b-date').value  = todayLocal();
     document.getElementById('b-notes').value = '';
     document.querySelectorAll('.brew-star').forEach(s => s.classList.remove('active'));
     if (titleEl)  titleEl.textContent  = t('modal.brew');

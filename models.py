@@ -103,11 +103,12 @@ def _verr(key, msg, **params):
     return {'key': key, 'msg': msg, 'params': params}
 
 
-def validate_coffee(data):
+def validate_coffee(data, partial=False):
+    """Validate a coffee payload. With partial=True, 'name' is only required if present."""
     if not data or not isinstance(data, dict):
         return _verr('error.model.invalid_data', 'Datos inválidos')
     name = str(data.get('name', '')).strip()
-    if not name:
+    if (not partial or 'name' in data) and not name:
         return _verr('error.model.name_required', 'El campo "nombre" es requerido')
     if len(name) > 200:
         return _verr('error.model.name_too_long', 'El nombre no puede superar los 200 caracteres')
@@ -143,6 +144,44 @@ def validate_coffee(data):
                 if item and len(str(item)) > 200:
                     return _verr('error.model.field_item_too_long',
                                  f'Un valor en "{field}" supera los 200 caracteres', field=field)
+    notes = data.get('notes')
+    if notes and len(str(notes)) > 5000:
+        return _verr('error.model.notes_too_long', 'Las notas no pueden superar los 5000 caracteres')
+    return None
+
+
+# Numeric brew/recipe fields: (field, type, min, max)
+BREW_NUMERIC = [
+    ('dose_g',  (int, float), 0, 200),
+    ('yield_g', (int, float), 0, 1000),
+    ('time_s',  int,          0, 3600),
+    ('grind',   int,          0, 1000),
+    ('temp_c',  int,          0, 110),
+]
+
+
+def _num_ok(val, types, lo, hi):
+    return isinstance(val, types) and not isinstance(val, bool) and lo <= val <= hi
+
+
+def validate_brew(data, recipe=False):
+    """Validate a brew (or recipe, with recipe=True) payload. Returns None or an error dict."""
+    if not isinstance(data, dict):
+        return _verr('error.model.invalid_data', 'Datos inválidos')
+    for field, types, lo, hi in BREW_NUMERIC:
+        val = data.get(field)
+        if val is not None and not _num_ok(val, types, lo, hi):
+            return _verr('error.brew.field_invalid',
+                         f'Valor inválido para "{field}" ({lo}-{hi})', field=field, min=lo, max=hi)
+    if recipe:
+        return None
+    r = data.get('rating')
+    if r is not None and not _num_ok(r, int, 1, 5):
+        return _verr('error.model.rating_invalid', 'La valoración debe estar entre 1 y 5')
+    d = data.get('brew_date')
+    if d is not None and (not isinstance(d, str) or not DATE_RE.match(d)):
+        return _verr('error.model.date_invalid',
+                     'Formato de fecha inválido para "brew_date" (esperado YYYY-MM-DD)', field='brew_date')
     notes = data.get('notes')
     if notes and len(str(notes)) > 5000:
         return _verr('error.model.notes_too_long', 'Las notas no pueden superar los 5000 caracteres')
