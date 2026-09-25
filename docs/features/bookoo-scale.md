@@ -163,7 +163,7 @@ A real shot at a 1.5 g/s target looks like this: a slow start → it ramps up to
 - ✅ **No `0D`/`0F` packets** from the Mini (this firmware), so the timer-based detection is the path.
 - ✅ Other fields: `unit`=1 (g), flow smoothing off (`17`=0), buzzer 0, standby 5 min.
 - ℹ️ **Timer resolution is 100 ms.** In auto mode, the first non-zero reading was already **1.1 s**: the scale back-dates the start to when the flow began. Use the scale's `ms` as the shot time, not our own clock.
-- ⚠️ The timer **kept running for more than 5 s after the weight went back to 0** (the finger was lifted), so the auto-stop condition is still unknown. We need a real shot.
+- ⏳ The auto-stop behaviour is not covered yet: this capture didn't include a finished shot, so it is unknown how the timer freezes at the end. Pending the owner's real morning-shot capture.
 - ⚠️ The scale's own flow is heavily smoothed/lagging. This supports computing flow ourselves (§5.4).
 - 🔧 Lab fix: recordings after "Stop" reused a new `t0`, so the timestamps overlapped. `t0` is now kept until "Clear", and each frame carries a `session` number.
 - **Still needed:** 1 real dose + 2–3 real auto-mode shots.
