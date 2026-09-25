@@ -8,12 +8,12 @@ App web personal para registrar cafés de especialidad. Flask + SQLite + HTML/CS
 
 ## Ficheros relevantes
 
-- `app.py` — app factory Flask: registra blueprints, secret key, security headers, PWA routes
+- `app.py` — app factory Flask: registra blueprints, security headers, PWA routes
 - `schema.py` — esquema de BD, init y migraciones (`init_db()`, `migrate_v1()` … `migrate_v7()`)
 - `models.py` — helpers de datos: `row_to_coffee()`, `COFFEE_SELECT`, `resolve_ids()`, `set_m2m()`
 - `db.py` — conexión SQLite y variable `DB` (la BD usa `journal_mode=WAL`, activado en `init_db()`)
 - `lookup_config.py` — constantes `LOOKUP_TABLES`, `LOOKUP_FK`, `JUNCTION_TABLES` y `get_or_create()`
-- `blueprints/` — endpoints REST por dominio: `auth`, `coffees`, `stats`, `settings`, `lookup`, `brews`
+- `blueprints/` — endpoints REST por dominio: `coffees`, `stats`, `settings`, `lookup`, `brews`
 - `templates/index.html` — todo el frontend en un único fichero (HTML + CSS + JS)
 - `docker-compose.yml` — monta `./data` como volumen para persistir la BD
 - `Dockerfile` — imagen Python 3.14-slim, depende de Flask + gunicorn
@@ -66,7 +66,7 @@ Todas las respuestas de error incluyen `error_key` (y opcionalmente `error_key_p
 
 ```python
 # En cualquier blueprint
-return jsonify({'error': 'PIN incorrecto', 'error_key': 'error.auth.wrong_pin'}), 401
+return jsonify({'error': 'Ya existe una entrada con ese nombre', 'error_key': 'error.lookup.duplicate_name'}), 409
 
 # Con parámetros de interpolación
 return jsonify({
@@ -78,24 +78,22 @@ return jsonify({
 
 El frontend en `api.js` comprueba `data.error_key` primero y usa `t(error_key, params)` para traducir.
 
-## Autenticación por PIN
+## Autenticación (Authelia vía NPM)
 
-La app está protegida con un PIN de 4 dígitos. Por defecto es `1111`.
+La app **no tiene autenticación propia**: `cafeteca.fersanchez.com` está detrás de Authelia (forward-auth en Nginx Proxy Manager, mismo patrón que `bodega.fersanchez.com`). Flask confía en que toda petición que le llega ya está autenticada.
 
-- **Pantalla de bloqueo**: se muestra al cargar la app; `startup()` comprueba `/api/auth/status` y, si ya hay sesión activa, salta directamente a `init()`.
-- **Sesión Flask**: `session['authenticated'] = True` tras login correcto. La cookie es `HttpOnly` y `SameSite=Strict`.
-- **Clave secreta**: generada aleatoriamente al primer arranque y guardada en `/data/secret_key`. Persiste entre reinicios del contenedor.
-- **PIN almacenado**: como SHA-256 en la tabla `settings` (`key='pin_hash'`). Valor por defecto = hash de `'1111'`.
-- **Cambiar PIN**: botón ⚙️ en la barra de navegación → modal "Cambiar PIN". Endpoint `POST /api/auth/change-pin` requiere el PIN actual.
-- **`login_required`**: decorador en todos los endpoints `/api/*` excepto `/api/auth/status` y `/api/auth/login`.
-- **`init_settings(conn)`**: crea la tabla `settings` e inserta el PIN por defecto si no existe. Se llama desde `init_db()`.
+- **NPM** (proxy host 42, pestaña *Advanced*; NPM guarda la config en su MySQL y regenera `/data/nginxproxymanager/data/nginx/proxy_host/42.conf` al guardar — no editar el `.conf` a mano): `auth_request` → `http://127.0.0.1:9092/api/authz/auth-request`. Sin sesión, las navegaciones reciben 302 a `auth.fersanchez.com`; **`/api/` recibe un 401 sin redirección** (un `fetch()` no puede seguir el redirect cross-origin). Sin auth: `/sw.js`, `/manifest.json`, `/static/`. Tras cada guardado, comprobar que `42.conf` existe y `nginx -t` pasa (un error en *Advanced* borra el server block entero). **Nunca `map` en *Advanced*** (solo válido en `http`, tumbó bodega).
+- **Authelia** (`/data/authelia/config/configuration.yml`): regla `cafeteca.fersanchez.com` → `one_factor`, `group:admins`.
+- **Invariante de seguridad**: `docker-compose.yml` publica `127.0.0.1:5323`, nunca `5323`. Con un bind público cualquiera en la LAN entraría sin login.
+- **Frontend**: `api()` en `api.js` recarga la página ante un 401 (sesión de Authelia caducada → la navegación lleva al login). `sw.js` sirve las navegaciones *network-first* (el shell cacheado es solo fallback offline, si no una sesión caducada nunca llegaría al login) y precachea con `Promise.allSettled` ignorando respuestas redirigidas.
+- El antiguo PIN se eliminó en `migrate_v8` (borra `pin_hash` de `settings`).
 
 ## Convenciones importantes
 
 - La BD vive en `/data/coffee.db` (variable `DB` en `db.py`)
 - `init_db()` se llama al arrancar y es idempotente — incluye todas las migraciones
 - Hay dos fases de migración: `migrate_v1()` (texto→FK, legado) y `migrate_v2()` (FK→M2M + link región-país)
-- Añadir un nuevo cambio de esquema: crear `migrate_v8()` en `schema.py` y llamarla desde `init_db()` (la última es `migrate_v7`: añade `time_s INTEGER` a `recipes` y `brews`)
+- Añadir un nuevo cambio de esquema: crear `migrate_v9()` en `schema.py` y llamarla desde `init_db()` (la última es `migrate_v8`: borra el `pin_hash` del antiguo PIN)
 - `SETTING_LOW_STOCK_THRESHOLD` — umbral configurable (1-50, default 5) en `schema.py`; cuando `floor(remaining_g / grams_per_shot) <= threshold` se muestra ⚠️ en la ficha
 - Registrar un brew descuenta `dose_g` de `remaining_g` del café si está abierto y tiene restante definido (se descuenta solo al crear, no al editar ni borrar)
 - **Pulsar "Consumir"** (`POST /api/coffees/:id/consume`) devuelve 409 si el café está terminado (`error.coffee.consume_finished`) o no tiene `remaining_g` (`error.coffee.consume_no_stock`). También crea un registro de brew automáticamente con los datos de la receta del café si existe, o solo con `dose_g = grams_per_shot`. El descuento de `remaining_g` lo hace el propio endpoint de consume; el brew creado **no** vuelve a descontarlo.
@@ -175,7 +173,7 @@ Separador `.`, grupo primero en snake_case:
 | `month.*` | Nombres de los 12 meses |
 | `stats.*` | Página de estadísticas |
 | `brew.*` | Preparaciones y recetas |
-| `settings.*` | Ajustes y PIN |
+| `settings.*` | Ajustes |
 | `list.*` | Tarjetas de la lista principal |
 | `confirm.*` | Diálogos de confirmación |
 | `toast.*` | Mensajes de notificación |

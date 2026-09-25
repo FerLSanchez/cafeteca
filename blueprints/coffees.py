@@ -3,7 +3,6 @@ from flask import Blueprint, request, jsonify
 from db import db_conn
 from models import (COFFEE_SELECT, row_to_coffee, set_m2m, resolve_ids,
                     validate_coffee, SCALAR_FIELDS, get_coffee_by_id, DATE_RE)
-from schema import login_required
 import schema
 
 bp = Blueprint('coffees', __name__)
@@ -35,7 +34,6 @@ M2M_KEYS = {
 
 
 @bp.route('/api/coffees')
-@login_required
 def list_coffees():
     args = request.args
     where, vals = [], []
@@ -98,7 +96,6 @@ def list_coffees():
 
 
 @bp.route('/api/coffees', methods=['POST'])
-@login_required
 def add_coffee():
     data = request.get_json(silent=True)
     err = validate_coffee(data)
@@ -132,7 +129,6 @@ def add_coffee():
 
 
 @bp.route('/api/coffees/<int:cid>')
-@login_required
 def get_coffee(cid):
     with db_conn() as conn:
         row = get_coffee_by_id(conn, cid)
@@ -142,7 +138,6 @@ def get_coffee(cid):
 
 
 @bp.route('/api/coffees/<int:cid>', methods=['PUT'])
-@login_required
 def update_coffee(cid):
     """Partial update: only the fields present in the body are modified."""
     data = request.get_json(silent=True)
@@ -166,7 +161,6 @@ def update_coffee(cid):
 
 
 @bp.route('/api/coffees/<int:cid>/open', methods=['POST'])
-@login_required
 def open_coffee(cid):
     date, err = _client_date(request.get_json(silent=True))
     if err:
@@ -180,7 +174,6 @@ def open_coffee(cid):
 
 
 @bp.route('/api/coffees/<int:cid>/finish', methods=['POST'])
-@login_required
 def finish_coffee(cid):
     today, err = _client_date(request.get_json(silent=True))
     if err:
@@ -194,7 +187,6 @@ def finish_coffee(cid):
 
 
 @bp.route('/api/coffees/<int:cid>/unrate', methods=['POST'])
-@login_required
 def unrate_coffee(cid):
     with db_conn() as conn:
         if not conn.execute('SELECT 1 FROM coffees WHERE id=?', (cid,)).fetchone():
@@ -205,7 +197,6 @@ def unrate_coffee(cid):
 
 
 @bp.route('/api/coffees/<int:cid>/remaining', methods=['PUT'])
-@login_required
 def set_remaining(cid):
     data = request.get_json(silent=True) or {}
     val = data.get('remaining_g')
@@ -220,7 +211,6 @@ def set_remaining(cid):
 
 
 @bp.route('/api/coffees/<int:cid>/consume', methods=['POST'])
-@login_required
 def consume_coffee(cid):
     today, err = _client_date(request.get_json(silent=True))
     if err:
@@ -260,7 +250,6 @@ def consume_coffee(cid):
 
 
 @bp.route('/api/coffees/<int:cid>', methods=['DELETE'])
-@login_required
 def delete_coffee(cid):
     with db_conn() as conn:
         cur = conn.execute('DELETE FROM coffees WHERE id=?', (cid,))

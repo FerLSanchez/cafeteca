@@ -1,7 +1,6 @@
 from datetime import datetime
 from flask import Blueprint, request, jsonify
 from db import db_conn
-from schema import login_required
 from models import validate_brew
 
 BREW_FIELDS = ['brew_date', 'dose_g', 'yield_g', 'time_s', 'grind', 'temp_c', 'rating', 'notes']
@@ -26,7 +25,6 @@ def _purge_orphans(conn):
 # ---------------------------------------------------------------------------
 
 @bp.route('/api/brews')
-@login_required
 def list_brews():
     try:
         limit  = min(max(int(request.args.get('limit', 20)), 1), 100)
@@ -56,7 +54,6 @@ def list_brews():
 
 
 @bp.route('/api/brews/purge', methods=['DELETE'])
-@login_required
 def purge_old_brews():
     data = request.get_json(silent=True) or {}
     try:
@@ -79,7 +76,6 @@ def purge_old_brews():
 # ---------------------------------------------------------------------------
 
 @bp.route('/api/coffees/<int:cid>/recipe')
-@login_required
 def get_recipe(cid):
     with db_conn() as conn:
         if not conn.execute('SELECT 1 FROM coffees WHERE id=?', (cid,)).fetchone():
@@ -97,7 +93,6 @@ def get_recipe(cid):
 
 
 @bp.route('/api/coffees/<int:cid>/recipe', methods=['PUT'])
-@login_required
 def upsert_recipe(cid):
     data = request.get_json(silent=True) or {}
     err = validate_brew(data, recipe=True)
@@ -138,7 +133,6 @@ def upsert_recipe(cid):
 
 
 @bp.route('/api/coffees/<int:cid>/recipe', methods=['DELETE'])
-@login_required
 def delete_recipe(cid):
     with db_conn() as conn:
         if not conn.execute('SELECT 1 FROM coffees WHERE id=?', (cid,)).fetchone():
@@ -153,7 +147,6 @@ def delete_recipe(cid):
 # ---------------------------------------------------------------------------
 
 @bp.route('/api/coffees/<int:cid>/brews')
-@login_required
 def list_coffee_brews(cid):
     with db_conn() as conn:
         if not conn.execute('SELECT 1 FROM coffees WHERE id=?', (cid,)).fetchone():
@@ -170,7 +163,6 @@ def list_coffee_brews(cid):
 
 
 @bp.route('/api/coffees/<int:cid>/brews', methods=['POST'])
-@login_required
 def add_brew(cid):
     data = request.get_json(silent=True) or {}
     err = validate_brew(data)
@@ -213,7 +205,6 @@ def add_brew(cid):
 
 
 @bp.route('/api/brews/<int:bid>', methods=['PUT'])
-@login_required
 def update_brew(bid):
     """Partial update: only the fields present in the body are modified."""
     data = request.get_json(silent=True) or {}
@@ -240,7 +231,6 @@ def update_brew(bid):
 
 
 @bp.route('/api/brews/<int:bid>', methods=['DELETE'])
-@login_required
 def delete_brew(bid):
     with db_conn() as conn:
         cur = conn.execute('DELETE FROM brews WHERE id=?', (bid,))

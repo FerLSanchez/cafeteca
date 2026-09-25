@@ -18,12 +18,7 @@ async function startup() {
   applyI18n();
   const langSel = document.getElementById('lang-select');
   if (langSel) langSel.value = _currentLang;
-  const status = await fetch('/api/auth/status').then(r => r.json()).catch(() => ({authenticated: false}));
-  if (status.authenticated) {
-    document.getElementById('pin-lock').style.display = 'none';
-    init();
-  }
-  // else: pin-lock screen is already visible (default display:flex)
+  init();
 }
 
 startup();

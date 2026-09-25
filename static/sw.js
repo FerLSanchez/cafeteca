@@ -19,7 +19,6 @@ const SHELL = [
   '/static/js/stats.js',
   '/static/js/catalog.js',
   '/static/js/brews.js',
-  '/static/js/pin.js',
   '/static/js/init.js',
 ];
 
@@ -28,9 +27,13 @@ const CACHEABLE_API = ['/api/coffees', '/api/options', '/api/stats', '/api/setti
 
 self.addEventListener('install', e => {
   e.waitUntil(
+    // allSettled + ok check: if the Authelia session has expired, protected URLs
+    // redirect cross-origin and fail — that must not abort the whole install.
     caches.open(CACHE).then(c =>
-      Promise.all(SHELL.map(url =>
-        fetch(new Request(url, {cache: 'reload'})).then(r => c.put(url, r))
+      Promise.allSettled(SHELL.map(url =>
+        fetch(new Request(url, {cache: 'reload'})).then(r => {
+          if (r.ok && !r.redirected) return c.put(url, r);
+        })
       ))
     ).then(() => self.skipWaiting())
   );
@@ -69,6 +72,13 @@ self.addEventListener('fetch', e => {
       );
     }
     // All other API calls (mutations, auth): always network, never cache
+    return;
+  }
+
+  // Navigations: network-first so an expired Authelia session gets redirected to
+  // the login page; the cached shell is only an offline fallback.
+  if (e.request.mode === 'navigate') {
+    e.respondWith(fetch(e.request).catch(() => caches.match('/')));
     return;
   }
 

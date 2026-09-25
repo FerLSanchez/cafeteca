@@ -10,7 +10,7 @@ docker compose up -d
 
 Abre http://localhost:5323 en el móvil o navegador.
 
-> **Primer uso:** el PIN por defecto es `1111`. Cámbialo desde el botón ⚙️ en la barra de navegación antes de usar la app.
+> **Autenticación:** la app no tiene login propio. En producción va detrás de Authelia (forward-auth en Nginx Proxy Manager) y el contenedor solo escucha en `127.0.0.1:5323`. Ver `CLAUDE.md`.
 
 Para parar:
 
@@ -50,9 +50,8 @@ cafeteca/
 │                           #   create_lookup_tables(), get_or_create()
 ├── models.py               # COFFEE_SELECT, row_to_coffee(), set_m2m(),
 │                           #   resolve_ids(), validate_coffee()
-├── schema.py               # init_db(), migraciones v1-v6, login_required, PIN
+├── schema.py               # init_db(), migraciones v1-v8
 ├── blueprints/
-│   ├── auth.py             # /api/auth/*
 │   ├── coffees.py          # /api/coffees/*
 │   ├── stats.py            # /api/stats
 │   ├── settings.py         # /api/settings, /api/options, /api/lookup-tables
@@ -80,17 +79,15 @@ cafeteca/
 │   │   ├── stats.js        # Stats, gráficas, calendario
 │   │   ├── catalog.js      # Gestión de catálogos
 │   │   ├── brews.js        # Historial de preparaciones y receta
-│   │   ├── pin.js          # Pantalla PIN
 │   │   └── init.js         # Arranque, registro del service worker
 │   ├── manifest.json       # PWA manifest
 │   ├── sw.js               # Service worker
 │   └── icon-*.png          # Iconos PWA
 ├── tests/
-│   ├── conftest.py         # Fixtures: db, app, client, auth_client
+│   ├── conftest.py         # Fixtures: db, app, client
 │   ├── helpers.py          # make_coffee(), make_brew()
 │   ├── test_schema.py      # Migraciones e init_db
 │   ├── test_models.py      # validate_coffee, row_to_coffee, set_m2m, resolve_ids
-│   ├── test_auth.py        # Login, status, change-pin
 │   ├── test_coffees.py     # CRUD, filtros, open/finish/consume
 │   ├── test_stats.py       # Estadísticas y breakdowns
 │   ├── test_settings.py    # Configuración y opciones
@@ -187,9 +184,6 @@ Para añadir nuevos cambios de esquema, crear `migrate_v8()` en `schema.py` y ll
 | PUT | /api/lookup/:table/:id | Renombrar entrada |
 | DELETE | /api/lookup/:table/:id | Eliminar si no está en uso |
 | POST | /api/lookup/:table/purge | Eliminar todos los huérfanos |
-| GET | /api/auth/status | Estado de sesión (no requiere auth) |
-| POST | /api/auth/login | Login con PIN |
-| POST | /api/auth/change-pin | Cambiar PIN (requiere PIN actual) |
 | GET | /api/coffees/:id/recipe | Obtener receta del café |
 | PUT | /api/coffees/:id/recipe | Crear o actualizar receta |
 | DELETE | /api/coffees/:id/recipe | Eliminar receta |
@@ -227,20 +221,16 @@ Query params combinables:
   - Gráficas de barras por tostador, país de origen, proceso y variedad
   - Calendario Gantt mensual de consumo (con navegación hasta el mes actual)
 - **Catálogos** — gestión de tablas de referencia: renombrar entradas (propaga a todos los cafés), eliminar huérfanas individualmente o en bloque
-- **Autenticación por PIN** — pantalla de bloqueo con PIN de 4 dígitos, sesión Flask persistente, cambio de PIN desde ajustes
 - **Soporte multiidioma (i18n)** — toda la UI está internacionalizada; el idioma se selecciona desde el panel ⚙️ Ajustes y persiste entre sesiones. Para añadir un idioma nuevo, basta con crear `static/i18n/<lang>.json`
 - **PWA** — instalable en móvil/escritorio, con icono y service worker (caché offline de assets y endpoints de lectura)
 
 ## Seguridad
 
-- PIN almacenado como SHA-256 en la BD
-- Cookie de sesión `HttpOnly` + `SameSite=Strict`
-- Clave secreta generada en el primer arranque y persistida en `/data/secret_key`
 - Cabeceras CSP, `X-Frame-Options`, `X-Content-Type-Options` y `Referrer-Policy` en todas las respuestas
-- Todos los endpoints `/api/*` requieren sesión activa (excepto `/api/auth/status` y `/api/auth/login`)
+- Todos los endpoints `/api/*` quedan protegidos por Authelia en el proxy (NPM); Flask no comprueba sesión
 - Límite de 1 MB por petición
 
-> **Aviso:** esta app está diseñada para uso personal en red local o privada. No está pensada para exponerse directamente a internet sin un proxy inverso con HTTPS y autenticación adicional. El mecanismo de PIN no incluye bloqueo tras varios intentos fallidos.
+> **Aviso:** la app no tiene autenticación propia. No la expongas nunca sin un proxy inverso con HTTPS y autenticación (en producción: NPM + Authelia), y publica el puerto solo en `127.0.0.1`.
 
 ## Licencia
 

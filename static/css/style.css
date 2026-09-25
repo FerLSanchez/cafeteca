@@ -1433,66 +1433,6 @@ body.modal-open { overflow: hidden; touch-action: none; }
 .chip-text-input::placeholder { color: var(--text3); }
 .region-hint { font-size: 11px; color: var(--text3); margin-top: 3px; }
 
-/* ── PIN de bloqueo ── */
-.pin-lock {
-  position: fixed;
-  inset: 0;
-  background: var(--bg);
-  z-index: 1000;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-}
-.pin-lock-brand {
-  font-family: 'Playfair Display', serif;
-  font-weight: 600;
-  font-size: 36px;
-  color: var(--accent2);
-  letter-spacing: 0.3px;
-  margin-bottom: 4px;
-}
-.pin-lock-sub {
-  font-size: 13px;
-  color: var(--text3);
-  font-style: italic;
-  margin-bottom: 52px;
-  letter-spacing: 0.2px;
-}
-.pin-dots { display: flex; gap: 18px; margin-bottom: 12px; }
-.pin-dot {
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  border: 2px solid var(--border2);
-  background: transparent;
-  transition: background 0.15s, border-color 0.15s;
-}
-.pin-dot.filled { background: var(--accent); border-color: var(--accent); }
-.pin-error { color: var(--red); font-size: 14px; height: 20px; margin-bottom: 16px; text-align: center; }
-.pin-pad { display: grid; grid-template-columns: repeat(3, 72px); gap: 12px; }
-.pin-btn {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  color: var(--text);
-  border-radius: 50%;
-  width: 72px;
-  height: 72px;
-  font-size: 22px;
-  font-family: 'Figtree', 'DM Sans', sans-serif;
-  font-weight: 500;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.1s;
-}
-.pin-btn:active { background: var(--surface3); }
-.pin-btn.del { color: var(--text3); }
-.pin-btn.del .ic { width: 22px; height: 22px; }
-.pin-btn.empty { background: transparent; border-color: transparent; cursor: default; }
-
 /* ── Misc ── */
 .sort-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
 .sort-row label { font-size: 12px; color: var(--text3); white-space: nowrap; }
