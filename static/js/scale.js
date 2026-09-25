@@ -185,9 +185,12 @@ function scaleLabRecord(label) {
   document.getElementById('scale-lab-rec').textContent = `● ${label}`;
 }
 
-function scaleLabStop() {
+// Pausa: deja de grabar (p. ej. mientras se cambia a modo auto y se lleva la
+// báscula a la cafetera) sin perder lo grabado; "● Shot" reanuda.
+function scaleLabPause() {
+  if (!scaleLab.recording) return;
   scaleLab.recording = false;
-  document.getElementById('scale-lab-rec').textContent = '';
+  document.getElementById('scale-lab-rec').textContent = t('scale.lab.paused');
 }
 
 function scaleLabDownload() {
@@ -209,6 +212,8 @@ function scaleLabClear() {
   scaleLab.frames = [];
   scaleLab.t0 = null;
   scaleLab.session = 0;
+  scaleLab.recording = false;
+  document.getElementById('scale-lab-rec').textContent = '';
   document.getElementById('scale-lab-events').textContent = '';
   scaleLabRenderCount();
 }

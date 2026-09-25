@@ -313,7 +313,8 @@
   "scale.lab.hint": "Captura tramas de la Bookoo para calibrar la integración. Desconecta antes la app oficial.",
   "scale.lab.rec_dose": "● Dosis",
   "scale.lab.rec_shot": "● Shot",
-  "scale.lab.stop": "■ Parar",
+  "scale.lab.pause": "⏸ Pausa",
+  "scale.lab.paused": "⏸ En pausa",
   "scale.lab.frames": "{count} tramas",
   "scale.lab.download": "Descargar JSON",
   "scale.lab.clear": "Vaciar"

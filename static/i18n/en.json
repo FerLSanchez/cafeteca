@@ -306,7 +306,8 @@
   "scale.lab.hint": "Capture Bookoo frames to calibrate the integration. Disconnect the official app first.",
   "scale.lab.rec_dose": "● Dose",
   "scale.lab.rec_shot": "● Shot",
-  "scale.lab.stop": "■ Stop",
+  "scale.lab.pause": "⏸ Pause",
+  "scale.lab.paused": "⏸ Paused",
   "scale.lab.frames": "{count} frames",
   "scale.lab.download": "Download JSON",
   "scale.lab.clear": "Clear"
