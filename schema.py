@@ -1,17 +1,11 @@
-import os, hashlib, functools, logging
-from flask import session, jsonify
+import os, logging
 from db import DB, db_conn, col_exists
 from lookup_config import create_lookup_tables, get_or_create
 
-SETTING_PIN_HASH           = 'pin_hash'
 SETTING_GRAMS_PER_SHOT     = 'grams_per_shot'
 SETTING_LOW_STOCK_THRESHOLD = 'low_stock_threshold'
 
 FTS_ENABLED = False
-
-
-def _pin_hash(pin: str) -> str:
-    return hashlib.sha256(pin.encode()).hexdigest()
 
 
 def init_settings(conn):
@@ -19,21 +13,8 @@ def init_settings(conn):
         key   TEXT PRIMARY KEY,
         value TEXT NOT NULL
     )''')
-    conn.execute(
-        "INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)",
-        (SETTING_PIN_HASH, _pin_hash('1111'))
-    )
     conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES (?, '17')", (SETTING_GRAMS_PER_SHOT,))
     conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES (?, '5')", (SETTING_LOW_STOCK_THRESHOLD,))
-
-
-def login_required(f):
-    @functools.wraps(f)
-    def decorated(*args, **kwargs):
-        if not session.get('authenticated'):
-            return jsonify({'error': 'Unauthorized'}), 401
-        return f(*args, **kwargs)
-    return decorated
 
 
 def init_db():
@@ -73,6 +54,7 @@ def init_db():
         migrate_v5(conn)
         migrate_v6(conn)
         migrate_v7(conn)
+        migrate_v8(conn)
         if not col_exists(conn, 'coffees', 'altitude'):
             conn.execute('ALTER TABLE coffees ADD COLUMN altitude INTEGER')
 
@@ -273,6 +255,12 @@ def migrate_v7(conn):
         if 'time_s' not in cols:
             conn.execute(f'ALTER TABLE {table} ADD COLUMN time_s INTEGER')
             logging.info('[migration v7] Added time_s to %s.', table)
+
+
+def migrate_v8(conn):
+    """Phase 8: drop the PIN hash — auth moved to Authelia (NPM forward-auth)."""
+    if conn.execute("DELETE FROM settings WHERE key='pin_hash'").rowcount:
+        logging.info('[migration v8] Removed pin_hash setting.')
 
 
 def _rebuild_table_v1(conn):

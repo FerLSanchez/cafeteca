@@ -111,13 +111,6 @@
     <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
   </symbol>
 
-  <!-- Retroceso (borrar PIN) -->
-  <symbol id="ic-delete" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M20 5H9l-7 7 7 7h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2z"/>
-    <line x1="18" y1="9" x2="12" y2="15"/>
-    <line x1="12" y1="9" x2="18" y2="15"/>
-  </symbol>
-
   <!-- Filtros (sliders) -->
   <symbol id="ic-sliders" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
     <line x1="4" y1="21" x2="4" y2="14"/>
@@ -172,35 +165,6 @@
   </symbol>
 
 </svg>
-
-<!-- PANTALLA DE BLOQUEO PIN -->
-<div class="pin-lock" id="pin-lock">
-  <div class="pin-lock-brand" data-i18n="nav.title">Cafeteca</div>
-  <div class="pin-lock-sub" data-i18n="nav.tagline">tu diario de café</div>
-  <div class="pin-dots" id="pin-dots">
-    <div class="pin-dot"></div>
-    <div class="pin-dot"></div>
-    <div class="pin-dot"></div>
-    <div class="pin-dot"></div>
-  </div>
-  <div class="pin-error" id="pin-error"></div>
-  <div class="pin-pad">
-    <button class="pin-btn" onclick="pinDigit('1')">1</button>
-    <button class="pin-btn" onclick="pinDigit('2')">2</button>
-    <button class="pin-btn" onclick="pinDigit('3')">3</button>
-    <button class="pin-btn" onclick="pinDigit('4')">4</button>
-    <button class="pin-btn" onclick="pinDigit('5')">5</button>
-    <button class="pin-btn" onclick="pinDigit('6')">6</button>
-    <button class="pin-btn" onclick="pinDigit('7')">7</button>
-    <button class="pin-btn" onclick="pinDigit('8')">8</button>
-    <button class="pin-btn" onclick="pinDigit('9')">9</button>
-    <button class="pin-btn empty" disabled></button>
-    <button class="pin-btn" onclick="pinDigit('0')">0</button>
-    <button class="pin-btn del" onclick="pinDelete()">
-      <svg class="ic" viewBox="0 0 24 24"><use href="#ic-delete"/></svg>
-    </button>
-  </div>
-</div>
 
 <nav class="nav">
   <div class="nav-logo">
@@ -688,20 +652,6 @@
       <div style="font-size:12px;color:var(--text3);margin-top:4px" data-i18n="settings.low_stock_hint">Muestra ⚠️ en la ficha cuando quedan esta cantidad de tomas o menos.</div>
     </div>
     <button class="btn-primary" onclick="saveSettings()" style="margin-bottom:18px" data-i18n="settings.btn.save">Guardar ajustes</button>
-    <div class="form-section" data-i18n="settings.section.security">Seguridad</div>
-    <div class="form-group">
-      <label class="form-label" data-i18n="settings.field.current_pin">PIN actual</label>
-      <input class="form-input" id="cp-current" type="password" inputmode="numeric" maxlength="4" placeholder="••••">
-    </div>
-    <div class="form-group">
-      <label class="form-label" data-i18n="settings.field.new_pin">Nuevo PIN (4 dígitos)</label>
-      <input class="form-input" id="cp-new" type="password" inputmode="numeric" maxlength="4" placeholder="••••">
-    </div>
-    <div class="form-group">
-      <label class="form-label" data-i18n="settings.field.confirm_pin">Confirmar nuevo PIN</label>
-      <input class="form-input" id="cp-confirm" type="password" inputmode="numeric" maxlength="4" placeholder="••••">
-    </div>
-    <button class="btn-primary" onclick="changePinSubmit()" style="margin-bottom:18px" data-i18n="settings.btn.change_pin">Cambiar PIN</button>
     <div class="form-section" data-i18n="settings.section.data">Datos</div>
     <div class="form-group">
       <label class="form-label" data-i18n="settings.field.purge_brews">Purgar preparaciones antiguas</label>
@@ -742,7 +692,6 @@
 <script src="/static/js/stats.js"></script>
 <script src="/static/js/catalog.js"></script>
 <script src="/static/js/brews.js"></script>
-<script src="/static/js/pin.js"></script>
 <script src="/static/js/init.js"></script>
 </body>
 </html>

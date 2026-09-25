@@ -4,7 +4,7 @@ import pytest
 import schema as schema_mod
 from schema import (
     init_settings, migrate_v3, migrate_v4, migrate_v5, migrate_v6, migrate_v7,
-    _pin_hash,
+    migrate_v8,
 )
 from lookup_config import create_lookup_tables
 
@@ -45,12 +45,11 @@ def test_init_settings_creates_settings_table():
     conn.close()
 
 
-def test_init_settings_default_pin():
+def test_init_settings_no_pin():
     conn = fresh_conn()
     init_settings(conn)
     row = conn.execute("SELECT value FROM settings WHERE key='pin_hash'").fetchone()
-    assert row is not None
-    assert row[0] == _pin_hash('1111')
+    assert row is None
     conn.close()
 
 
@@ -67,7 +66,7 @@ def test_init_settings_idempotent():
     conn = fresh_conn()
     init_settings(conn)
     init_settings(conn)  # second call must not fail or duplicate
-    count = conn.execute("SELECT COUNT(*) FROM settings WHERE key='pin_hash'").fetchone()[0]
+    count = conn.execute("SELECT COUNT(*) FROM settings WHERE key='grams_per_shot'").fetchone()[0]
     assert count == 1
     conn.close()
 
@@ -202,6 +201,21 @@ def test_migrate_v7_idempotent():
     migrate_v6(conn)
     migrate_v7(conn)
     migrate_v7(conn)  # must not raise
+    conn.close()
+
+
+# ---------------------------------------------------------------------------
+# migrate_v8
+# ---------------------------------------------------------------------------
+def test_migrate_v8_removes_pin_hash_and_keeps_other_settings():
+    conn = fresh_conn()
+    init_settings(conn)
+    conn.execute("INSERT INTO settings (key, value) VALUES ('pin_hash', 'x')")
+    migrate_v8(conn)
+    migrate_v8(conn)  # idempotent
+    keys = {r[0] for r in conn.execute("SELECT key FROM settings").fetchall()}
+    assert 'pin_hash' not in keys
+    assert 'grams_per_shot' in keys
     conn.close()
 
 

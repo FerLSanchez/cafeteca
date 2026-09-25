@@ -1,20 +1,18 @@
 from flask import Blueprint, request, jsonify
 from db import db_conn
 from lookup_config import LOOKUP_TABLES
-from schema import login_required, SETTING_GRAMS_PER_SHOT, SETTING_LOW_STOCK_THRESHOLD
+from schema import SETTING_GRAMS_PER_SHOT, SETTING_LOW_STOCK_THRESHOLD
 
 bp = Blueprint('settings', __name__)
 
 
 @bp.route('/api/lookup-tables')
-@login_required
 def get_lookup_tables():
     """Exposes the canonical list of lookup tables so the frontend stays in sync."""
     return jsonify(LOOKUP_TABLES)
 
 
 @bp.route('/api/options')
-@login_required
 def options():
     with db_conn() as conn:
         result = {}
@@ -31,7 +29,6 @@ def options():
 
 
 @bp.route('/api/settings')
-@login_required
 def get_settings():
     with db_conn() as conn:
         gps_row = conn.execute('SELECT value FROM settings WHERE key=?', (SETTING_GRAMS_PER_SHOT,)).fetchone()
@@ -43,7 +40,6 @@ def get_settings():
 
 
 @bp.route('/api/settings', methods=['PUT'])
-@login_required
 def update_settings():
     data = request.get_json(silent=True) or {}
     gps = data.get('grams_per_shot')

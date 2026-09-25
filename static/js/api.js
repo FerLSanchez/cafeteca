@@ -9,6 +9,12 @@ async function api(path, opts={}) {
     showToast('⚠️ ' + t('error.network'));
     throw new Error('network error');
   }
+  // Authelia session expired: NPM answers API calls with a bare 401 (no redirect,
+  // fetch can't follow it cross-origin). Reloading navigates to / → Authelia login.
+  if (r.status === 401) {
+    window.location.reload();
+    throw new Error('unauthenticated');
+  }
   const data = await r.json();
   if (!r.ok) {
     const msg = data.error_key

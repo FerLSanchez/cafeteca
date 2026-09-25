@@ -1,13 +1,11 @@
 from flask import Blueprint, request, jsonify
 from db import db_conn
 from lookup_config import LOOKUP_TABLES, JUNCTION_TABLES, LOOKUP_FK
-from schema import login_required
 
 bp = Blueprint('lookup', __name__)
 
 
 @bp.route('/api/lookup/<table>')
-@login_required
 def lookup_list(table):
     if table not in LOOKUP_TABLES:
         return jsonify({'error': 'Unknown table'}), 404
@@ -39,7 +37,6 @@ def lookup_list(table):
 
 
 @bp.route('/api/lookup/<table>/<int:lid>', methods=['PUT'])
-@login_required
 def lookup_rename(table, lid):
     if table not in LOOKUP_TABLES:
         return jsonify({'error': 'Unknown table'}), 404
@@ -55,7 +52,6 @@ def lookup_rename(table, lid):
 
 
 @bp.route('/api/lookup/<table>/<int:lid>', methods=['DELETE'])
-@login_required
 def lookup_delete(table, lid):
     if table not in LOOKUP_TABLES:
         return jsonify({'error': 'Unknown table'}), 404
@@ -73,7 +69,6 @@ def lookup_delete(table, lid):
 
 
 @bp.route('/api/lookup/<table>/purge', methods=['POST'])
-@login_required
 def lookup_purge(table):
     """Delete all orphan entries (coffee_count = 0) from a table."""
     if table not in LOOKUP_TABLES:

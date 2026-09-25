@@ -50,7 +50,6 @@ _db_module.db_conn = _db_conn
 # 2. Import blueprints and schema so their module-level `from db import ...`
 #    names get replaced with our patched versions.
 # ---------------------------------------------------------------------------
-import blueprints.auth as _auth_mod
 import blueprints.coffees as _coffees_mod
 import blueprints.stats as _stats_mod
 import blueprints.settings as _settings_mod
@@ -62,7 +61,7 @@ import schema as _schema_mod
 # in schema.py skips makedirs when DB is '' (no directory component).
 _schema_mod.DB = ''
 
-for _mod in (_auth_mod, _coffees_mod, _stats_mod, _settings_mod,
+for _mod in (_coffees_mod, _stats_mod, _settings_mod,
              _lookup_mod, _brews_mod, _schema_mod):
     if hasattr(_mod, 'db_conn'):
         setattr(_mod, 'db_conn', _db_conn)
@@ -123,11 +122,3 @@ def app(db):
 def client(app):
     return app.test_client()
 
-
-@pytest.fixture()
-def auth_client(app):
-    """Test client with an active authenticated session."""
-    c = app.test_client()
-    with c.session_transaction() as sess:
-        sess['authenticated'] = True
-    return c

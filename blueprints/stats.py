@@ -1,13 +1,11 @@
 from datetime import date
 from flask import Blueprint, jsonify
 from db import db_conn
-from schema import login_required
 
 bp = Blueprint('stats', __name__)
 
 
 @bp.route('/api/stats')
-@login_required
 def stats():
     with db_conn() as conn:
         total    = conn.execute('SELECT COUNT(*) FROM coffees').fetchone()[0]
