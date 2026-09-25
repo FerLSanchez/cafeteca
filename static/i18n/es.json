@@ -299,5 +299,22 @@
   "confirm.purge_brews.msg": "Se eliminarán permanentemente todas las preparaciones con más de {months} mes(es). Esta acción no se puede deshacer.",
   "confirm.purge_brews.btn": "Purgar",
 
-  "toast.brews_purged": "{count} preparación(es) eliminada(s)"
+  "toast.brews_purged": "{count} preparación(es) eliminada(s)",
+
+  "scale.connect_failed": "No se pudo conectar",
+  "scale.connecting": "Conectando…",
+  "scale.connected": "Conectado a {name}",
+  "scale.disconnected": "Báscula desconectada",
+  "scale.unsupported": "Este navegador no soporta Web Bluetooth (usa Chrome en Android).",
+  "scale.btn.connect": "Conectar",
+  "scale.btn.tare": "Tara",
+  "scale.btn.disconnect": "Desconectar",
+  "scale.lab.title": "Laboratorio báscula (beta)",
+  "scale.lab.hint": "Captura tramas de la Bookoo para calibrar la integración. Desconecta antes la app oficial.",
+  "scale.lab.rec_dose": "● Dosis",
+  "scale.lab.rec_shot": "● Shot",
+  "scale.lab.stop": "■ Parar",
+  "scale.lab.frames": "{count} tramas",
+  "scale.lab.download": "Descargar JSON",
+  "scale.lab.clear": "Vaciar"
 }

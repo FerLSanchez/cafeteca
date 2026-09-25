@@ -18,6 +18,7 @@ async function startup() {
   applyI18n();
   const langSel = document.getElementById('lang-select');
   if (langSel) langSel.value = _currentLang;
+  scaleLabInit();
   init();
 }
 

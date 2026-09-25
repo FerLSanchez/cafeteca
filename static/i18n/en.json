@@ -292,5 +292,22 @@
   "confirm.purge_brews.msg": "All brews older than {months} month(s) will be permanently deleted. This cannot be undone.",
   "confirm.purge_brews.btn": "Purge",
 
-  "toast.brews_purged": "{count} brew(s) deleted"
+  "toast.brews_purged": "{count} brew(s) deleted",
+
+  "scale.connect_failed": "Could not connect",
+  "scale.connecting": "Connecting…",
+  "scale.connected": "Connected to {name}",
+  "scale.disconnected": "Scale disconnected",
+  "scale.unsupported": "This browser does not support Web Bluetooth (use Chrome on Android).",
+  "scale.btn.connect": "Connect",
+  "scale.btn.tare": "Tare",
+  "scale.btn.disconnect": "Disconnect",
+  "scale.lab.title": "Scale lab (beta)",
+  "scale.lab.hint": "Capture Bookoo frames to calibrate the integration. Disconnect the official app first.",
+  "scale.lab.rec_dose": "● Dose",
+  "scale.lab.rec_shot": "● Shot",
+  "scale.lab.stop": "■ Stop",
+  "scale.lab.frames": "{count} frames",
+  "scale.lab.download": "Download JSON",
+  "scale.lab.clear": "Clear"
 }

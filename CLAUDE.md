@@ -18,6 +18,7 @@ App web personal para registrar cafés de especialidad. Flask + SQLite + HTML/CS
 - `docker-compose.yml` — monta `./data` como volumen para persistir la BD
 - `Dockerfile` — imagen Python 3.14-slim, depende de Flask + gunicorn
 - `static/js/i18n.js` — helper de internacionalización: `t()`, `initI18n()`, `applyI18n()`, `changeLang()`
+- `static/js/scale.js` — báscula Bookoo por Web Bluetooth: `parseScalePacket()` (puro, testeado con node), `scaleConnect()`/`scaleTare()`, bus `scale.bus` y el "Scale lab" (F0) en Ajustes
 - `static/i18n/es.json` — todas las cadenas de la UI en español; `en.json` — traducción inglesa
 
 ## Arquitectura de datos
@@ -227,6 +228,7 @@ docker compose up -d
 pip install -r requirements-test.txt
 pytest                         # suite completa
 pytest tests/test_brews.py     # un módulo específico
+node --test tests/js/*.test.js # tests JS (parser de la báscula)
 ```
 
 Los tests usan una BD SQLite en memoria. `conftest.py` provee el fixture `client`.
@@ -235,7 +237,7 @@ Los tests usan una BD SQLite en memoria. `conftest.py` provee el fixture `client
 
 Revisión completa (UX, ingeniería, producto) con backlog codificado: `docs/REVIEW-2026-09.md`.
 
-- **Siguiente feature: báscula Bookoo Themis Mini por Web Bluetooth** (PM-14): la dosis en modo normal → campo "Café (g)", y el rendimiento + tiempo del shot en modo auto. La spec completa está en `docs/features/bookoo-scale.md`; se empieza por la fase F0 (spike de captura).
+- **Siguiente feature: báscula Bookoo Themis Mini por Web Bluetooth** (PM-14): la dosis en modo normal → campo "Café (g)", y el rendimiento + tiempo del shot en modo auto. La spec completa está en `docs/features/bookoo-scale.md`; F0 (Scale lab en Ajustes para capturar tramas) ya está hecha; falta que el dueño grabe capturas reales. Antes de F1, acordar con el dueño la UX del modo auto (el flujo es clave).
 
 - Exportar/importar datos (CSV o JSON)
 - Foto de la bolsa del café

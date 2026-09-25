@@ -9,6 +9,7 @@ const SHELL = [
   '/static/js/state.js',
   '/static/js/api.js',
   '/static/js/utils.js',
+  '/static/js/scale.js',
   '/static/js/chips.js',
   '/static/js/autocomplete.js',
   '/static/js/options.js',

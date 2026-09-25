@@ -1,6 +1,6 @@
 # Feature spec — Bookoo Themis Mini integration (Web Bluetooth)
 
-> Status: **Specified, not started.** This is the hand-off document for the implementation session.
+> Status: **F0 in progress.** The Scale lab (Settings → "Scale lab (beta)") is shipped: connect, live parsed values, tare, record dose/shot frames and download them as JSON. Next: the owner records captures on the Pixel and they are committed to `tests/js/fixtures/`.
 > Backlog code: **PM-14** in [`docs/REVIEW-2026-09.md`](../REVIEW-2026-09.md) §6.
 > Protocol source: [BooKooCode/OpenSource](https://github.com/BooKooCode/OpenSource) (MIT), files `bookoo_mini_scale/protocols.md` and `bookoo_ultra_scale/protocols.md`.
 
@@ -14,7 +14,7 @@ Remove manual typing from the daily espresso routine. Cafeteca reads the owner's
 |---|---|
 | Scale | **Bookoo Themis Mini**, latest firmware |
 | Phone | **Google Pixel Pro (Android)** → Chrome and the installed PWA support Web Bluetooth ✅ |
-| Access | Behind TLS/Authelia (HTTPS is required by Web Bluetooth) |
+| Access | `cafeteca.fersanchez.com` behind Authelia forward-auth (NPM) with TLS — live since PR #47. HTTPS is required by Web Bluetooth. `/static/` is served without auth, `/api/` returns 401 when the session expires |
 | Routine, step 1: **dose** | Scale in **normal (weight) mode**. The ground coffee (beans) is weighed, and that number is the brew form's **"Café (g)"** field (`b-dose` → `dose_g`). |
 | Routine, step 2: **shot** | Scale in **auto mode**. It tares when it detects the cup, starts the timer when flow begins, and stops it when flow ends. This gives **yield** (`yield_g`) and **time** (`time_s`). |
 
@@ -109,14 +109,14 @@ Only **Tare** (`01`) is needed, in the dose step. **Never send commands during a
 | Simulator | `?scale=sim` swaps the BLE layer for a replay of the F0 captures. It is used for development, demos and a **Playwright** test of the whole flow. |
 | UI | Changes to the brew modal in `templates/index.html` and `static/js/brews.js`, plus a live-shot overlay. Load `scale.js` after `utils.js`, and add it to the SW `SHELL` in `static/sw.js`. |
 | i18n | A new `scale.*` group in `static/i18n/es.json` **and** `en.json` (connect, tare, waiting, live, settling, not supported, disconnected…). |
-| Backend | **No changes for F1.** In F2, `migrate_v8()` adds `brews.shot_curve TEXT`: JSON downsampled to about 5 Hz, `[[t_ms, g, flow], …]`, roughly 2–3 KB per shot. It is accepted and validated by `validate_brew()` and returned by the brew endpoints. |
+| Backend | **No changes for F1.** In F2, `migrate_v9()` adds `brews.shot_curve TEXT`: JSON downsampled to about 5 Hz, `[[t_ms, g, flow], …]`, roughly 2–3 KB per shot. It is accepted and validated by `validate_brew()` and returned by the brew endpoints. |
 
 ## 7. Phases
 
 | Phase | Scope | Done when | Effort |
 |---|---|---|---|
 | **F0: Spike** | A hidden "Scale lab" section in Settings: connect, show live parsed values, and **download the raw frames as JSON**. The owner records one dose weighing and 2–3 auto-mode shots. | Sign-byte encoding and packet rate are confirmed, we know whether `0D` is emitted, and the fixtures are committed. | S |
-| **F1: MVP** | §5.1 dose + §5.2 shot + §5.3 chip; parser/detectors with unit tests; simulator + Playwright test. | A full routine on the Pixel produces a correct brew with no typing (except the rating). | M |
+| **F1: MVP** | A **scale test page** in the app (grown from the Scale lab) to try both modes: normal (live weight, tare, stability lock) and auto (live shot view with timer, weight, flow). §5.1 dose + §5.2 shot + §5.3 chip; parser/detectors with unit tests; simulator + Playwright test. | A full routine on the Pixel produces a correct brew with no typing (except the rating). | M |
 | **F2: Curves** | Store `shot_curve`; show a sparkline in the brew rows; overlay the best-rated shot of the same coffee (feeds PM-06 dial-in). | Curves are visible for new brews. | M |
 | **F3: Extras** | Use `0D` events if F0 found them; continuous mode; low-battery hint. | — | S |
 
@@ -126,5 +126,6 @@ Only **Tare** (`01`) is needed, in the dose step. **Never send commands during a
 - ⚠️ **Auto-mode events on the Mini:** undocumented, so timer-based detection is the baseline. Optionally ask `develop@bookoocoffee.com`.
 - ⚠️ **Packet rate** is unknown (probably around 10 Hz). The detector thresholds (1.5 s freeze, 3 s settle, ±0.1 g stability) need tuning with F0 data.
 - ⚠️ **Official app:** it must be closed or disconnected while Cafeteca is in use.
+- 💬 **Auto-mode UX to be agreed with the owner before F1:** flow is a key metric, so the live-shot view (flow curve vs. weight, target flow band, how flow is summarised in the saved brew) needs agreeing first.
 - ℹ️ The app cannot know the scale's mode (normal or auto); it's not in the `0B` packet. The UX relies on the step the user is in (dose button vs. waiting for shot), not on detecting the mode.
 - ℹ️ Related backlog: **ENG-04** (stock deducted by `grams_per_shot` vs. the brew's `dose_g`) becomes more visible once real doses are recorded. Consider fixing it before or together with F1.
