@@ -99,6 +99,42 @@ Only **Tare** (`01`) is needed, in the dose step. **Never send commands during a
 - A **connection chip** in the nav, e.g. "⚖️ 87 %" (battery). Tapping it disconnects. A toast appears on unexpected disconnect.
 - **Optional, later:** a "continuous mode" that drafts a brew for every shot while connected.
 
+### 5.4 Flow analysis (agreed with the owner, 2026-09-25)
+
+The scale only reports the **overall average** (yield ÷ time), which mixes the slow ramp, the main flow and the dripping tail. The app keeps the full curve **in memory during the shot** and derives finer metrics from it. **The curve itself is not stored.**
+
+A real shot at a 1.5 g/s target looks like this: a slow start → it ramps up to the target → it overshoots for a few seconds → it falls back → it ends at almost 0 with the last drops.
+
+**Phases.** They are detected on the smoothed flow (moving average ≈ 1 s). The thresholds are tuned with F0 captures.
+
+| Phase | Detection |
+|---|---|
+| **Pre-infusion / first drops** | from the timer start until the weight goes over ~0.5 g |
+| **Ramp** | first drops → flow reaches ~90 % of the target (or of the peak if there is no target) |
+| **Main** | from the end of the ramp until the flow drops below ~50 % of the target/peak for good |
+| **Tail** | the end of main → stop (last drops) |
+
+**Metrics saved with the brew** (a small object, a few hundred bytes):
+
+| Metric | Meaning |
+|---|---|
+| `t_first_drops_s` | time to first drops |
+| `t_ramp_s` | ramp duration (how long it takes to reach the target) |
+| `main_flow` | **mean flow during the main phase**: the "real" flow, which is what you actually dial in |
+| `peak_flow`, `t_peak_s` | the maximum flow and when it happens |
+| `overshoot_s` | seconds above target + tolerance |
+| `in_band_pct` | % of the main phase within target ± tolerance |
+| `flow_cv` | flow variability in the main phase (std/mean): stability |
+| `tail_s`, `tail_g` | length of the tail and the grams added in it |
+| `channeling` | boolean: a sudden flow spike (abrupt jump in the flow's rate of change) in the main phase |
+| `avg_flow` | the scale's overall average, kept for reference |
+
+**Target.** A new optional recipe field, `target_flow` (g/s), set per coffee. It has a default tolerance of ±0.2 g/s, which can be changed in Settings. Without a target, the metrics that depend on it are left empty and the phases use the peak instead.
+
+**Live view (auto mode).** It shows a live flow curve with the target band shaded, the current flow in large type, and the weight/ratio plus timer. When the shot ends, a summary card lists the metrics above, with a one-line comparison against the best-rated brew of the same coffee (e.g. "main flow 1.62 vs 1.48 g/s, ramp +2 s").
+
+**Flow source.** Compute it from the weight derivative on our side (consistent and independent of the scale's smoothing setting), and compare it with the scale's reported flow in the F0 captures.
+
 ## 6. Technical design
 
 | Piece | Detail |
@@ -109,15 +145,15 @@ Only **Tare** (`01`) is needed, in the dose step. **Never send commands during a
 | Simulator | `?scale=sim` swaps the BLE layer for a replay of the F0 captures. It is used for development, demos and a **Playwright** test of the whole flow. |
 | UI | Changes to the brew modal in `templates/index.html` and `static/js/brews.js`, plus a live-shot overlay. Load `scale.js` after `utils.js`, and add it to the SW `SHELL` in `static/sw.js`. |
 | i18n | A new `scale.*` group in `static/i18n/es.json` **and** `en.json` (connect, tare, waiting, live, settling, not supported, disconnected…). |
-| Backend | **No changes for F1.** In F2, `migrate_v9()` adds `brews.shot_curve TEXT`: JSON downsampled to about 5 Hz, `[[t_ms, g, flow], …]`, roughly 2–3 KB per shot. It is accepted and validated by `validate_brew()` and returned by the brew endpoints. |
+| Backend | F1: `migrate_v9()` adds `brews.shot_metrics TEXT` (JSON with the §5.4 metrics, validated by `validate_brew()`, returned by the brew endpoints) and `recipes.target_flow REAL`. **No raw curve is stored.** |
 
 ## 7. Phases
 
 | Phase | Scope | Done when | Effort |
 |---|---|---|---|
 | **F0: Spike** | A hidden "Scale lab" section in Settings: connect, show live parsed values, and **download the raw frames as JSON**. The owner records one dose weighing and 2–3 auto-mode shots. | Sign-byte encoding and packet rate are confirmed, we know whether `0D` is emitted, and the fixtures are committed. | S |
-| **F1: MVP** | A **scale test page** in the app (grown from the Scale lab) to try both modes: normal (live weight, tare, stability lock) and auto (live shot view with timer, weight, flow). §5.1 dose + §5.2 shot + §5.3 chip; parser/detectors with unit tests; simulator + Playwright test. | A full routine on the Pixel produces a correct brew with no typing (except the rating). | M |
-| **F2: Curves** | Store `shot_curve`; show a sparkline in the brew rows; overlay the best-rated shot of the same coffee (feeds PM-06 dial-in). | Curves are visible for new brews. | M |
+| **F1: MVP** | §5.4 flow analysis (pure `analyzeShot(samples, target)`, unit-tested on F0 captures). A **scale test page** in the app (grown from the Scale lab) to try both modes: normal (live weight, tare, stability lock) and auto (live shot view with timer, weight, flow). §5.1 dose + §5.2 shot + §5.3 chip; parser/detectors with unit tests; simulator + Playwright test. | A full routine on the Pixel produces a correct brew with no typing (except the rating). | M |
+| **F2: Dial-in** | Show the §5.4 metrics in the brew rows and detail; per-coffee trends (main flow vs. rating) and the comparison against the best-rated shot (feeds PM-06 dial-in). | Metrics are visible for new brews. | M |
 | **F3: Extras** | Use `0D` events if F0 found them; continuous mode; low-battery hint. | — | S |
 
 ## 8. Risks and open points
@@ -126,6 +162,6 @@ Only **Tare** (`01`) is needed, in the dose step. **Never send commands during a
 - ⚠️ **Auto-mode events on the Mini:** undocumented, so timer-based detection is the baseline. Optionally ask `develop@bookoocoffee.com`.
 - ⚠️ **Packet rate** is unknown (probably around 10 Hz). The detector thresholds (1.5 s freeze, 3 s settle, ±0.1 g stability) need tuning with F0 data.
 - ⚠️ **Official app:** it must be closed or disconnected while Cafeteca is in use.
-- 💬 **Auto-mode UX to be agreed with the owner before F1:** flow is a key metric, so the live-shot view (flow curve vs. weight, target flow band, how flow is summarised in the saved brew) needs agreeing first.
+- ✅ Auto-mode UX agreed: see §5.4. Thresholds are pending tuning with F0 captures.
 - ℹ️ The app cannot know the scale's mode (normal or auto); it's not in the `0B` packet. The UX relies on the step the user is in (dose button vs. waiting for shot), not on detecting the mode.
 - ℹ️ Related backlog: **ENG-04** (stock deducted by `grams_per_shot` vs. the brew's `dose_g`) becomes more visible once real doses are recorded. Consider fixing it before or together with F1.
