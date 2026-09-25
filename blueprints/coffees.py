@@ -16,6 +16,24 @@ def _validation_error(err):
     return jsonify(body), 400
 
 
+def _client_date(data):
+    """Return (date, error_response). Uses the client's local date if sent, else server today."""
+    date = (data or {}).get('date') or datetime.now().strftime('%Y-%m-%d')
+    if not isinstance(date, str) or not DATE_RE.match(date):
+        return None, (jsonify({'error': 'Formato de fecha inválido (esperado YYYY-MM-DD)',
+                               'error_key': 'error.coffee.invalid_date'}), 400)
+    return date, None
+
+
+LOOKUP_KEYS = {'roaster': 'roaster_id', 'producer': 'producer_id', 'origin': 'origin_id',
+               'region': 'region_id', 'shop': 'shop_id'}
+M2M_KEYS = {
+    'varieties':  ('varieties',  'coffee_varieties',  'variety_id'),
+    'processes':  ('processes',  'coffee_processes',  'process_id'),
+    'milk_types': ('milk_types', 'coffee_milk_types', 'milk_type_id'),
+}
+
+
 @bp.route('/api/coffees')
 @login_required
 def list_coffees():
@@ -126,19 +144,23 @@ def get_coffee(cid):
 @bp.route('/api/coffees/<int:cid>', methods=['PUT'])
 @login_required
 def update_coffee(cid):
+    """Partial update: only the fields present in the body are modified."""
     data = request.get_json(silent=True)
-    err = validate_coffee(data)
+    err = validate_coffee(data, partial=True)
     if err:
         return _validation_error(err)
     with db_conn() as conn:
-        ids    = resolve_ids(conn, data)
-        fields = list(ids.keys()) + SCALAR_FIELDS
-        vals   = list(ids.values()) + [data.get(f) for f in SCALAR_FIELDS] + [cid]
-        sets   = ', '.join(f'{f}=?' for f in fields)
-        conn.execute(f'UPDATE coffees SET {sets} WHERE id=?', vals)
-        set_m2m(conn, cid, data.get('varieties'),  'varieties',  'coffee_varieties',   'variety_id')
-        set_m2m(conn, cid, data.get('processes'),  'processes',  'coffee_processes',   'process_id')
-        set_m2m(conn, cid, data.get('milk_types'), 'milk_types', 'coffee_milk_types',  'milk_type_id')
+        if not conn.execute('SELECT 1 FROM coffees WHERE id=?', (cid,)).fetchone():
+            return jsonify({'error': 'Café no encontrado', 'error_key': 'error.coffee.not_found'}), 404
+        ids = resolve_ids(conn, data)
+        updates = {LOOKUP_KEYS[k]: ids[LOOKUP_KEYS[k]] for k in LOOKUP_KEYS if k in data}
+        updates.update({f: data[f] for f in SCALAR_FIELDS if f in data})
+        if updates:
+            sets = ', '.join(f'{f}=?' for f in updates)
+            conn.execute(f'UPDATE coffees SET {sets} WHERE id=?', list(updates.values()) + [cid])
+        for key, (table, junction, fk) in M2M_KEYS.items():
+            if key in data:
+                set_m2m(conn, cid, data[key], table, junction, fk)
         row = get_coffee_by_id(conn, cid)
     return jsonify(row)
 
@@ -146,10 +168,9 @@ def update_coffee(cid):
 @bp.route('/api/coffees/<int:cid>/open', methods=['POST'])
 @login_required
 def open_coffee(cid):
-    data = request.get_json(silent=True) or {}
-    date = data.get('date') or datetime.now().strftime('%Y-%m-%d')
-    if not isinstance(date, str) or not DATE_RE.match(date):
-        return jsonify({'error': 'Formato de fecha inválido (esperado YYYY-MM-DD)', 'error_key': 'error.coffee.invalid_date'}), 400
+    date, err = _client_date(request.get_json(silent=True))
+    if err:
+        return err
     with db_conn() as conn:
         if not conn.execute('SELECT 1 FROM coffees WHERE id=?', (cid,)).fetchone():
             return jsonify({'error': 'Café no encontrado', 'error_key': 'error.coffee.not_found'}), 404
@@ -161,7 +182,9 @@ def open_coffee(cid):
 @bp.route('/api/coffees/<int:cid>/finish', methods=['POST'])
 @login_required
 def finish_coffee(cid):
-    today = datetime.now().strftime('%Y-%m-%d')
+    today, err = _client_date(request.get_json(silent=True))
+    if err:
+        return err
     with db_conn() as conn:
         if not conn.execute('SELECT 1 FROM coffees WHERE id=?', (cid,)).fetchone():
             return jsonify({'error': 'Café no encontrado', 'error_key': 'error.coffee.not_found'}), 404
@@ -199,14 +222,23 @@ def set_remaining(cid):
 @bp.route('/api/coffees/<int:cid>/consume', methods=['POST'])
 @login_required
 def consume_coffee(cid):
+    today, err = _client_date(request.get_json(silent=True))
+    if err:
+        return err
     with db_conn() as conn:
-        coffee_row = conn.execute('SELECT remaining_g FROM coffees WHERE id=?', (cid,)).fetchone()
+        coffee_row = conn.execute(
+            'SELECT remaining_g, finished_date FROM coffees WHERE id=?', (cid,)
+        ).fetchone()
         if not coffee_row:
             return jsonify({'error': 'Café no encontrado', 'error_key': 'error.coffee.not_found'}), 404
+        if coffee_row['finished_date']:
+            return jsonify({'error': 'El café ya está terminado', 'error_key': 'error.coffee.consume_finished'}), 409
+        if coffee_row['remaining_g'] is None:
+            return jsonify({'error': 'El café no tiene cantidad restante definida',
+                            'error_key': 'error.coffee.consume_no_stock'}), 409
         gps_row = conn.execute('SELECT value FROM settings WHERE key=?', (schema.SETTING_GRAMS_PER_SHOT,)).fetchone()
         grams = int(gps_row['value']) if gps_row else 17
-        current = coffee_row['remaining_g'] if coffee_row['remaining_g'] is not None else 0
-        new_val = max(0, current - grams)
+        new_val = max(0, coffee_row['remaining_g'] - grams)
         conn.execute('UPDATE coffees SET remaining_g=? WHERE id=?', (new_val, cid))
         recipe = conn.execute('''
             SELECT r.dose_g, r.yield_g, r.time_s, r.grind, r.temp_c
@@ -218,7 +250,6 @@ def consume_coffee(cid):
         time_s  = recipe['time_s']         if recipe else None
         grind   = recipe['grind']          if recipe else None
         temp_c  = recipe['temp_c']         if recipe else None
-        today   = datetime.now().strftime('%Y-%m-%d')
         cur = conn.execute(
             'INSERT INTO brews (brew_date, dose_g, yield_g, time_s, grind, temp_c) VALUES (?,?,?,?,?,?)',
             (today, dose_g, yield_g, time_s, grind, temp_c)

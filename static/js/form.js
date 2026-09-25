@@ -23,7 +23,7 @@ function resetForm() {
 
 function openAddModal() {
   resetForm();
-  document.getElementById('f-purchase').value = new Date().toISOString().split('T')[0];
+  document.getElementById('f-purchase').value = todayLocal();
   openModal('modal-form');
 }
 

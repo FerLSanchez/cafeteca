@@ -455,6 +455,8 @@ body {
 .cc-qty { font-size: 10.5px; color: var(--text2); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .cc-qty small { color: var(--text3); font-weight: 400; }
 .cc-actions { display: flex; gap: 3px; }
+.cc-open-slot:empty { display: none; }
+.cc-open-slot .open-date-row { margin-top: 8px; }
 .btn-cc {
   width: 28px; height: 28px;
   border-radius: var(--r-sm);

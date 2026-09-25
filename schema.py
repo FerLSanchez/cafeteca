@@ -41,6 +41,9 @@ def init_db():
     if db_dir:
         os.makedirs(db_dir, exist_ok=True)
     with db_conn() as conn:
+        # WAL: readers don't block the writer (gunicorn runs several workers/threads).
+        # Persistent DB setting; no-op for in-memory DBs.
+        conn.execute('PRAGMA journal_mode=WAL')
         init_settings(conn)
         create_lookup_tables(conn)
         conn.execute('''CREATE TABLE IF NOT EXISTS coffees (

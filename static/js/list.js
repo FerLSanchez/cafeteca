@@ -73,6 +73,7 @@ function renderCompactCard(c) {
         ${opened && c.remaining_g != null ? `<span class="cc-qty${lowStock?' low-stock':''}">${c.remaining_g}g<small> / ${c.quantity_g}g</small>${shots !== null ? ` <small>(${shots}${t('list.shots_unit')})</small>` : ''}${lowStock ? ' <span class="low-stock-icon" title="'+t('list.low_stock_alert')+'">⚠️</span>' : ''}</span>` : ''}
       </div>
     </div>
+    ${!c.opened_date ? `<div class="cc-open-slot" id="actions-${c.id}" onclick="event.stopPropagation()"></div>` : ''}
   </div>`;
 }
 
@@ -179,7 +180,7 @@ function toggleCompactView() {
 }
 
 async function consumeShot(id) {
-  const result = await api('/coffees/' + id + '/consume', { method: 'POST' });
+  const result = await api('/coffees/' + id + '/consume', { method: 'POST', body: JSON.stringify({date: todayLocal()}) });
   if (!result || result.error) { showToast(result?.error || t('error.generic')); return; }
   showToast(t('toast.consume_summary', { consumed_g: result.consumed_g, remaining_g: result.remaining_g }));
   const idx = displayedCoffees.findIndex(c => c.id === id);

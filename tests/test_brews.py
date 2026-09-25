@@ -51,12 +51,11 @@ class TestAddBrew:
         assert resp.status_code == 201
         assert resp.get_json()['rating'] == 4
 
-    def test_add_brew_invalid_rating_stored_as_none(self, auth_client):
-        """Rating out of range should be silently set to None."""
+    def test_add_brew_invalid_rating_rejected(self, auth_client):
         coffee = make_coffee(auth_client)
         resp = auth_client.post(f'/api/coffees/{coffee["id"]}/brews', json={'rating': 6})
-        assert resp.status_code == 201
-        assert resp.get_json()['rating'] is None
+        assert resp.status_code == 400
+        assert resp.get_json()['error_key'] == 'error.model.rating_invalid'
 
     def test_add_brew_response_includes_fields(self, auth_client):
         coffee = make_coffee(auth_client)
@@ -261,3 +260,60 @@ class TestRecipe:
 
     def test_delete_recipe_requires_auth(self, client):
         assert client.delete('/api/coffees/1/recipe').status_code == 401
+
+
+class TestBrewValidation:
+    @pytest.mark.parametrize('payload', [
+        {'dose_g': '18'}, {'dose_g': -1}, {'yield_g': True}, {'time_s': 12.5},
+        {'grind': 'fine'}, {'temp_c': 500}, {'brew_date': '25/09/2026'},
+    ])
+    def test_add_brew_rejects_invalid(self, auth_client, payload):
+        coffee = make_coffee(auth_client)
+        resp = auth_client.post(f'/api/coffees/{coffee["id"]}/brews', json=payload)
+        assert resp.status_code == 400
+        assert resp.get_json()['error_key'].startswith('error.')
+
+    def test_recipe_rejects_invalid(self, auth_client):
+        coffee = make_coffee(auth_client)
+        resp = auth_client.put(f'/api/coffees/{coffee["id"]}/recipe', json={'dose_g': 'x'})
+        assert resp.status_code == 400
+        assert resp.get_json()['error_key'] == 'error.brew.field_invalid'
+
+    def test_update_brew_rejects_invalid(self, auth_client):
+        coffee = make_coffee(auth_client)
+        brew = make_brew(auth_client, coffee['id'])
+        resp = auth_client.put(f'/api/brews/{brew["id"]}', json={'dose_g': 'x'})
+        assert resp.status_code == 400
+
+
+class TestUpdateBrewPartial:
+    def test_partial_update_keeps_other_fields(self, auth_client):
+        coffee = make_coffee(auth_client)
+        brew = make_brew(auth_client, coffee['id'], {'brew_date': '2026-09-01', 'notes': 'ok'})
+        resp = auth_client.put(f'/api/brews/{brew["id"]}', json={'rating': 4})
+        body = resp.get_json()
+        assert resp.status_code == 200
+        assert body['rating'] == 4
+        assert body['brew_date'] == '2026-09-01'
+        assert body['dose_g'] == 18.0
+        assert body['notes'] == 'ok'
+
+    def test_explicit_null_clears_field(self, auth_client):
+        coffee = make_coffee(auth_client)
+        brew = make_brew(auth_client, coffee['id'])
+        body = auth_client.put(f'/api/brews/{brew["id"]}', json={'grind': None}).get_json()
+        assert body['grind'] is None
+        assert body['dose_g'] == 18.0
+
+    def test_empty_brew_date_rejected(self, auth_client):
+        coffee = make_coffee(auth_client)
+        brew = make_brew(auth_client, coffee['id'])
+        assert auth_client.put(f'/api/brews/{brew["id"]}', json={'brew_date': None}).status_code == 400
+
+    def test_update_not_found(self, auth_client):
+        assert auth_client.put('/api/brews/999', json={'rating': 3}).status_code == 404
+
+
+class TestDeleteRecipeNotFound:
+    def test_delete_recipe_unknown_coffee(self, auth_client):
+        assert auth_client.delete('/api/coffees/999/recipe').status_code == 404
