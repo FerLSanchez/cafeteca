@@ -129,11 +129,11 @@ A real shot at a 1.5 g/s target looks like this: a slow start → it ramps up to
 | `channeling` | boolean: a sudden flow spike (abrupt jump in the flow's rate of change) in the main phase |
 | `avg_flow` | the scale's overall average, kept for reference |
 
-**Target.** A new optional recipe field, `target_flow` (g/s), set per coffee. It has a default tolerance of ±0.2 g/s, which can be changed in Settings. Without a target, the metrics that depend on it are left empty and the phases use the peak instead.
+**Target.** A new optional recipe field, `target_flow` (g/s), set per coffee. It has a default tolerance of ±0.2 g/s (✅ confirmed by the owner), which can be changed in Settings. Without a target, the metrics that depend on it are left empty and the phases use the peak instead.
 
 **Live view (auto mode).** It shows a live flow curve with the target band shaded, the current flow in large type, and the weight/ratio plus timer. When the shot ends, a summary card lists the metrics above, with a one-line comparison against the best-rated brew of the same coffee (e.g. "main flow 1.62 vs 1.48 g/s, ramp +2 s").
 
-**Flow source.** Compute it from the weight derivative on our side (consistent and independent of the scale's smoothing setting), and compare it with the scale's reported flow in the F0 captures.
+**Flow source (✅ confirmed).** The app computes flow itself from the weight derivative (consistent and independent of the scale's smoothing setting). The scale's reported flow is only used to cross-check it in the F0 captures.
 
 ## 6. Technical design
 
