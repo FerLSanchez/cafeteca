@@ -123,7 +123,7 @@ async function scaleTare() {
 // ---------------------------------------------------------------------------
 // Scale lab (F0) — captura de tramas en Ajustes
 // ---------------------------------------------------------------------------
-const scaleLab = {frames: [], recording: false, t0: 0, label: ''};
+const scaleLab = {frames: [], recording: false, t0: null, label: '', session: 0};
 
 function scaleLabInit() {
   const box = document.getElementById('scale-lab');
@@ -136,7 +136,7 @@ function scaleLabInit() {
   scale.bus.addEventListener('scale:raw', e => {
     const {t, bytes, pkt} = e.detail;
     if (scaleLab.recording) {
-      scaleLab.frames.push({t: Math.round(t - scaleLab.t0), label: scaleLab.label, hex: scaleHex(bytes)});
+      scaleLab.frames.push({t: Math.round(t - scaleLab.t0), session: scaleLab.session, label: scaleLab.label, hex: scaleHex(bytes)});
       scaleLabRenderCount();
     }
     scaleLabRenderLive(pkt, bytes);
@@ -177,8 +177,10 @@ async function scaleLabConnect() {
 function scaleLabRecord(label) {
   scaleLab.label = label;
   if (!scaleLab.recording) {
+    // t0 se mantiene entre grabaciones (hasta Vaciar) para que los tiempos no se solapen
     scaleLab.recording = true;
-    scaleLab.t0 = performance.now();
+    scaleLab.session++;
+    if (scaleLab.t0 === null) scaleLab.t0 = performance.now();
   }
   document.getElementById('scale-lab-rec').textContent = `● ${label}`;
 }
@@ -205,6 +207,8 @@ function scaleLabDownload() {
 
 function scaleLabClear() {
   scaleLab.frames = [];
+  scaleLab.t0 = null;
+  scaleLab.session = 0;
   document.getElementById('scale-lab-events').textContent = '';
   scaleLabRenderCount();
 }

@@ -156,9 +156,21 @@ A real shot at a 1.5 g/s target looks like this: a slow start → it ramps up to
 | **F2: Dial-in** | Show the §5.4 metrics in the brew rows and detail; per-coffee trends (main flow vs. rating) and the comparison against the best-rated shot (feeds PM-06 dial-in). | Metrics are visible for new brews. | M |
 | **F3: Extras** | Use `0D` events if F0 found them; continuous mode; low-battery hint. | — | S |
 
-## 8. Risks and open points
+## 8. F0 findings (first capture, 2026-09-25, finger-pressed, `tests/js/fixtures/f0-finger-2026-09-25.json`)
 
-- ⚠️ **Sign bytes:** undocumented (indices 6 and 10). F0 settles them.
+- ✅ **Sign bytes are ASCII** `+` (`0x2B`) / `-` (`0x2D`), as confirmed by negative flow values. No negative weight has been seen yet.
+- ✅ **Packet rate ≈ 11 Hz** (median gap 90 ms, p10–p90 86–123 ms).
+- ✅ **No `0D`/`0F` packets** from the Mini (this firmware), so the timer-based detection is the path.
+- ✅ Other fields: `unit`=1 (g), flow smoothing off (`17`=0), buzzer 0, standby 5 min.
+- ℹ️ **Timer resolution is 100 ms.** In auto mode, the first non-zero reading was already **1.1 s**: the scale back-dates the start to when the flow began. Use the scale's `ms` as the shot time, not our own clock.
+- ⚠️ The timer **kept running for more than 5 s after the weight went back to 0** (the finger was lifted), so the auto-stop condition is still unknown. We need a real shot.
+- ⚠️ The scale's own flow is heavily smoothed/lagging. This supports computing flow ourselves (§5.4).
+- 🔧 Lab fix: recordings after "Stop" reused a new `t0`, so the timestamps overlapped. `t0` is now kept until "Clear", and each frame carries a `session` number.
+- **Still needed:** 1 real dose + 2–3 real auto-mode shots.
+
+## 9. Risks and open points
+
+- ✅ **Sign bytes:** ASCII, see §8.
 - ⚠️ **Auto-mode events on the Mini:** undocumented, so timer-based detection is the baseline. Optionally ask `develop@bookoocoffee.com`.
 - ⚠️ **Packet rate** is unknown (probably around 10 Hz). The detector thresholds (1.5 s freeze, 3 s settle, ±0.1 g stability) need tuning with F0 data.
 - ⚠️ **Official app:** it must be closed or disconnected while Cafeteca is in use.

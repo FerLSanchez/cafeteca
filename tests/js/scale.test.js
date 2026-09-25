@@ -51,3 +51,14 @@ test('evento 0D (auto-mode)', () => {
 test('tipo desconocido', () => {
   assert.deepStrictEqual(parseScalePacket(frame([0x03, 0x0f, 0x01])), {type: 'unknown', code: 0x0f, length: 4});
 });
+
+// Captura real F0 (Themis Mini, presionando con el dedo): valida el parser
+// contra tramas reales. Signos ASCII '+'/'-' confirmados; sin paquetes 0D.
+test('fixture F0: todas las tramas son 0B válidas', () => {
+  const {frames} = require('./fixtures/f0-finger-2026-09-25.json');
+  const pkts = frames.map(f => parseScalePacket(f.hex.split(' ').map(h => parseInt(h, 16))));
+  assert.ok(pkts.every(p => p && p.type === 'weight'));
+  assert.ok(pkts.some(p => p.flow < 0), 'flujo negativo con signo 0x2d');
+  assert.ok(pkts.some(p => p.ms > 0), 'el timer arranca en modo auto');
+  assert.ok(pkts.every(p => p.raw_sign.every(b => b === 0x2b || b === 0x2d)));
+});
