@@ -4,6 +4,7 @@ from lookup_config import create_lookup_tables, get_or_create
 
 SETTING_GRAMS_PER_SHOT     = 'grams_per_shot'
 SETTING_LOW_STOCK_THRESHOLD = 'low_stock_threshold'
+SETTING_FLOW_TOLERANCE     = 'flow_tolerance'
 
 FTS_ENABLED = False
 
@@ -15,6 +16,7 @@ def init_settings(conn):
     )''')
     conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES (?, '17')", (SETTING_GRAMS_PER_SHOT,))
     conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES (?, '5')", (SETTING_LOW_STOCK_THRESHOLD,))
+    conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES (?, '0.2')", (SETTING_FLOW_TOLERANCE,))
 
 
 def init_db():
@@ -55,6 +57,8 @@ def init_db():
         migrate_v6(conn)
         migrate_v7(conn)
         migrate_v8(conn)
+        migrate_v9(conn)
+        migrate_v10(conn)
         if not col_exists(conn, 'coffees', 'altitude'):
             conn.execute('ALTER TABLE coffees ADD COLUMN altitude INTEGER')
 
@@ -261,6 +265,23 @@ def migrate_v8(conn):
     """Phase 8: drop the PIN hash — auth moved to Authelia (NPM forward-auth)."""
     if conn.execute("DELETE FROM settings WHERE key='pin_hash'").rowcount:
         logging.info('[migration v8] Removed pin_hash setting.')
+
+
+def migrate_v9(conn):
+    """Phase 9: Bookoo scale — flow metrics per brew (JSON) and target flow per recipe."""
+    for table, col, typ in (('brews', 'shot_metrics', 'TEXT'), ('recipes', 'target_flow', 'REAL')):
+        cols = [r[1] for r in conn.execute(f'PRAGMA table_info({table})').fetchall()]
+        if col not in cols:
+            conn.execute(f'ALTER TABLE {table} ADD COLUMN {col} {typ}')
+            logging.info('[migration v9] Added %s to %s.', col, table)
+
+
+def migrate_v10(conn):
+    """Phase 10: Bookoo scale — raw shot curve per brew (JSON, ~3 KB) to re-analyse later."""
+    cols = [r[1] for r in conn.execute('PRAGMA table_info(brews)').fetchall()]
+    if 'shot_curve' not in cols:
+        conn.execute('ALTER TABLE brews ADD COLUMN shot_curve TEXT')
+        logging.info('[migration v10] Added shot_curve to brews.')
 
 
 def _rebuild_table_v1(conn):

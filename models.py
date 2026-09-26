@@ -174,7 +174,17 @@ def validate_brew(data, recipe=False):
             return _verr('error.brew.field_invalid',
                          f'Valor inválido para "{field}" ({lo}-{hi})', field=field, min=lo, max=hi)
     if recipe:
+        tf = data.get('target_flow')
+        if tf is not None and not _num_ok(tf, (int, float), 0.1, 10):
+            return _verr('error.brew.field_invalid', 'Valor inválido para "target_flow" (0.1-10)',
+                         field='target_flow', min=0.1, max=10)
         return None
+    sm = data.get('shot_metrics')
+    if sm is not None and not _shot_metrics_ok(sm):
+        return _verr('error.brew.shot_metrics_invalid', 'Métricas del shot inválidas')
+    sc = data.get('shot_curve')
+    if sc is not None and not _shot_curve_ok(sc):
+        return _verr('error.brew.shot_curve_invalid', 'Curva del shot inválida')
     r = data.get('rating')
     if r is not None and not _num_ok(r, int, 1, 5):
         return _verr('error.model.rating_invalid', 'La valoración debe estar entre 1 y 5')
@@ -186,3 +196,42 @@ def validate_brew(data, recipe=False):
     if notes and len(str(notes)) > 5000:
         return _verr('error.model.notes_too_long', 'Las notas no pueden superar los 5000 caracteres')
     return None
+
+
+# Métricas de flujo de la báscula (docs/features/bookoo-scale.md §5.4)
+SHOT_METRIC_KEYS = {
+    'main_flow', 'avg_flow', 'peak_flow', 't_peak_s', 't_ramp_s', 'overshoot_s',
+    'in_band_pct', 'flow_cv', 'tail_s', 'tail_g', 'irregular', 'target_flow',
+}
+
+
+def _shot_metrics_ok(sm):
+    if not isinstance(sm, dict) or not sm or not set(sm) <= SHOT_METRIC_KEYS:
+        return False
+    for k, v in sm.items():
+        if k == 'irregular':
+            if not isinstance(v, bool):
+                return False
+        elif v is not None and not _num_ok(v, (int, float), -1000, 10000):
+            return False
+    return True
+
+
+SHOT_CURVE_MAX_POINTS = 2000   # ~3 min a 11 Hz
+
+
+def _shot_curve_ok(sc):
+    """{v: 1, time_ms: int|None, pts: [[t_s, weight_g], ...]}"""
+    if not isinstance(sc, dict) or sc.get('v') != 1 or set(sc) - {'v', 'time_ms', 'pts'}:
+        return False
+    tm = sc.get('time_ms')
+    if tm is not None and not _num_ok(tm, int, 0, 3_600_000):
+        return False
+    pts = sc.get('pts')
+    if not isinstance(pts, list) or not pts or len(pts) > SHOT_CURVE_MAX_POINTS:
+        return False
+    return all(
+        isinstance(p, list) and len(p) == 2
+        and _num_ok(p[0], (int, float), 0, 3600) and _num_ok(p[1], (int, float), -1000, 5000)
+        for p in pts
+    )

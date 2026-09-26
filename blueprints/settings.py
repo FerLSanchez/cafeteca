@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from db import db_conn
 from lookup_config import LOOKUP_TABLES
-from schema import SETTING_GRAMS_PER_SHOT, SETTING_LOW_STOCK_THRESHOLD
+from schema import SETTING_GRAMS_PER_SHOT, SETTING_LOW_STOCK_THRESHOLD, SETTING_FLOW_TOLERANCE
 
 bp = Blueprint('settings', __name__)
 
@@ -33,9 +33,11 @@ def get_settings():
     with db_conn() as conn:
         gps_row = conn.execute('SELECT value FROM settings WHERE key=?', (SETTING_GRAMS_PER_SHOT,)).fetchone()
         lst_row = conn.execute('SELECT value FROM settings WHERE key=?', (SETTING_LOW_STOCK_THRESHOLD,)).fetchone()
+        tol_row = conn.execute('SELECT value FROM settings WHERE key=?', (SETTING_FLOW_TOLERANCE,)).fetchone()
     return jsonify({
         'grams_per_shot': int(gps_row['value']) if gps_row else 17,
         'low_stock_threshold': int(lst_row['value']) if lst_row else 5,
+        'flow_tolerance': float(tol_row['value']) if tol_row else 0.2,
     })
 
 
@@ -44,7 +46,8 @@ def update_settings():
     data = request.get_json(silent=True) or {}
     gps = data.get('grams_per_shot')
     lst = data.get('low_stock_threshold')
-    if gps is None and lst is None:
+    tol = data.get('flow_tolerance')
+    if gps is None and lst is None and tol is None:
         return jsonify({'error': 'Parámetro requerido: grams_per_shot', 'error_key': 'error.settings.grams_required'}), 400
     if gps is not None:
         if not isinstance(gps, int) or isinstance(gps, bool) or gps <= 0 or gps > 100:
@@ -52,7 +55,12 @@ def update_settings():
     if lst is not None:
         if not isinstance(lst, int) or isinstance(lst, bool) or lst < 1 or lst > 50:
             return jsonify({'error': 'low_stock_threshold debe ser un entero entre 1 y 50', 'error_key': 'error.settings.threshold_invalid'}), 400
+    if tol is not None:
+        if not isinstance(tol, (int, float)) or isinstance(tol, bool) or tol < 0.05 or tol > 1:
+            return jsonify({'error': 'flow_tolerance debe estar entre 0.05 y 1', 'error_key': 'error.settings.flow_tolerance_invalid'}), 400
     with db_conn() as conn:
+        if tol is not None:
+            conn.execute('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)', (SETTING_FLOW_TOLERANCE, str(tol)))
         if gps is not None:
             conn.execute('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)', (SETTING_GRAMS_PER_SHOT, str(gps)))
         if lst is not None:

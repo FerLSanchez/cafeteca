@@ -28,6 +28,9 @@ jobs:
         run: |
           pytest -v --junitxml=pytest-results.xml
 
+      - name: Run JS unit tests
+        run: node --test tests/js/*.test.js
+
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v7

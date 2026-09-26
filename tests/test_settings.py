@@ -134,3 +134,18 @@ class TestGetLookupTables:
         data = client.get('/api/lookup-tables').get_json()
         for t in LOOKUP_TABLES:
             assert t in data
+
+
+class TestFlowTolerance:
+    def test_default(self, client):
+        assert client.get('/api/settings').get_json()['flow_tolerance'] == 0.2
+
+    def test_update_alone(self, client):
+        assert client.put('/api/settings', json={'flow_tolerance': 0.3}).status_code == 200
+        assert client.get('/api/settings').get_json()['flow_tolerance'] == 0.3
+
+    @pytest.mark.parametrize('bad', [0, 0.01, 2, 'x', True])
+    def test_invalid(self, client, bad):
+        resp = client.put('/api/settings', json={'flow_tolerance': bad})
+        assert resp.status_code == 400
+        assert resp.get_json()['error_key'] == 'error.settings.flow_tolerance_invalid'
