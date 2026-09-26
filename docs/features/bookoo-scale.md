@@ -1,6 +1,6 @@
 # Feature spec — Bookoo Themis Mini integration (Web Bluetooth)
 
-> Status: **F0 in progress.** The Scale lab (Settings → "Scale lab (beta)") is shipped: connect, live parsed values, tare, record dose/shot frames and download them as JSON. Next: the owner records captures on the Pixel and they are committed to `tests/js/fixtures/`.
+> Status: **F0 done** (sign bytes, packet rate, no `0D`, auto-stop semantics; real fixtures in `tests/js/fixtures/`, see §8). **Next: F1.**
 > Backlog code: **PM-14** in [`docs/REVIEW-2026-09.md`](../REVIEW-2026-09.md) §6.
 > Protocol source: [BooKooCode/OpenSource](https://github.com/BooKooCode/OpenSource) (MIT), files `bookoo_mini_scale/protocols.md` and `bookoo_ultra_scale/protocols.md`.
 
@@ -83,7 +83,7 @@ Only **Tare** (`01`) is needed, in the dose step. **Never send commands during a
 
 1. In the brew modal, a **⚖️ button** next to "Café (g)" connects if needed and switches the field to **live mode**, where it follows the scale weight in real time.
 2. Show a small **"Tare"** link (command `01`) for when the container is already on the scale.
-3. **No early auto-lock** (the F0 capture showed 17.8 g holding still for ~0.6 s while the owner was still adjusting towards 17.0). The field follows the live weight and **freezes on the last stable value (≥1 s, ≥1 g) when the container is lifted** (weight drops towards 0 or negative), or when ✓ is tapped. Brief spikes (hand on the scale, 700+ g) are ignored. *(Proposed; pending the owner's OK.)*
+3. **No early auto-lock** (the F0 capture showed 17.8 g holding still for ~0.6 s while the owner was still adjusting towards 17.0). The field follows the live weight and **freezes on the last stable value (≥1 s, ≥1 g) when the container is lifted** (weight drops towards 0 or negative), or when ✓ is tapped. Brief spikes (hand on the scale, 700+ g) are ignored. ✅ Agreed with the owner.
 4. The value stays editable by hand, and the recipe value is still the default if the scale is not used.
 
 ### 5.2 Shot (auto mode) → yield + time
@@ -125,7 +125,7 @@ A real shot at a 1.5 g/s target looks like this: a slow start → it ramps up to
 | `in_band_pct` | % of the main phase within target ± tolerance |
 | `flow_cv` | flow variability in the main phase (std/mean): stability |
 | `tail_s`, `tail_g` | length of the tail and the grams added in it |
-| `channeling` | boolean: a sudden flow spike (abrupt jump in the flow's rate of change) in the main phase |
+| `irregular` | boolean: a sudden flow spike **or dip** in the main phase (possible channeling / puck event) |
 | `avg_flow` | the scale's overall average, kept for reference |
 
 **Target.** A new optional recipe field, `target_flow` (g/s), set per coffee. It has a default tolerance of ±0.2 g/s (✅ confirmed by the owner), which can be changed in Settings. Without a target, the metrics that depend on it are left empty and the phases use the peak instead.
@@ -171,7 +171,7 @@ A real shot at a 1.5 g/s target looks like this: a slow start → it ramps up to
 
 - **Dose:** 17.0 g. The owner overshot to 17.9 g, removed beans and settled at 17.0. There was one ~760 g spike while handling the container.
 - **Shot:** 38.5 g in 27.8 s (scale time) → the scale's average is **1.38 g/s**.
-- **Flow profile:** 1.2–1.4 g/s for the first ~6 s → ~1.7 g/s at 8–10 s → a **dip to ~1.1 g/s at ~11.5 s** → a rise to **2.0–2.2 g/s from ~15 s to 22 s** → it falls at 22.3 s → a **tail of ~5.5 s adding ~1.4 g**.
+- **Flow profile** (owner's target ≈ 1.5 g/s): 1.2–1.4 g/s for the first ~6 s → ~1.7 g/s at 8–10 s → a **dip to ~1.1 g/s at ~11.5 s** (nothing was touched; it shows in the weight itself, not only in the scale's flow, so it is a real slowdown or a weighing artefact, not flow-sensor noise. The analysis should flag dips as well as spikes as "irregular flow") → a rise to **2.0–2.2 g/s from ~15 s to 22 s** → it falls at 22.3 s → a **tail of ~5.5 s adding ~1.4 g**.
 - **Main-phase flow ≈ 1.73 g/s** (5.6 → 37.1 g between 4 s and 22.2 s), versus the scale's 1.38. This is exactly the gap §5.4 is meant to show.
 - **Packet rate:** the same ~11 Hz during the shot. The timer advances in 100 ms steps.
 - The shot is kept as a fixture; a test asserts the end-of-shot semantics.
