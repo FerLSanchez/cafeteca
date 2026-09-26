@@ -404,5 +404,6 @@
   "catalog.btn.delete": "Eliminar",
   "detail.btn.edit_remaining": "Editar restante",
   "stats.gantt_prev": "Mes anterior",
-  "stats.gantt_next": "Mes siguiente"
+  "stats.gantt_next": "Mes siguiente",
+  "form.chip_remove": "Quitar {name}"
 }

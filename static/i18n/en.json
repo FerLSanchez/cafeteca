@@ -397,5 +397,6 @@
   "catalog.btn.delete": "Delete",
   "detail.btn.edit_remaining": "Edit remaining",
   "stats.gantt_prev": "Previous month",
-  "stats.gantt_next": "Next month"
+  "stats.gantt_next": "Next month",
+  "form.chip_remove": "Remove {name}"
 }

@@ -241,6 +241,8 @@ node --test tests/js/*.test.js # tests JS (parser, detectores y análisis de la 
 # E2E báscula (manual, necesita playwright y la app corriendo):
 # BASE_URL=http://localhost:5323 node tests/e2e/scale-flow.e2e.js
 # BASE_URL=http://localhost:5323 node tests/e2e/wake-lock.e2e.js
+# BASE_URL=http://localhost:5323 node tests/e2e/touch-targets.e2e.js [carpeta-capturas]
+#   ↑ recorre todas las pantallas a 390 px: falla con controles < 36 px, pegados (< 8 px) o fuera de pantalla
 ```
 
 Los tests usan una BD SQLite en memoria. `conftest.py` provee el fixture `client`.

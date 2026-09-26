@@ -611,6 +611,7 @@ body {
   color: var(--text);
   border-radius: 6px;
   padding: 4px 8px;
+  min-height: 40px;
   font-size: 14px;
   font-family: 'Figtree', 'DM Sans', sans-serif;
   outline: none;
@@ -960,6 +961,7 @@ body.modal-open { overflow: hidden; touch-action: none; }
 .form-input:focus { border-color: var(--accent); }
 .form-input::placeholder { color: var(--text3); }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.form-row > * { min-width: 0; }   /* sin esto, un input con ancho intrínseco desborda la columna */
 .form-textarea { resize: vertical; min-height: 76px; font-family: 'Figtree', 'DM Sans', sans-serif; }
 
 /* ── Autocompletado ── */
@@ -1015,6 +1017,7 @@ body.modal-open { overflow: hidden; touch-action: none; }
   color: var(--red);
   border-radius: var(--r);
   padding: 10px;
+  min-height: 40px;
   font-size: 14px;
   font-family: 'Figtree', 'DM Sans', sans-serif;
   cursor: pointer;
@@ -1422,12 +1425,13 @@ body.modal-open { overflow: hidden; touch-action: none; }
 .chip-wrapper {
   display: flex;
   flex-wrap: wrap;
-  gap: 5px;
+  gap: 8px;
   background: var(--surface2);
   border: 1px solid var(--border);
   border-radius: var(--r-sm);
-  padding: 6px 8px;
+  padding: 2px 8px;
   min-height: 42px;
+  align-items: center;
   align-items: center;
   transition: border-color 0.15s;
   cursor: text;
@@ -1440,7 +1444,7 @@ body.modal-open { overflow: hidden; touch-action: none; }
   background: var(--surface3);
   border: 1px solid var(--border2);
   color: var(--text2);
-  padding: 3px 8px 3px 10px;
+  padding: 0 0 0 10px;
   border-radius: 6px;
   font-size: 13px;
   white-space: nowrap;
@@ -1451,10 +1455,13 @@ body.modal-open { overflow: hidden; touch-action: none; }
   color: var(--text3);
   cursor: pointer;
   padding: 0;
-  font-size: 14px;
+  width: 36px;
+  height: 36px;
+  font-size: 18px;
   line-height: 1;
   display: flex;
   align-items: center;
+  justify-content: center;
 }
 .chip-x:hover { color: var(--red); }
 .chip-text-input {
@@ -1464,7 +1471,9 @@ body.modal-open { overflow: hidden; touch-action: none; }
   font-size: 14px;
   font-family: 'Figtree', 'DM Sans', sans-serif;
   outline: none;
-  min-width: 80px;
+  width: 0;
+  min-width: 70px;
+  min-height: 36px;
   flex: 1;
   padding: 3px 4px;
 }
