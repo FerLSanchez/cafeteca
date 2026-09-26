@@ -1548,6 +1548,8 @@ body.modal-open { overflow: hidden; touch-action: none; }
   .coffee-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
   #brews-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
   #brews-list .brew-card { margin-bottom: 0; }
+  /* Sin esto, una línea nowrap (métricas del shot) ensancha la columna y la rejilla se sale */
+  .coffee-list > *, #brews-list > * { min-width: 0; }
 
   /* Panel de filtros: 4 columnas */
   .filter-panel { grid-template-columns: repeat(4, 1fr); }
@@ -1567,6 +1569,12 @@ body.modal-open { overflow: hidden; touch-action: none; }
 /* ═══════════════════════════════════════════════════════════
    RESPONSIVE — Desktop (≥1200px)
    ═══════════════════════════════════════════════════════════ */
+/* Tablet vertical: las pestañas de arriba solo con icono, para que quepan búsqueda,
+   chip de la báscula, ajustes y "+" sin scroll horizontal */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .nav-tab-btn .bnav-label { display: none; }
+  .nav-tab-btn { padding: 8px 12px; }
+}
 @media (min-width: 1200px) {
   /* Coffee list y brews list: 3 columnas */
   .coffee-list { grid-template-columns: repeat(3, 1fr); }

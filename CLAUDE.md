@@ -248,6 +248,7 @@ node --test tests/js/*.test.js # tests JS (parser, detectores y análisis de la 
 # BASE_URL=http://localhost:5323 node tests/e2e/brew-flow.e2e.js      # brew manual, valorar después, deshacer
 # BASE_URL=http://localhost:5323 node tests/e2e/modals.e2e.js          # Esc, foco y Tab en los modales
 # BASE_URL=http://localhost:5323 node tests/e2e/list-prefs.e2e.js      # filtros recordados, localStorage bloqueado
+# BASE_URL=http://localhost:5323 node tests/e2e/layout-widths.e2e.js   # sin scroll horizontal a 390/768/820/1024/1280 px
 # BASE_URL=http://localhost:5323 node tests/e2e/touch-targets.e2e.js [carpeta-capturas]
 #   ↑ recorre todas las pantallas a 390 px: falla con controles < 36 px, pegados (< 8 px) o fuera de pantalla
 ```
