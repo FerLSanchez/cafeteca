@@ -20,10 +20,10 @@ async function loadCatalog() {
         <span class="catalog-count ${r.coffee_count===0?'zero':''}" title="${r.coffee_count} café(s)">
           ${r.coffee_count===0?'✕':r.coffee_count}
         </span>
-        <button class="btn-icon" id="cedit-${table}-${r.id}" onclick="catalogStartEdit('${table}',${r.id})" title="Renombrar">${icon('edit')}</button>
-        <button class="btn-icon save" id="csave-${table}-${r.id}" style="display:none" onclick="catalogSave('${table}',${r.id})" title="Guardar">✓</button>
-        <button class="btn-icon" id="ccancel-${table}-${r.id}" style="display:none" onclick="catalogCancelEdit('${table}',${r.id})" title="Cancelar">${icon('x')}</button>
-        <button class="btn-icon danger" onclick="catalogDelete('${table}',${r.id},${r.coffee_count})" title="Eliminar" ${r.coffee_count>0?'disabled style="opacity:0.3;cursor:not-allowed"':''}>${icon('trash')}</button>
+        <button class="btn-icon" id="cedit-${table}-${r.id}" onclick="catalogStartEdit('${table}',${r.id})" title="${esc(t('catalog.btn.rename'))}" aria-label="${esc(t('catalog.btn.rename'))}">${icon('edit')}</button>
+        <button class="btn-icon save" id="csave-${table}-${r.id}" style="display:none" onclick="catalogSave('${table}',${r.id})" title="${esc(t('catalog.btn.save'))}" aria-label="${esc(t('catalog.btn.save'))}">✓</button>
+        <button class="btn-icon" id="ccancel-${table}-${r.id}" style="display:none" onclick="catalogCancelEdit('${table}',${r.id})" title="${esc(t('catalog.btn.cancel'))}" aria-label="${esc(t('catalog.btn.cancel'))}">${icon('x')}</button>
+        <button class="btn-icon danger" onclick="catalogDelete('${table}',${r.id},${r.coffee_count})" title="${esc(t('catalog.btn.delete'))}" aria-label="${esc(t('catalog.btn.delete'))}" ${r.coffee_count>0?'disabled style="opacity:0.3;cursor:not-allowed"':''}>${icon('trash')}</button>
       </div>`).join('');
     const purgeBtn = orphans ? `<div class="catalog-purge"><button class="btn-purge" onclick="catalogPurge('${table}')">${icon('broom', 'ic-sm')} ${t('catalog.unused_count', {count: orphans})}</button></div>` : '';
     return `<div class="catalog-section">

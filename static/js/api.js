@@ -26,10 +26,26 @@ async function api(path, opts={}) {
   return data;
 }
 
-function showToast(msg) {
+// {undo}: async fn → adds a "Deshacer" button and keeps the toast 5 s (actions a mis-tap can trigger)
+let _toastTimer = null;
+function showToast(msg, {undo} = {}) {
   const toastEl = document.getElementById('toast');
-  toastEl.textContent = msg; toastEl.classList.add('show');
-  setTimeout(()=>toastEl.classList.remove('show'), 2200);
+  toastEl.textContent = msg;
+  toastEl.classList.toggle('has-action', !!undo);
+  if (undo) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'toast-action';
+    btn.textContent = t('toast.undo');
+    btn.onclick = async () => {
+      toastEl.classList.remove('show');
+      try { await undo(); showToast(t('toast.undone')); } catch (_) {}
+    };
+    toastEl.append(btn);
+  }
+  toastEl.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(()=>toastEl.classList.remove('show'), undo ? 5000 : 2200);
 }
 
 function esc(str) {

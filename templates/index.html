@@ -470,12 +470,12 @@
       <div class="form-section" data-i18n="form.section.rating">Valoración</div>
       <div class="form-group">
         <label class="form-label" data-i18n="form.field.score">Puntuación</label>
-        <div class="rating-input">
-          <span class="rating-star" data-val="1" onclick="setRating(1)">★</span>
-          <span class="rating-star" data-val="2" onclick="setRating(2)">★</span>
-          <span class="rating-star" data-val="3" onclick="setRating(3)">★</span>
-          <span class="rating-star" data-val="4" onclick="setRating(4)">★</span>
-          <span class="rating-star" data-val="5" onclick="setRating(5)">★</span>
+        <div class="rating-input" role="group" data-i18n-aria-label="form.field.score">
+          <button type="button" class="rating-star" data-val="1" onclick="setRating(1)" aria-label="1">★</button>
+          <button type="button" class="rating-star" data-val="2" onclick="setRating(2)" aria-label="2">★</button>
+          <button type="button" class="rating-star" data-val="3" onclick="setRating(3)" aria-label="3">★</button>
+          <button type="button" class="rating-star" data-val="4" onclick="setRating(4)" aria-label="4">★</button>
+          <button type="button" class="rating-star" data-val="5" onclick="setRating(5)" aria-label="5">★</button>
         </div>
         <input type="hidden" id="f-rating">
       </div>

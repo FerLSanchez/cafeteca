@@ -1,8 +1,11 @@
 // ---------------------------------------------------------------------------
 // Form: add / edit coffee
 // ---------------------------------------------------------------------------
+// Tocar la estrella ya marcada quita la valoración
 function setRating(val) {
-  document.getElementById('f-rating').value = val;
+  const input = document.getElementById('f-rating');
+  if (parseInt(input.value) === val) val = '';
+  input.value = val;
   document.querySelectorAll('.rating-star').forEach(s=>s.classList.toggle('active', parseInt(s.dataset.val)<=val));
 }
 

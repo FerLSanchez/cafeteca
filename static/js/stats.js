@@ -100,9 +100,9 @@ function renderStatsGantt() {
   el.innerHTML = `
     <div class="stats-gantt">
       <div class="stats-gantt-head">
-        <button class="stats-gantt-nav" onclick="ganttNav(-1)">‹</button>
+        <button class="stats-gantt-nav" onclick="ganttNav(-1)" title="${esc(t('stats.gantt_prev'))}" aria-label="${esc(t('stats.gantt_prev'))}">‹</button>
         <div class="stats-gantt-title">${monthLabel}</div>
-        <button class="stats-gantt-nav" onclick="ganttNav(1)" ${atCurrentMonth ? 'disabled style="opacity:.3"' : ''}>›</button>
+        <button class="stats-gantt-nav" onclick="ganttNav(1)" title="${esc(t('stats.gantt_next'))}" aria-label="${esc(t('stats.gantt_next'))}" ${atCurrentMonth ? 'disabled style="opacity:.3"' : ''}>›</button>
       </div>
       <div class="stats-gantt-grid">
         <div></div>

@@ -94,8 +94,9 @@ def resolve_ids(conn, data):
 
 
 def get_coffee_by_id(conn, cid):
-    """Fetch a single coffee by id and return it as a dict."""
-    return row_to_coffee(conn.execute(COFFEE_SELECT + ' WHERE c.id=?', (cid,)).fetchone())
+    """Fetch a single coffee by id and return it as a dict (None if it does not exist)."""
+    row = conn.execute(COFFEE_SELECT + ' WHERE c.id=?', (cid,)).fetchone()
+    return row_to_coffee(row) if row else None
 
 
 def _verr(key, msg, **params):

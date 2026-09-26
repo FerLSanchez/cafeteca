@@ -47,7 +47,7 @@ function _appendBrewCards(brews, el) {
         <span class="brew-rating">${b.rating ? stars(b.rating) : ''}</span>
         <div class="brew-card-actions">
           <button class="btn-brew-edit" onclick="openBrewModal(null,${b.id})" title="${esc(t('brew.btn.edit'))}" aria-label="${esc(t('brew.btn.edit'))}">${icon('edit')}</button>
-          <button class="btn-brew-delete" onclick="deleteBrew(${b.id})" title="${esc(t('brew.btn.delete'))}" aria-label="${esc(t('brew.btn.delete'))}">${icon('x')}</button>
+          <button class="btn-brew-delete" onclick="deleteBrew(${b.id})" title="${esc(t('brew.btn.delete'))}" aria-label="${esc(t('brew.btn.delete'))}">${icon('trash')}</button>
         </div>
       </div>
       <div class="brew-coffees">${b.coffees.map(n=>`<span class="brew-coffee-tag">${esc(n)}</span>`).join('')}</div>
@@ -134,8 +134,8 @@ async function renderRecipeSection(coffeeId) {
       <div class="recipe-section">
         <div class="recipe-header">
           <span class="recipe-label">${t('recipe.label')}</span>
-          <button class="btn-inline-edit" onclick="openRecipeModal(${coffeeId})" title="Editar receta">${icon('edit')}</button>
-          <button class="btn-inline-edit" onclick="confirmDeleteRecipe(${coffeeId})" title="Quitar receta" style="color:var(--text3)">${icon('x')}</button>
+          <button class="btn-inline-edit" onclick="openRecipeModal(${coffeeId})" title="${esc(t('recipe.btn.edit'))}" aria-label="${esc(t('recipe.btn.edit'))}">${icon('edit')}</button>
+          <button class="btn-inline-edit" onclick="confirmDeleteRecipe(${coffeeId})" title="${esc(t('recipe.btn.delete'))}" aria-label="${esc(t('recipe.btn.delete'))}" style="color:var(--text3)">${icon('trash')}</button>
         </div>
         <div class="recipe-summary">${esc(parts.join(' · ') || '—')}</div>
       </div>`;
@@ -170,7 +170,7 @@ async function renderBrewsSection(coffeeId) {
         <span class="detail-brew-summary">${esc(brewSummaryLine(b))}</span>
         <span class="detail-brew-rating">${b.rating ? stars(b.rating) : ''}</span>
         <button class="btn-inline-edit" onclick="openBrewModal(${coffeeId},${b.id})" title="${esc(t('brew.btn.edit'))}" aria-label="${esc(t('brew.btn.edit'))}">${icon('edit')}</button>
-        <button class="btn-inline-edit" onclick="deleteBrew(${b.id}, ${coffeeId})" title="${esc(t('brew.btn.delete'))}" aria-label="${esc(t('brew.btn.delete'))}" style="color:var(--text3)">${icon('x')}</button>
+        <button class="btn-inline-edit" onclick="deleteBrew(${b.id}, ${coffeeId})" title="${esc(t('brew.btn.delete'))}" aria-label="${esc(t('brew.btn.delete'))}" style="color:var(--text3)">${icon('trash')}</button>
         ${b.shot_metrics ? `<div class="brew-metrics detail-brew-metrics">${b.shot_curve ? curveSparkline(b.shot_curve) : ''}${esc(brewMetricsLine(b))}</div>` : ''}
         ${b.rating ? '' : `<div class="detail-brew-quick">${quickRateHtml(b)}</div>`}
       </div>`).join('')}`;
