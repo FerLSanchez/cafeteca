@@ -83,15 +83,15 @@ Only **Tare** (`01`) is needed, in the dose step. **Never send commands during a
 
 1. In the brew modal, a **⚖️ button** next to "Café (g)" connects if needed and switches the field to **live mode**, where it follows the scale weight in real time.
 2. Show a small **"Tare"** link (command `01`) for when the container is already on the scale.
-3. **Auto-lock:** when the weight is **stable** (±0.1 g for 1 s) and above 1 g, the value is fixed to one decimal and the field shows a ✓. Tapping ⚖️ again re-reads it.
+3. **No early auto-lock** (the F0 capture showed 17.8 g holding still for ~0.6 s while the owner was still adjusting towards 17.0). The field follows the live weight and **freezes on the last stable value (≥1 s, ≥1 g) when the container is lifted** (weight drops towards 0 or negative), or when ✓ is tapped. Brief spikes (hand on the scale, 700+ g) are ignored. *(Proposed; pending the owner's OK.)*
 4. The value stays editable by hand, and the recipe value is still the default if the scale is not used.
 
 ### 5.2 Shot (auto mode) → yield + time
 
 1. After the dose is set, a **"Wait for shot"** state appears (in the same modal, or as a live-shot overlay): "Switch the scale to auto mode and pull your shot".
-2. The **shot starts** when the timer goes from 0 to increasing, or on a `0D`/`01` event. The live view shows the scale's timer, weight, flow (g/s) and the live **ratio against the dose**, plus a progress bar towards the recipe's target yield if one exists.
-3. The **shot ends** when the timer stays unchanged for about 1.5 s, or on a `0D`/`00` event.
-4. **Settle:** keep reading for about 3 s and take the stable weight as the yield. The time is the scale's final timer in seconds.
+2. The **shot starts** when the timer goes from 0 to > 0 (the Mini sends no `0D` events). Placing the cup is **not** a start signal: the scale shows the cup's weight (~143 g) for ~1–2 s and auto-tares to 0 with the timer still at 0. The live view shows the scale's timer, weight, flow (g/s) and the live **ratio against the dose**, plus a progress bar towards the recipe's target yield if one exists.
+3. The **shot ends** when the timer **drops from > 0 back to 0** (confirmed in F0). The scale does this after ~4–5 s of near-zero flow, so the tail is already included.
+4. **Result = the last frame before the reset:** yield = its weight, time = its `ms`. No extra settle wait is needed. The weight is auto-tared to 0 one packet later, and later drips accumulate on the new zero.
 5. The fields are filled in: **dose** (from 5.1, or the recipe, or `grams_per_shot`), **yield**, **time**, and grind/temperature from the recipe. The ratio and flow display updates via `updateBrewRatioDisplay()`. You add a rating and notes, and save through the existing `POST /api/coffees/:id/brews` (which deducts `dose_g` from stock if the bag is open).
 
 ### 5.3 Other touches
@@ -109,7 +109,7 @@ A real shot at a 1.5 g/s target looks like this: a slow start → it ramps up to
 
 | Phase | Detection |
 |---|---|
-| **Pre-infusion / first drops** | from the timer start until the weight goes over ~0.5 g |
+| **Pre-infusion** | not measurable: the scale starts its timer at the first drops (back-dated ~1 s), not at the pump start. The shot time is therefore "time since first drops" |
 | **Ramp** | first drops → flow reaches ~90 % of the target (or of the peak if there is no target) |
 | **Main** | from the end of the ramp until the flow drops below ~50 % of the target/peak for good |
 | **Tail** | the end of main → stop (last drops) |
@@ -118,7 +118,6 @@ A real shot at a 1.5 g/s target looks like this: a slow start → it ramps up to
 
 | Metric | Meaning |
 |---|---|
-| `t_first_drops_s` | time to first drops |
 | `t_ramp_s` | ramp duration (how long it takes to reach the target) |
 | `main_flow` | **mean flow during the main phase**: the "real" flow, which is what you actually dial in |
 | `peak_flow`, `t_peak_s` | the maximum flow and when it happens |
@@ -163,16 +162,25 @@ A real shot at a 1.5 g/s target looks like this: a slow start → it ramps up to
 - ✅ **No `0D`/`0F` packets** from the Mini (this firmware), so the timer-based detection is the path.
 - ✅ Other fields: `unit`=1 (g), flow smoothing off (`17`=0), buzzer 0, standby 5 min.
 - ℹ️ **Timer resolution is 100 ms.** In auto mode, the first non-zero reading was already **1.1 s**: the scale back-dates the start to when the flow began. Use the scale's `ms` as the shot time, not our own clock.
-- ⏳ The auto-stop behaviour is not covered yet: this capture didn't include a finished shot, so it is unknown how the timer freezes at the end. Pending the owner's real morning-shot capture.
-- ⚠️ The scale's own flow is heavily smoothed/lagging. This supports computing flow ourselves (§5.4).
+- ✅ Auto-stop: see §8.1 (the timer resets to 0 at the end).
+- ℹ️ In the finger test, the scale's flow looked lagging. In the real shot, it matches our own 1 s-regression flow within ~0.1–0.2 g/s, so both are usable. We still compute our own (as agreed), and the scale's flow is a cross-check.
 - 🔧 Lab fix: recordings after "Stop" reused a new `t0`, so the timestamps overlapped. `t0` is now kept until "Clear", and each frame carries a `session` number.
 - **Still needed:** 1 real dose + 2–3 real auto-mode shots.
+
+### 8.1 First real shot (2026-09-26, `tests/js/fixtures/f0-real-2026-09-26.json`)
+
+- **Dose:** 17.0 g. The owner overshot to 17.9 g, removed beans and settled at 17.0. There was one ~760 g spike while handling the container.
+- **Shot:** 38.5 g in 27.8 s (scale time) → the scale's average is **1.38 g/s**.
+- **Flow profile:** 1.2–1.4 g/s for the first ~6 s → ~1.7 g/s at 8–10 s → a **dip to ~1.1 g/s at ~11.5 s** → a rise to **2.0–2.2 g/s from ~15 s to 22 s** → it falls at 22.3 s → a **tail of ~5.5 s adding ~1.4 g**.
+- **Main-phase flow ≈ 1.73 g/s** (5.6 → 37.1 g between 4 s and 22.2 s), versus the scale's 1.38. This is exactly the gap §5.4 is meant to show.
+- **Packet rate:** the same ~11 Hz during the shot. The timer advances in 100 ms steps.
+- The shot is kept as a fixture; a test asserts the end-of-shot semantics.
 
 ## 9. Risks and open points
 
 - ✅ **Sign bytes:** ASCII, see §8.
-- ⚠️ **Auto-mode events on the Mini:** undocumented, so timer-based detection is the baseline. Optionally ask `develop@bookoocoffee.com`.
-- ⚠️ **Packet rate** is unknown (probably around 10 Hz). The detector thresholds (1.5 s freeze, 3 s settle, ±0.1 g stability) need tuning with F0 data.
+- ✅ **Auto-mode events on the Mini:** none are sent; timer-based detection is enough (§8.1).
+- ✅ **Packet rate** ≈ 11 Hz. The end of shot is the timer reset, so no freeze/settle thresholds are needed.
 - ⚠️ **Official app:** it must be closed or disconnected while Cafeteca is in use.
 - ✅ Auto-mode UX agreed: see §5.4. Thresholds are pending tuning with F0 captures.
 - ℹ️ The app cannot know the scale's mode (normal or auto); it's not in the `0B` packet. The UX relies on the step the user is in (dose button vs. waiting for shot), not on detecting the mode.

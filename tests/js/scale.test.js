@@ -62,3 +62,15 @@ test('fixture F0: todas las tramas son 0B válidas', () => {
   assert.ok(pkts.some(p => p.ms > 0), 'el timer arranca en modo auto');
   assert.ok(pkts.every(p => p.raw_sign.every(b => b === 0x2b || b === 0x2d)));
 });
+
+// Captura real de un café (dosis 17.0 g + shot en modo auto, 2026-09-26).
+test('fixture real: fin de shot = el timer vuelve a 0 con el peso final aún presente', () => {
+  const {frames} = require('./fixtures/f0-real-2026-09-26.json');
+  const shot = frames.filter(f => f.label === 'shot')
+    .map(f => parseScalePacket(f.hex.split(' ').map(h => parseInt(h, 16))));
+  assert.ok(shot.every(p => p && p.type === 'weight'));
+  const end = shot.findIndex((p, i) => i > 0 && shot[i - 1].ms > 0 && p.ms === 0);
+  assert.strictEqual(shot[end - 1].ms, 27800);
+  assert.strictEqual(shot[end - 1].weight, 38.5);
+  assert.strictEqual(shot[end].weight, 38.5, 'el peso se tara un paquete después');
+});
