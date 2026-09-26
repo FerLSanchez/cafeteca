@@ -88,7 +88,8 @@ async function measure(page) {
   const check = async (label, action) => {
     if (action) await page.evaluate(action, ids);
     await page.waitForTimeout(300);
-    if (SHOTS) await page.screenshot({path: path.join(SHOTS, `tt-${String(++n).padStart(2, '0')}-${label}.png`)});
+    n++;
+    if (SHOTS) await page.screenshot({path: path.join(SHOTS, `tt-${String(n).padStart(2, '0')}-${label}.png`)});
     const {small, close, overflow} = await measure(page);
     overflow.forEach(o => failures.push(`[${label}] fuera de pantalla: ${o}`));
     small.forEach(s => failures.push(`[${label}] pequeño: ${s}`));

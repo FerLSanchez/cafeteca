@@ -923,6 +923,7 @@ body.modal-open { overflow: hidden; touch-action: none; }
   transition: background 0.15s, color 0.15s;
   flex-shrink: 0;
 }
+.modal:focus { outline: none; }
 .modal-close:hover { background: var(--border); color: var(--text); }
 .modal-close .ic { width: 16px; height: 16px; stroke-width: 2.2; }
 

@@ -119,6 +119,7 @@ La app **no tiene autenticación propia**: `cafeteca.fersanchez.com` está detr�
 - `renderAC()` filtra automáticamente los chips ya seleccionados y las regiones por país
 - `consumeShot(id)` — función global en `list.js` que llama a `POST /api/coffees/:id/consume` y refresca la lista; usada desde el `.consume-block` inline en tarjetas de bolsas abiertas. El endpoint además crea un brew automáticamente.
 - **Pantalla encendida**: `wakeSessionStart/End(reason)` en `scale-ui.js` mantiene un Screen Wake Lock mientras la báscula está conectada y el modal de brew o la página de prueba están abiertos; se vuelve a pedir al volver a la app y se suelta tras 10 min sin actividad en la báscula
+- **Modales accesibles**: `openModal()` pone `role=dialog`/`aria-modal`/`aria-labelledby`, enfoca el diálogo (no un campo) y apila el modal en `_modalStack`; Esc cierra el de arriba, Tab no sale de él y `closeModal()` devuelve el foco al botón que lo abrió. Un campo con su propio Esc debe hacer `event.stopPropagation()`.
 - `MODAL_ON_CLOSE[id]` (en `api.js`) — limpieza que `closeModal(id)` ejecuta siempre (botón, overlay o código); la usa la báscula para soltar suscripciones y el wake lock
 - **Modal de brew por pasos** (orden del proceso): 1 Dosis · 2 Molienda y temperatura (steppers `brewStep()`) · 3 Extracción · 4 Cata. `updateBrewSteps()` marca ✓ los pasos con datos. Sin receta, dosis/molienda/temp parten del último brew del café (línea "Último"). Con la báscula conectada, abrir el modal empieza a leer la dosis. El shot con báscula se aplica solo al terminar (sin modal aparte). Sin estrellas el botón es "Guardar · valorar después"; los brews sin valorar muestran `quickRateHtml()` en Prepas y en la ficha (`quickRateBrew()` → `PUT /api/brews/:id {rating}`). Tocar la estrella marcada quita la valoración.
 - **Deshacer**: `showToast(msg, {undo})` (en `api.js`) añade un botón "Deshacer" y dura 5 s; lo usan consumir (`undoConsume()` en `list.js`: borra el brew creado y restaura `remaining_g` con `previous_g`/`brew_id` que devuelve `/consume`) y terminar bolsa (`PUT finished_date: null`). `refreshCoffee(coffee)` repinta lista y ficha.
@@ -243,6 +244,7 @@ node --test tests/js/*.test.js # tests JS (parser, detectores y análisis de la 
 # BASE_URL=http://localhost:5323 node tests/e2e/scale-flow.e2e.js
 # BASE_URL=http://localhost:5323 node tests/e2e/wake-lock.e2e.js
 # BASE_URL=http://localhost:5323 node tests/e2e/brew-flow.e2e.js      # brew manual, valorar después, deshacer
+# BASE_URL=http://localhost:5323 node tests/e2e/modals.e2e.js          # Esc, foco y Tab en los modales
 # BASE_URL=http://localhost:5323 node tests/e2e/touch-targets.e2e.js [carpeta-capturas]
 #   ↑ recorre todas las pantallas a 390 px: falla con controles < 36 px, pegados (< 8 px) o fuera de pantalla
 ```

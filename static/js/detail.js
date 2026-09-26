@@ -119,7 +119,7 @@ function showDetail(id) {
       <div class="detail-cell-val">
         <span class="remaining-edit-row">
           <input class="remaining-input" type="number" id="remaining-input" value="${c.remaining_g ?? ''}" min="0"
-            onkeydown="if(event.key==='Enter')saveRemaining(${c.id});if(event.key==='Escape')cancelEditRemaining()">
+            onkeydown="if(event.key==='Enter')saveRemaining(${c.id});if(event.key==='Escape'){event.stopPropagation();cancelEditRemaining()}">
           <span style="color:var(--text3);font-size:13px">g</span>
           <button class="btn-quick open" onclick="saveRemaining(${c.id})" aria-label="${t('form.btn.save_coffee')}">✓</button>
           <button class="btn-quick" onclick="cancelEditRemaining()" aria-label="${t('form.btn.cancel')}">✕</button>
@@ -247,6 +247,7 @@ function editRemainingInline(id) {
 function cancelEditRemaining() {
   document.getElementById('remaining-display-row').style.display = '';
   document.getElementById('remaining-edit-row').style.display = 'none';
+  document.querySelector('#remaining-display-row .btn-inline-edit')?.focus({preventScroll: true});
 }
 
 async function saveRemaining(id) {
