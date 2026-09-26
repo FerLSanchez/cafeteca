@@ -20,7 +20,7 @@ App web personal para registrar cafés de especialidad. Flask + SQLite + HTML/CS
 - `static/js/i18n.js` — helper de internacionalización: `t()`, `initI18n()`, `applyI18n()`, `changeLang()`
 - `static/js/scale.js` — báscula Bookoo por Web Bluetooth: `parseScalePacket()` (puro, testeado con node), `scaleConnect()`/`scaleTare()`/`scaleDisconnect()`, bus `scale.bus` y la captura de tramas
 - `static/js/scale-analysis.js` — puro (testeado con node): `DoseTracker` (congela la dosis al levantar el recipiente), `ShotTracker` (el timer 0→>0 arranca, vuelve a 0 = fin), `analyzeShot()` (métricas de flujo §5.4)
-- `static/js/scale-ui.js` — chip ⚖️ del nav, ⚖️ de dosis y "⏱ Shot con báscula" en el modal de brew, `createShotView()` (curva en vivo + resumen) y la página de prueba (`modal-scale`, desde Ajustes)
+- `static/js/scale-ui.js` — chip ⚖️ del nav, panel de dosis (`brewScaleDoseStart()`: peso grande + Tara / Fijar dosis) y shot en vivo inline en el paso 3 del modal de brew (`brewScaleShot()`/`brewShotClose()`), `createShotView()` (curva en vivo + resumen; `onDone`/`onCancel`/`onRetry`) y la página de prueba (`modal-scale`, desde Ajustes)
 - `static/i18n/es.json` — todas las cadenas de la UI en español; `en.json` — traducción inglesa
 
 ## Arquitectura de datos
@@ -120,6 +120,8 @@ La app **no tiene autenticación propia**: `cafeteca.fersanchez.com` está detr�
 - `consumeShot(id)` — función global en `list.js` que llama a `POST /api/coffees/:id/consume` y refresca la lista; usada desde el `.consume-block` inline en tarjetas de bolsas abiertas. El endpoint además crea un brew automáticamente.
 - **Pantalla encendida**: `wakeSessionStart/End(reason)` en `scale-ui.js` mantiene un Screen Wake Lock mientras la báscula está conectada y el modal de brew o la página de prueba están abiertos; se vuelve a pedir al volver a la app y se suelta tras 10 min sin actividad en la báscula
 - `MODAL_ON_CLOSE[id]` (en `api.js`) — limpieza que `closeModal(id)` ejecuta siempre (botón, overlay o código); la usa la báscula para soltar suscripciones y el wake lock
+- **Modal de brew por pasos** (orden del proceso): 1 Dosis · 2 Molienda y temperatura (steppers `brewStep()`) · 3 Extracción · 4 Cata. `updateBrewSteps()` marca ✓ los pasos con datos. Sin receta, dosis/molienda/temp parten del último brew del café (línea "Último"). Con la báscula conectada, abrir el modal empieza a leer la dosis. El shot con báscula se aplica solo al terminar (sin modal aparte). Sin estrellas el botón es "Guardar · valorar después"; los brews sin valorar muestran `quickRateHtml()` en Prepas y en la ficha (`quickRateBrew()` → `PUT /api/brews/:id {rating}`). Tocar la estrella marcada quita la valoración.
+- Los `.modal-overlay` con `data-keep-open` no se cierran al tocar fuera (el modal de brew, para no perder un shot)
 - `purgeOldBrews()` — en `form.js`; muestra confirmación y llama `DELETE /api/brews/purge` con los meses seleccionados en `#s-purge-months`
 - **Scroll infinito en pestaña Prepas**: `loadBrews(reset=true)` en `brews.js`; carga 20 registros por página usando IntersectionObserver sobre `#brews-sentinel`
 - **Vista compacta**: `toggleCompactView()` alterna `compactList` (boolean en `state.js`), persiste en `localStorage('compactList')`, y llama `renderList()`; `renderCompactCard(c)` en `list.js`

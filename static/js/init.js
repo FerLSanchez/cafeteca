@@ -9,8 +9,8 @@ async function init() {
   await fetchAndRender();
 }
 
-// Close modals on overlay click
-document.querySelectorAll('.modal-overlay').forEach(m=>{
+// Close modals on overlay click (not the ones with data being entered, e.g. mid-shot)
+document.querySelectorAll('.modal-overlay:not([data-keep-open])').forEach(m=>{
   m.addEventListener('click', e=>{ if(e.target===m) closeModal(m.id); });
 });
 
