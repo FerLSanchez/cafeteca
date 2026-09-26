@@ -10,6 +10,7 @@ let searchQuery = '';
 let searchTimer = null;
 let currentSort = 'smart';
 let gramsPerShot = 17;         // loaded from /api/settings
+let grindStep = 1;             // paso de los −/+ de molienda (/api/settings)
 let lowStockThreshold = 5;    // loaded from /api/settings
 
 // Multi-select chip state for m2m fields
@@ -23,7 +24,7 @@ const CHIP_FIELDS = {
 };
 
 // List view mode
-let compactList = localStorage.getItem('compactList') === '1';
+let compactList = (() => { try { return localStorage.getItem('compactList') === '1'; } catch (_) { return false; } })();
 
 // Pagination
 const PAGE_SIZE = 15;

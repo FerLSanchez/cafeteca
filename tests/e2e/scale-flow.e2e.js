@@ -65,31 +65,37 @@ async function apiCall(page, method, url, body) {
   await page.evaluate(id => openBrewModal(id), coffee.id);
   await page.waitForSelector('#modal-brew.open', {state: 'attached'});
 
-  // 1) Dosis: ajuste final hasta 17.0 y levantar el recipiente
+  // 1) Dosis: "Pesar" conecta; ajuste final hasta 17.0 y levantar el recipiente
   await page.click('#modal-brew .btn-scale');
+  await page.waitForSelector('#b-dose-scale:not([hidden])');
   await page.evaluate(() => window.__replay(15.5, 22.7));
   const zero = '03 0b 00 00 00 01 2b 00 00 00 2b 00 00 32 00 32 00 00 00 09';
   await page.evaluate(z => { window.__emit(z); window.__emit(z); }, zero);
   assert.strictEqual(await page.inputValue('#b-dose'), '17.0');
-  assert.match(await page.textContent('#b-dose-scale'), /17\.0/);
+  assert.match(await page.textContent('#b-dose-scale .scale-dose-msg'), /17\.0/);
+  assert.ok(await page.$('#b-dose-scale.locked'), 'panel en estado fijado');
+  assert.ok(await page.$('#b-step-dose.done'), 'paso 1 marcado');
   assert.match(await page.textContent('#scale-chip'), /50%/);
 
-  // 2) Shot en modo auto: taza (auto-tara), shot y reset del timer
+  // 2) Shot en modo auto (inline en el paso 3): taza (auto-tara), shot y reset del timer
   await page.click('#modal-brew .btn-shot');
-  await page.waitForSelector('#modal-shot.open', {state: 'attached'});
+  await page.waitForSelector('#b-shot-live:not([hidden])');
   await page.evaluate(() => window.__replay(96, 132));
-  await page.waitForSelector('#shot-view .shot-summary:not([hidden])');
-  const summary = await page.textContent('#shot-view .shot-summary');
+  await page.waitForSelector('#b-shot-live .shot-summary:not([hidden])');
+  const summary = await page.textContent('#b-shot-live .shot-summary');
   assert.match(summary, /1\.7\d g\/s/, 'flujo principal ≈ 1.73');
   assert.match(summary, /1\.38 g\/s/, 'media de la báscula');
   if (process.argv[2]) await page.screenshot({path: process.argv[2]});
-  await page.click('#shot-view .shot-actions .btn-primary');
+  // El resultado se aplica solo al terminar
   assert.strictEqual(await page.inputValue('#b-yield'), '38.5');
   assert.strictEqual(await page.inputValue('#b-time'), '28');
+  // Un solo "flujo" en pantalla: el principal del shot, no la media salida/tiempo
+  assert.match(await page.textContent('#b-ratio-display'), /1\.7\d g\/s/);
+  assert.doesNotMatch(await page.textContent('#b-ratio-display'), /1\.38/);
 
   // 3) Guardar con valoración: el brew lleva métricas y curva
   await page.click('#modal-brew .brew-star[data-val="5"]');
-  await page.click('#modal-brew > .modal > .btn-primary');
+  await page.click('#b-submit');
   await page.waitForSelector('#modal-brew:not(.open)', {state: 'attached'});
   const brews = await apiCall(page, 'GET', `/api/coffees/${coffee.id}/brews`);
   const m = brews[0].shot_metrics;
@@ -99,11 +105,14 @@ async function apiCall(page, method, url, body) {
   assert.ok(brews[0].shot_curve.pts.length > 200, 'curva completa guardada');
   assert.strictEqual(brews[0].shot_curve.time_ms, 27800);
 
-  // 4) Siguiente shot: la curva del mejor valorado aparece como fantasma
+  // 4) Siguiente shot: con la báscula conectada la dosis empieza sola, y la curva
+  //    del mejor valorado aparece como fantasma
   await page.evaluate(id => openBrewModal(id), coffee.id);
+  await page.waitForSelector('#b-dose-scale:not([hidden]):not(.locked)');
   await page.click('#modal-brew .btn-shot');
-  await page.waitForSelector('#shot-view .shot-legend', {state: 'attached'});
-  await page.evaluate(() => closeModal('modal-shot'));
+  await page.waitForSelector('#b-shot-live .shot-legend', {state: 'attached'});
+  await page.evaluate(() => closeModal('modal-brew'));
+  assert.ok(await page.$('#b-shot-live[hidden]'), 'la vista en vivo se cierra con el modal');
 
   assert.deepStrictEqual(errors, []);
   console.log('ok — scale flow e2e', JSON.stringify(m));

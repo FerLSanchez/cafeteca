@@ -20,7 +20,7 @@ App web personal para registrar cafés de especialidad. Flask + SQLite + HTML/CS
 - `static/js/i18n.js` — helper de internacionalización: `t()`, `initI18n()`, `applyI18n()`, `changeLang()`
 - `static/js/scale.js` — báscula Bookoo por Web Bluetooth: `parseScalePacket()` (puro, testeado con node), `scaleConnect()`/`scaleTare()`/`scaleDisconnect()`, bus `scale.bus` y la captura de tramas
 - `static/js/scale-analysis.js` — puro (testeado con node): `DoseTracker` (congela la dosis al levantar el recipiente), `ShotTracker` (el timer 0→>0 arranca, vuelve a 0 = fin), `analyzeShot()` (métricas de flujo §5.4)
-- `static/js/scale-ui.js` — chip ⚖️ del nav, ⚖️ de dosis y "⏱ Shot con báscula" en el modal de brew, `createShotView()` (curva en vivo + resumen) y la página de prueba (`modal-scale`, desde Ajustes)
+- `static/js/scale-ui.js` — chip ⚖️ del nav, panel de dosis (`brewScaleDoseStart()`: peso grande + Tara / Fijar dosis) y shot en vivo inline en el paso 3 del modal de brew (`brewScaleShot()`/`brewShotClose()`), `createShotView()` (curva en vivo + resumen; `onDone`/`onCancel`/`onRetry`) y la página de prueba (`modal-scale`, desde Ajustes)
 - `static/i18n/es.json` — todas las cadenas de la UI en español; `en.json` — traducción inglesa
 
 ## Arquitectura de datos
@@ -88,7 +88,7 @@ La app **no tiene autenticación propia**: `cafeteca.fersanchez.com` está detr�
 - **NPM** (proxy host 42, pestaña *Advanced*; NPM guarda la config en su MySQL y regenera `/data/nginxproxymanager/data/nginx/proxy_host/42.conf` al guardar — no editar el `.conf` a mano): `auth_request` → `http://127.0.0.1:9092/api/authz/auth-request`. Sin sesión, las navegaciones reciben 302 a `auth.fersanchez.com`; **`/api/` recibe un 401 sin redirección** (un `fetch()` no puede seguir el redirect cross-origin). Sin auth: `/sw.js`, `/manifest.json`, `/static/`. Tras cada guardado, comprobar que `42.conf` existe y `nginx -t` pasa (un error en *Advanced* borra el server block entero). **Nunca `map` en *Advanced*** (solo válido en `http`, tumbó bodega).
 - **Authelia** (`/data/authelia/config/configuration.yml`): regla `cafeteca.fersanchez.com` → `one_factor`, `group:admins`.
 - **Invariante de seguridad**: `docker-compose.yml` publica `127.0.0.1:5323`, nunca `5323`. Con un bind público cualquiera en la LAN entraría sin login.
-- **Frontend**: `api()` en `api.js` recarga la página ante un 401 (sesión de Authelia caducada → la navegación lleva al login). `sw.js` sirve las navegaciones *network-first* (el shell cacheado es solo fallback offline, si no una sesión caducada nunca llegaría al login) y precachea con `Promise.allSettled` ignorando respuestas redirigidas.
+- **Frontend**: `api()` en `api.js` recarga la página ante un 401 (sesión de Authelia caducada → la navegación lleva al login). Al activarse una versión nueva, `onSwUpdated()` (en `init.js`) recarga solo si la página ya estaba controlada por un SW anterior y nunca con un modal abierto (espera a que se cierre el último: `reloadWhenModalsClosed`). `sw.js` sirve las navegaciones *network-first* (el shell cacheado es solo fallback offline, si no una sesión caducada nunca llegaría al login) y precachea con `Promise.allSettled` ignorando respuestas redirigidas.
 - El antiguo PIN se eliminó en `migrate_v8` (borra `pin_hash` de `settings`).
 
 ## Convenciones importantes
@@ -97,6 +97,7 @@ La app **no tiene autenticación propia**: `cafeteca.fersanchez.com` está detr�
 - `init_db()` se llama al arrancar y es idempotente — incluye todas las migraciones
 - Hay dos fases de migración: `migrate_v1()` (texto→FK, legado) y `migrate_v2()` (FK→M2M + link región-país)
 - Añadir un nuevo cambio de esquema: crear `migrate_v11()` en `schema.py` y llamarla desde `init_db()` (la última es `migrate_v10`: `brews.shot_curve`)
+- `SETTING_GRIND_STEP` — paso de los −/+ de molienda (0.1–5, default 1) en `/api/settings` (`grind_step`); `grind` admite decimales (medios pasos): la columna es INTEGER pero SQLite guarda el REAL sin migración
 - `SETTING_LOW_STOCK_THRESHOLD` — umbral configurable (1-50, default 5) en `schema.py`; cuando `floor(remaining_g / grams_per_shot) <= threshold` se muestra ⚠️ en la ficha
 - Registrar un brew descuenta `dose_g` de `remaining_g` del café si está abierto y tiene restante definido (se descuenta solo al crear, no al editar ni borrar)
 - **Pulsar "Consumir"** (`POST /api/coffees/:id/consume`) devuelve 409 si el café está terminado (`error.coffee.consume_finished`) o no tiene `remaining_g` (`error.coffee.consume_no_stock`). También crea un registro de brew automáticamente con los datos de la receta del café si existe, o solo con `dose_g = grams_per_shot`. El descuento de `remaining_g` lo hace el propio endpoint de consume; el brew creado **no** vuelve a descontarlo.
@@ -119,9 +120,16 @@ La app **no tiene autenticación propia**: `cafeteca.fersanchez.com` está detr�
 - `renderAC()` filtra automáticamente los chips ya seleccionados y las regiones por país
 - `consumeShot(id)` — función global en `list.js` que llama a `POST /api/coffees/:id/consume` y refresca la lista; usada desde el `.consume-block` inline en tarjetas de bolsas abiertas. El endpoint además crea un brew automáticamente.
 - **Pantalla encendida**: `wakeSessionStart/End(reason)` en `scale-ui.js` mantiene un Screen Wake Lock mientras la báscula está conectada y el modal de brew o la página de prueba están abiertos; se vuelve a pedir al volver a la app y se suelta tras 10 min sin actividad en la báscula
+- **Modales accesibles**: `openModal()` pone `role=dialog`/`aria-modal`/`aria-labelledby`, enfoca el diálogo (no un campo) y apila el modal en `_modalStack`; Esc cierra el de arriba, Tab no sale de él y `closeModal()` devuelve el foco al botón que lo abrió. Un campo con su propio Esc debe hacer `event.stopPropagation()`.
 - `MODAL_ON_CLOSE[id]` (en `api.js`) — limpieza que `closeModal(id)` ejecuta siempre (botón, overlay o código); la usa la báscula para soltar suscripciones y el wake lock
+- **Modal de brew por pasos** (orden del proceso): 1 Dosis · 2 Molienda y temperatura (steppers `brewStep()`) · 3 Extracción · 4 Cata. `updateBrewSteps()` marca ✓ los pasos con datos. Sin receta, dosis/molienda/temp parten del último brew del café (línea "Último"). Con la báscula conectada, abrir el modal empieza a leer la dosis. El shot con báscula se aplica solo al terminar (sin modal aparte). Sin estrellas el botón es "Guardar · valorar después"; los brews sin valorar muestran `quickRateHtml()` en Prepas y en la ficha (`quickRateBrew()` → `PUT /api/brews/:id {rating}`). Tocar la estrella marcada quita la valoración.
+- **Deshacer**: `showToast(msg, {undo})` (en `api.js`) añade un botón "Deshacer" y dura 5 s; lo usan consumir (`undoConsume()` en `list.js`: borra el brew creado y restaura `remaining_g` con `previous_g`/`brew_id` que devuelve `/consume`) y terminar bolsa (`PUT finished_date: null`). `refreshCoffee(coffee)` repinta lista y ficha.
+- **Objetivos táctiles**: mínimo 36–40 px (44 px en estrellas y acciones del modal de brew) y ≥ 10 px entre acciones vecinas; los borrados usan el icono 🗑 (`icon('trash')`), no ✕.
+- **Empezar una preparación**: desde la ficha, desde "🫖 Preparar" en la tarjeta de una bolsa abierta, o desde "🫖 Nueva preparación" en Prepas (`newBrewFromBrews()` en `brews.js`: una bolsa abierta → directo; varias → `modal-pick-coffee`). `openBrewModal(coffeeId, brewId, coffeeName)`.
+- Los `.modal-overlay` con `data-keep-open` no se cierran al tocar fuera (el modal de brew, para no perder un shot)
 - `purgeOldBrews()` — en `form.js`; muestra confirmación y llama `DELETE /api/brews/purge` con los meses seleccionados en `#s-purge-months`
 - **Scroll infinito en pestaña Prepas**: `loadBrews(reset=true)` en `brews.js`; carga 20 registros por página usando IntersectionObserver sobre `#brews-sentinel`
+- **Preferencias de la lista**: estado, orden y filtros avanzados se guardan en `localStorage('listPrefs')` (`saveListPrefs()` / `restoreListPrefs()` en `filters.js`, restaurados en `init()` tras `loadOptions()`); la búsqueda no. Todo acceso a `localStorage` va en `try` (modo privado).
 - **Vista compacta**: `toggleCompactView()` alterna `compactList` (boolean en `state.js`), persiste en `localStorage('compactList')`, y llama `renderList()`; `renderCompactCard(c)` en `list.js`
 - **time_s (tiempo de extracción)**: campo opcional en recetas y brews; `fmtFlow(yld, time_s)` en `brews.js` calcula el flujo en g/s; el ratio y flujo se muestran en `#r-ratio-display` / `#b-ratio-display`
 
@@ -237,7 +245,15 @@ node --test tests/js/*.test.js # tests JS (parser, detectores y análisis de la 
 # E2E báscula (manual, necesita playwright y la app corriendo):
 # BASE_URL=http://localhost:5323 node tests/e2e/scale-flow.e2e.js
 # BASE_URL=http://localhost:5323 node tests/e2e/wake-lock.e2e.js
+# BASE_URL=http://localhost:5323 node tests/e2e/brew-flow.e2e.js      # brew manual, valorar después, deshacer
+# BASE_URL=http://localhost:5323 node tests/e2e/modals.e2e.js          # Esc, foco y Tab en los modales
+# BASE_URL=http://localhost:5323 node tests/e2e/list-prefs.e2e.js      # filtros recordados, localStorage bloqueado
+# BASE_URL=http://localhost:5323 node tests/e2e/layout-widths.e2e.js   # sin scroll horizontal a 390/768/820/1024/1280 px
+# BASE_URL=http://localhost:5323 node tests/e2e/touch-targets.e2e.js [carpeta-capturas]
+#   ↑ recorre todas las pantallas a 390 px: falla con controles < 36 px, pegados (< 8 px) o fuera de pantalla
 ```
+
+`tests/js/i18n.test.js` (en CI) exige las mismas claves en todos los idiomas y que toda clave usada en JS/HTML/backend exista en `es.json`.
 
 Los tests usan una BD SQLite en memoria. `conftest.py` provee el fixture `client`.
 

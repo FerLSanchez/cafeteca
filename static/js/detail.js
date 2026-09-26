@@ -29,7 +29,10 @@ async function quickFinish(e, id) {
   const i = displayedCoffees.findIndex(c=>c.id===id);
   if (i!==-1) displayedCoffees[i]=updated;
   if (currentDetail?.id===id) currentDetail=updated;
-  renderList(); showToast(t('toast.finished'));
+  renderList();
+  showToast(t('toast.finished'), { undo: async () => {
+    refreshCoffee(await api('/coffees/'+id, {method:'PUT', body:JSON.stringify({finished_date: null})}));
+  }});
 }
 
 // ---------------------------------------------------------------------------
@@ -108,7 +111,7 @@ function showDetail(id) {
       <div class="detail-cell-label">${t('detail.label.remaining')}</div>
       <div class="detail-cell-val" style="display:flex;align-items:center;gap:8px">
         <span id="remaining-display">${c.remaining_g != null ? c.remaining_g + 'g' : '—'}</span>
-        <button class="btn-inline-edit" onclick="editRemainingInline(${c.id})" title="Editar">${icon('edit')}</button>
+        <button class="btn-inline-edit" onclick="editRemainingInline(${c.id})" title="${esc(t('detail.btn.edit_remaining'))}" aria-label="${esc(t('detail.btn.edit_remaining'))}">${icon('edit')}</button>
       </div>
     </div>
     <div class="detail-cell span2" id="remaining-edit-row" style="display:none">
@@ -116,10 +119,10 @@ function showDetail(id) {
       <div class="detail-cell-val">
         <span class="remaining-edit-row">
           <input class="remaining-input" type="number" id="remaining-input" value="${c.remaining_g ?? ''}" min="0"
-            onkeydown="if(event.key==='Enter')saveRemaining(${c.id});if(event.key==='Escape')cancelEditRemaining()">
+            onkeydown="if(event.key==='Enter')saveRemaining(${c.id});if(event.key==='Escape'){event.stopPropagation();cancelEditRemaining()}">
           <span style="color:var(--text3);font-size:13px">g</span>
-          <button class="btn-quick" onclick="saveRemaining(${c.id})" style="padding:4px 10px;font-size:12px">✓</button>
-          <button class="btn-quick" onclick="cancelEditRemaining()" style="padding:4px 10px;font-size:12px">✕</button>
+          <button class="btn-quick open" onclick="saveRemaining(${c.id})" aria-label="${t('form.btn.save_coffee')}">✓</button>
+          <button class="btn-quick" onclick="cancelEditRemaining()" aria-label="${t('form.btn.cancel')}">✕</button>
         </span>
       </div>
     </div>` : '';
@@ -229,7 +232,8 @@ async function consumeCoffee() {
       }
     });
   } else {
-    showToast(t('toast.consume_summary', {consumed_g: result.consumed_g, remaining_g: result.remaining_g}));
+    showToast(t('toast.consume_summary', {consumed_g: result.consumed_g, remaining_g: result.remaining_g}),
+      { undo: () => undoConsume(updated.id, result) });
   }
 }
 
@@ -243,6 +247,7 @@ function editRemainingInline(id) {
 function cancelEditRemaining() {
   document.getElementById('remaining-display-row').style.display = '';
   document.getElementById('remaining-edit-row').style.display = 'none';
+  document.querySelector('#remaining-display-row .btn-inline-edit')?.focus({preventScroll: true});
 }
 
 async function saveRemaining(id) {

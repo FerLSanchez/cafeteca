@@ -281,6 +281,27 @@ class TestConsumeCoffee:
         assert body['consumed_g'] == 17
         assert body['remaining_g'] == 233
 
+    def test_consume_can_be_undone(self, client):
+        # The "Deshacer" toast deletes the created brew and restores remaining_g
+        coffee = make_coffee(client, {'quantity_g': 250})
+        body = client.post(f'/api/coffees/{coffee["id"]}/consume').get_json()
+        assert body['previous_g'] == 250
+        assert client.delete(f'/api/brews/{body["brew_id"]}').status_code == 200
+        restored = client.put(f'/api/coffees/{coffee["id"]}/remaining', json={'remaining_g': body['previous_g']}).get_json()
+        assert restored['remaining_g'] == 250
+        assert client.get(f'/api/coffees/{coffee["id"]}/brews').get_json() == []
+
+    def test_get_missing_coffee_is_404(self, client):
+        resp = client.get('/api/coffees/999')
+        assert resp.status_code == 404
+        assert resp.get_json()['error_key'] == 'error.coffee.not_found'
+
+    def test_finish_can_be_undone(self, client):
+        coffee = make_coffee(client, {'quantity_g': 250})
+        client.post(f'/api/coffees/{coffee["id"]}/finish', json={'date': '2026-09-26'})
+        restored = client.put(f'/api/coffees/{coffee["id"]}', json={'finished_date': None}).get_json()
+        assert restored['finished_date'] is None
+
     def test_consume_floors_at_zero(self, client):
         coffee = make_coffee(client, {'quantity_g': 10})
         resp = client.post(f'/api/coffees/{coffee["id"]}/consume')

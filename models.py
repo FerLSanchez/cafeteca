@@ -94,8 +94,9 @@ def resolve_ids(conn, data):
 
 
 def get_coffee_by_id(conn, cid):
-    """Fetch a single coffee by id and return it as a dict."""
-    return row_to_coffee(conn.execute(COFFEE_SELECT + ' WHERE c.id=?', (cid,)).fetchone())
+    """Fetch a single coffee by id and return it as a dict (None if it does not exist)."""
+    row = conn.execute(COFFEE_SELECT + ' WHERE c.id=?', (cid,)).fetchone()
+    return row_to_coffee(row) if row else None
 
 
 def _verr(key, msg, **params):
@@ -155,7 +156,7 @@ BREW_NUMERIC = [
     ('dose_g',  (int, float), 0, 200),
     ('yield_g', (int, float), 0, 1000),
     ('time_s',  int,          0, 3600),
-    ('grind',   int,          0, 1000),
+    ('grind',   (int, float), 0, 1000),   # decimales: molinillos con medios pasos (columna INTEGER, SQLite guarda el REAL)
     ('temp_c',  int,          0, 110),
 ]
 

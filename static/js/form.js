@@ -1,8 +1,11 @@
 // ---------------------------------------------------------------------------
 // Form: add / edit coffee
 // ---------------------------------------------------------------------------
+// Tocar la estrella ya marcada quita la valoración
 function setRating(val) {
-  document.getElementById('f-rating').value = val;
+  const input = document.getElementById('f-rating');
+  if (parseInt(input.value) === val) val = '';
+  input.value = val;
   document.querySelectorAll('.rating-star').forEach(s=>s.classList.toggle('active', parseInt(s.dataset.val)<=val));
 }
 
@@ -129,6 +132,7 @@ function openSettings() {
   document.getElementById('s-grams').value = gramsPerShot;
   document.getElementById('s-low-stock').value = lowStockThreshold;
   document.getElementById('s-flow-tol').value = flowTolerance;
+  document.getElementById('s-grind-step').value = grindStep;
   openModal('modal-settings');
 }
 
@@ -139,7 +143,10 @@ async function saveSettings() {
   if (isNaN(lst) || lst < 1 || lst > 50) { showToast(t('validation.threshold_invalid')); return; }
   const tol = parseFloat(document.getElementById('s-flow-tol').value);
   if (isNaN(tol) || tol < 0.05 || tol > 1) { showToast(t('validation.flow_tolerance_invalid')); return; }
-  await api('/settings', {method:'PUT', body:JSON.stringify({grams_per_shot:gps, low_stock_threshold:lst, flow_tolerance:tol})});
+  const gs = parseFloat(document.getElementById('s-grind-step').value);
+  if (isNaN(gs) || gs < 0.1 || gs > 5) { showToast(t('validation.grind_step_invalid')); return; }
+  await api('/settings', {method:'PUT', body:JSON.stringify({grams_per_shot:gps, low_stock_threshold:lst, flow_tolerance:tol, grind_step:gs})});
+  grindStep = gs;
   gramsPerShot = gps;
   lowStockThreshold = lst;
   flowTolerance = tol;

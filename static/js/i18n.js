@@ -2,7 +2,7 @@
 // i18n — translation helper
 // ---------------------------------------------------------------------------
 let _translations = {};
-const _currentLang = localStorage.getItem('lang') || 'es';
+const _currentLang = (() => { try { return localStorage.getItem('lang') || 'es'; } catch (_) { return 'es'; } })();
 
 async function initI18n() {
   try {
@@ -37,9 +37,12 @@ function applyI18n() {
   document.querySelectorAll('[data-i18n-title]').forEach(el => {
     el.title = t(el.dataset.i18nTitle);
   });
+  document.querySelectorAll('[data-i18n-aria-label]').forEach(el => {
+    el.setAttribute('aria-label', t(el.dataset.i18nAriaLabel));
+  });
 }
 
 function changeLang(lang) {
-  localStorage.setItem('lang', lang);
+  try { localStorage.setItem('lang', lang); } catch (_) {}
   location.reload();
 }

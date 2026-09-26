@@ -16,6 +16,7 @@ async function fetchAndRender() {
 
 function onSortChange() {
   currentSort = document.getElementById('sort-select').value;
+  saveListPrefs();
   visibleCount = PAGE_SIZE;
   renderList();
 }
@@ -70,7 +71,7 @@ function renderCompactCard(c) {
       <div class="coffee-sub" style="margin-top:0">${sub || ''}</div>
       <div class="cc-meta2">
         <span class="tag ${status.cls}">${status.label}</span>
-        ${opened && c.remaining_g != null ? `<span class="cc-qty${lowStock?' low-stock':''}">${c.remaining_g}g<small> / ${c.quantity_g}g</small>${shots !== null ? ` <small>(${shots}${t('list.shots_unit')})</small>` : ''}${lowStock ? ' <span class="low-stock-icon" title="'+t('list.low_stock_alert')+'">⚠️</span>' : ''}</span>` : ''}
+        ${opened && c.remaining_g != null ? `<span class="cc-qty${lowStock?' low-stock':''}">${c.remaining_g}g${c.quantity_g ? `<small> / ${c.quantity_g}g</small>` : ''}${shots !== null ? ` <small>(${shots}${t('list.shots_unit')})</small>` : ''}${lowStock ? ' <span class="low-stock-icon" title="'+t('list.low_stock_alert')+'">⚠️</span>' : ''}</span>` : ''}
       </div>
     </div>
     ${!c.opened_date ? `<div class="cc-open-slot" id="actions-${c.id}" onclick="event.stopPropagation()"></div>` : ''}
@@ -112,6 +113,7 @@ function renderList() {
     const daysOpenTag = daysOpen !== null ? `<span class="tag">${t('list.days_open_tag', {days: daysOpen, s: daysOpen!==1?'s':''})}</span>` : '';
     const price = fmtPrice(c);
     const actions = !finished ? `<div class="card-actions" id="actions-${c.id}">
+      ${c.opened_date?`<button class="btn-quick brew" onclick="event.stopPropagation();openBrewModal(${c.id})">${t('detail.btn.brew')}</button>`:''}
       ${!c.opened_date?`<button class="btn-quick open" onclick="showOpenDatePicker(event,${c.id})">${t('list.btn.open_today')}</button>`:''}
       ${c.opened_date?`<button class="btn-quick finish" onclick="quickFinish(event,${c.id})">${t('list.btn.finish_today')}</button>`:''}
     </div>` : '';
@@ -145,11 +147,11 @@ function renderList() {
         <div class="consume-block" onclick="event.stopPropagation()">
           <div class="consume-block-head">
             <span class="consume-block-label">${t('list.remaining')}</span>
-            <span class="consume-block-value">${c.remaining_g}g <small>/ ${c.quantity_g}g</small>${shotsLabel}</span>
+            <span class="consume-block-value">${c.remaining_g}g${c.quantity_g ? ` <small>/ ${c.quantity_g}g</small>` : ''}${shotsLabel}</span>
           </div>
-          <div class="consume-block-track">
+          ${c.quantity_g ? `<div class="consume-block-track">
             <div class="consume-block-fill" style="width:${Math.min(100, Math.max(0, (c.remaining_g / c.quantity_g) * 100)).toFixed(1)}%"></div>
-          </div>
+          </div>` : ''}
           <button class="btn-consume" onclick="event.stopPropagation(); consumeShot(${c.id})">
             − ${t('list.consume_shot')} (${gramsPerShot}g)
           </button>
@@ -175,17 +177,37 @@ function loadMore() {
 
 function toggleCompactView() {
   compactList = !compactList;
-  localStorage.setItem('compactList', compactList ? '1' : '0');
+  try { localStorage.setItem('compactList', compactList ? '1' : '0'); } catch (_) {}
   renderList();
 }
 
 async function consumeShot(id) {
   const result = await api('/coffees/' + id + '/consume', { method: 'POST', body: JSON.stringify({date: todayLocal()}) });
   if (!result || result.error) { showToast(result?.error || t('error.generic')); return; }
-  showToast(t('toast.consume_summary', { consumed_g: result.consumed_g, remaining_g: result.remaining_g }));
+  showToast(t('toast.consume_summary', { consumed_g: result.consumed_g, remaining_g: result.remaining_g }),
+    { undo: () => undoConsume(id, result) });
   const idx = displayedCoffees.findIndex(c => c.id === id);
   if (idx !== -1) displayedCoffees[idx] = result.coffee;
   renderList();
+}
+
+// Deshace un "Consumir": borra el brew creado y devuelve los gramos
+async function undoConsume(id, result) {
+  await api('/brews/' + result.brew_id, { method: 'DELETE' });
+  const coffee = await api('/coffees/' + id + '/remaining', { method: 'PUT', body: JSON.stringify({ remaining_g: result.previous_g }) });
+  refreshCoffee(coffee);
+}
+
+// Sustituye un café en la lista (y en la ficha si está abierta) y repinta
+function refreshCoffee(coffee) {
+  const idx = displayedCoffees.findIndex(c => c.id === coffee.id);
+  if (idx !== -1) displayedCoffees[idx] = coffee;
+  renderList();
+  if (currentDetail?.id === coffee.id) {
+    currentDetail = coffee;
+    if (document.getElementById('modal-detail').classList.contains('open')) showDetail(coffee.id);
+  }
+  if (document.getElementById('page-brews')?.classList.contains('active')) loadBrews();
 }
 
 function showPage(name, tab) {

@@ -149,3 +149,18 @@ class TestFlowTolerance:
         resp = client.put('/api/settings', json={'flow_tolerance': bad})
         assert resp.status_code == 400
         assert resp.get_json()['error_key'] == 'error.settings.flow_tolerance_invalid'
+
+
+class TestGrindStep:
+    def test_default_is_one(self, client):
+        assert client.get('/api/settings').get_json()['grind_step'] == 1
+
+    def test_update(self, client):
+        assert client.put('/api/settings', json={'grind_step': 0.5}).status_code == 200
+        assert client.get('/api/settings').get_json()['grind_step'] == 0.5
+
+    @pytest.mark.parametrize('bad', [0, 0.05, 6, 'x', True])
+    def test_invalid(self, client, bad):
+        resp = client.put('/api/settings', json={'grind_step': bad})
+        assert resp.status_code == 400
+        assert resp.get_json()['error_key'] == 'error.settings.grind_step_invalid'

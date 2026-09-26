@@ -79,30 +79,40 @@ const fmtG = v => (v == null ? '—' : v.toFixed(1));
 // ---------------------------------------------------------------------------
 let _doseSession = null;
 
+// Botón "⚖️ Pesar": conecta si hace falta y empieza a leer; si ya estaba leyendo, para.
 async function brewScaleDose() {
   if (_doseSession) { brewScaleDoseStop(); return; }
   if (!await scaleEnsure()) return;
+  brewScaleDoseStart();
+}
+
+// Panel de dosis: peso grande en vivo + [Tara] [Fijar dosis]. Levantar el recipiente también fija.
+function brewScaleDoseStart() {
+  brewScaleDoseStop();
+  if (!scaleConnected()) return;
   const input = document.getElementById('b-dose');
-  const status = document.getElementById('b-dose-scale');
+  const panel = document.getElementById('b-dose-scale');
+  const num = panel.querySelector('.scale-panel-num');
+  const msg = panel.querySelector('.scale-dose-msg');
   const tracker = new DoseTracker();
   const onType = () => brewScaleDoseStop();
   input.addEventListener('input', onType, {once: true});
   input.classList.add('scale-live');
-  status.hidden = false;
+  panel.hidden = false;
+  panel.classList.remove('locked');
+  num.textContent = fmtG(scale.last?.weight ?? null);
   const render = () => {
-    const frozen = tracker.frozen !== null;
-    status.querySelector('.scale-dose-msg').textContent = frozen
-      ? t('scale.dose.locked', {g: fmtG(tracker.frozen)})
-      : (tracker.stable !== null ? t('scale.dose.stable', {g: fmtG(tracker.stable)}) : t('scale.dose.live'));
-    status.querySelector('.scale-dose-ok').hidden = frozen;
+    num.classList.toggle('stable', tracker.stable !== null);
+    msg.textContent = tracker.stable !== null ? t('scale.dose.stable', {g: fmtG(tracker.stable)}) : t('scale.dose.live');
   };
   const unsub = scaleSubscribe(s => {
     const v = tracker.push(s);
     if (v !== null) { _doseSet(v); brewScaleDoseStop(true); return; }
+    num.textContent = fmtG(Math.max(0, s.weight));
     if (s.weight >= 1 && s.weight <= 200) { input.value = s.weight.toFixed(1); updateBrewRatioDisplay(); }
     render();
   });
-  _doseSession = {tracker, unsub, onType, input, render};
+  _doseSession = {tracker, unsub, onType, input};
   render();
 }
 
@@ -119,6 +129,7 @@ function brewScaleDoseLock() {
   brewScaleDoseStop(true);
 }
 
+// keepMsg: deja el panel en estado "✓ Dosis fijada" (con "Volver a pesar") si hubo dosis.
 function brewScaleDoseStop(keepMsg = false) {
   const s = _doseSession;
   if (!s) return;
@@ -126,18 +137,18 @@ function brewScaleDoseStop(keepMsg = false) {
   s.unsub();
   s.input.removeEventListener('input', s.onType);
   s.input.classList.remove('scale-live');
-  const status = document.getElementById('b-dose-scale');
+  const panel = document.getElementById('b-dose-scale');
   if (keepMsg && s.tracker.frozen !== null) {
-    status.querySelector('.scale-dose-msg').textContent = t('scale.dose.locked', {g: fmtG(s.tracker.frozen)});
-    status.querySelector('.scale-dose-ok').hidden = true;
-  } else status.hidden = true;
+    panel.classList.add('locked');
+    panel.querySelector('.scale-dose-msg').textContent = t('scale.dose.locked', {g: fmtG(s.tracker.frozen)});
+  } else panel.hidden = true;
 }
 
 // ---------------------------------------------------------------------------
 // Vista de shot en vivo (modo auto) — reutilizada por el brew y la página de prueba (§5.2, §5.4)
 // ---------------------------------------------------------------------------
 function createShotView(root, opts) {
-  // opts: {dose, target, tol, targetYield, compare, onUse}
+  // opts: {dose, target, tol, targetYield, compare, onDone(r, metrics, curve), onCancel, onRetry}
   root.innerHTML = `
     <div class="shot-status"></div>
     <div class="shot-stats">
@@ -164,6 +175,11 @@ function createShotView(root, opts) {
 
   const setStatus = key => { q('.shot-status').textContent = t(key); };
   setStatus('scale.shot.waiting');
+  const setAction = (label, fn) => {
+    q('.shot-actions').innerHTML = fn ? `<button type="button" class="btn-secondary">${esc(label)}</button>` : '';
+    if (fn) q('.shot-actions button').onclick = fn;
+  };
+  setAction(t('scale.shot.cancel'), opts.onCancel);
   if (opts.target) q('[data-k=target]').textContent = t('scale.shot.target', {target: opts.target.toFixed(1), tol: opts.tol.toFixed(1)});
 
   const renderLive = (s, flow) => {
@@ -198,17 +214,15 @@ function createShotView(root, opts) {
     unsub();
     setStatus('scale.shot.done');
     const r = tracker.result;
-    if (!r) return;
+    if (!r) { setAction(t('scale.shot.retry'), opts.onRetry); return; }
     metrics = analyzeShot(tracker.samples, {target: opts.target, tol: opts.tol, ...r});
     q('[data-k=time]').textContent = (r.time_ms / 1000).toFixed(1);
     q('[data-k=weight]').textContent = fmtG(r.yield_g);
     q('[data-k=flow]').textContent = metrics?.main_flow?.toFixed(2) ?? '—';
     q('.shot-summary').hidden = false;
     q('.shot-summary').innerHTML = shotSummaryHtml(metrics, r, opts);
-    if (opts.onUse) {
-      q('.shot-actions').innerHTML = `<button class="btn-primary">${esc(t('scale.shot.use'))}</button>`;
-      q('.shot-actions button').onclick = () => opts.onUse(r, metrics, curveFromShot(tracker.samples, r));
-    }
+    setAction(t('scale.shot.retry'), opts.onRetry);
+    opts.onDone?.(r, metrics, curveFromShot(tracker.samples, r));
   }
 
   const onResize = () => drawShotChart(canvas, tracker.samples, opts);
@@ -326,42 +340,51 @@ let _shotView = null;
 let _brewShotMetrics = null;
 let _brewShotCurve = null;
 
+// Shot en vivo dentro del paso 3 del modal: al terminar rellena salida, tiempo y métricas.
 async function brewScaleShot() {
   if (!await scaleEnsure()) return;
   brewScaleDoseLock();   // si la dosis seguía en vivo, se fija con el último valor
   const dose = parseFloat(document.getElementById('b-dose').value) || null;
-  const targetYield = parseFloat(document.getElementById('b-yield').value) || null;
+  const targetYield = parseFloat(document.getElementById('b-yield').value) || _brewRecipe?.yield_g || null;
   const target = _brewRecipe?.target_flow ?? null;
-  let compare = null;
-  if (_brewTargetId) {
-    try {
-      const brews = await api('/coffees/' + _brewTargetId + '/brews');
-      // Mejor valorado; a igual nota, primero el que tenga curva y luego el más reciente
-      compare = (brews || []).filter(b => b.rating && b.shot_metrics?.main_flow != null && b.id !== _editBrewId)
-        .sort((a, b) => b.rating - a.rating || !!b.shot_curve - !!a.shot_curve
-          || (b.brew_date > a.brew_date ? 1 : -1))[0] || null;
-    } catch (_) {}
-  }
-  openModal('modal-shot');
+  // Mejor valorado; a igual nota, primero el que tenga curva y luego el más reciente
+  const compare = (_brewHistory || []).filter(b => b.rating && b.shot_metrics?.main_flow != null && b.id !== _editBrewId)
+    .sort((a, b) => b.rating - a.rating || !!b.shot_curve - !!a.shot_curve
+      || (b.brew_date > a.brew_date ? 1 : -1))[0] || null;
+  const root = document.getElementById('b-shot-live');
+  root.hidden = false;
+  document.querySelector('#modal-brew .btn-shot').hidden = true;
+  document.getElementById('b-shot-summary').hidden = true;
   _shotView?.destroy();
-  _shotView = createShotView(document.getElementById('shot-view'), {
+  _shotView = createShotView(root, {
     dose, target, tol: flowTolerance, targetYield, compare,
-    onUse: (r, metrics, curve) => {
+    onCancel: brewShotClose,
+    onRetry: brewScaleShot,
+    onDone: (r, metrics, curve) => {
       document.getElementById('b-yield').value = r.yield_g;
       document.getElementById('b-time').value = r.time_s;
       _brewShotMetrics = metrics;
       _brewShotCurve = curve;
-      brewShowShotSummary(metrics, curve);
       updateBrewRatioDisplay();
-      closeShotModal();
     },
   });
+  root.scrollIntoView({behavior: 'smooth', block: 'start'});
 }
 
-function closeShotModal() { closeModal('modal-shot'); }
+// Quita la vista en vivo; si ya hay un shot aplicado vuelve a su resumen compacto.
+function brewShotClose() {
+  _shotView?.destroy();
+  _shotView = null;
+  const root = document.getElementById('b-shot-live');
+  if (!root) return;
+  root.hidden = true;
+  document.querySelector('#modal-brew .btn-shot').hidden = !scaleSupported();
+  const b = _editBrewId ? _brewCache[_editBrewId] : null;
+  if (_brewShotMetrics) brewShowShotSummary(_brewShotMetrics, _brewShotCurve);
+  else if (b?.shot_metrics) brewShowShotSummary(b.shot_metrics, b.shot_curve);
+}
 
-MODAL_ON_CLOSE['modal-shot'] = () => { _shotView?.destroy(); _shotView = null; };
-MODAL_ON_CLOSE['modal-brew'] = () => { brewScaleDoseStop(); wakeSessionEnd('brew'); };
+MODAL_ON_CLOSE['modal-brew'] = () => { brewScaleDoseStop(); brewShotClose(); wakeSessionEnd('brew'); };
 
 // ---------------------------------------------------------------------------
 // Página de prueba de la báscula (modo normal + modo auto)

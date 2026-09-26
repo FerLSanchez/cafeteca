@@ -37,6 +37,7 @@ function renderChips(table) {
     btn.className = 'chip-x';
     btn.type = 'button';
     btn.textContent = '×';
+    btn.setAttribute('aria-label', t('form.chip_remove', {name: v}));
     btn.addEventListener('mousedown', e => { e.preventDefault(); removeChip(table, i); });
     chip.appendChild(txt);
     chip.appendChild(btn);

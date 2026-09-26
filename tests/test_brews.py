@@ -251,6 +251,17 @@ class TestBrewValidation:
         assert resp.status_code == 400
         assert resp.get_json()['error_key'].startswith('error.')
 
+    def test_decimal_grind_round_trips(self, client):
+        # Molinillos con medios pasos: la columna es INTEGER pero SQLite guarda el REAL tal cual
+        coffee = make_coffee(client)
+        brew = client.post(f'/api/coffees/{coffee["id"]}/brews', json={'dose_g': 18.0, 'grind': 13.5}).get_json()
+        assert brew['grind'] == 13.5
+        assert client.get(f'/api/coffees/{coffee["id"]}/brews').get_json()[0]['grind'] == 13.5
+        recipe = client.put(f'/api/coffees/{coffee["id"]}/recipe', json={'grind': 2.25}).get_json()
+        assert recipe['grind'] == 2.25
+        # Entero sigue siendo entero
+        assert client.put(f'/api/brews/{brew["id"]}', json={'grind': 14}).get_json()['grind'] == 14
+
     def test_recipe_rejects_invalid(self, client):
         coffee = make_coffee(client)
         resp = client.put(f'/api/coffees/{coffee["id"]}/recipe', json={'dose_g': 'x'})

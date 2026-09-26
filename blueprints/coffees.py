@@ -244,9 +244,12 @@ def consume_coffee(cid):
             'INSERT INTO brews (brew_date, dose_g, yield_g, time_s, grind, temp_c) VALUES (?,?,?,?,?,?)',
             (today, dose_g, yield_g, time_s, grind, temp_c)
         )
-        conn.execute('INSERT INTO coffee_brews (coffee_id, brew_id) VALUES (?,?)', (cid, cur.lastrowid))
+        brew_id = cur.lastrowid
+        conn.execute('INSERT INTO coffee_brews (coffee_id, brew_id) VALUES (?,?)', (cid, brew_id))
         row = get_coffee_by_id(conn, cid)
-    return jsonify({'coffee': row, 'consumed_g': grams, 'remaining_g': new_val})
+    # brew_id + previous_g let the client undo a mis-tap (DELETE the brew, PUT remaining_g back)
+    return jsonify({'coffee': row, 'consumed_g': grams, 'remaining_g': new_val,
+                    'previous_g': coffee_row['remaining_g'], 'brew_id': brew_id})
 
 
 @bp.route('/api/coffees/<int:cid>', methods=['DELETE'])
