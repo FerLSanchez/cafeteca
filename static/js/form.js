@@ -128,6 +128,7 @@ function deleteCoffee() {
 function openSettings() {
   document.getElementById('s-grams').value = gramsPerShot;
   document.getElementById('s-low-stock').value = lowStockThreshold;
+  document.getElementById('s-flow-tol').value = flowTolerance;
   openModal('modal-settings');
 }
 
@@ -136,9 +137,12 @@ async function saveSettings() {
   const lst = parseInt(document.getElementById('s-low-stock').value, 10);
   if (isNaN(gps) || gps < 1 || gps > 100) { showToast(t('validation.grams_invalid')); return; }
   if (isNaN(lst) || lst < 1 || lst > 50) { showToast(t('validation.threshold_invalid')); return; }
-  await api('/settings', {method:'PUT', body:JSON.stringify({grams_per_shot:gps, low_stock_threshold:lst})});
+  const tol = parseFloat(document.getElementById('s-flow-tol').value);
+  if (isNaN(tol) || tol < 0.05 || tol > 1) { showToast(t('validation.flow_tolerance_invalid')); return; }
+  await api('/settings', {method:'PUT', body:JSON.stringify({grams_per_shot:gps, low_stock_threshold:lst, flow_tolerance:tol})});
   gramsPerShot = gps;
   lowStockThreshold = lst;
+  flowTolerance = tol;
   renderList();
   showToast(t('toast.settings_saved'));
 }

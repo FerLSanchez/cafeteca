@@ -64,8 +64,10 @@ function scaleHex(b) {
 const scale = {
   device: null,
   cmdChar: null,
+  notifyChar: null,
   bus: typeof EventTarget !== 'undefined' ? new EventTarget() : null,
   last: null,
+  userDisconnect: false,   // desconexión pedida por el usuario (sin toast)
 };
 
 function scaleSupported() {
@@ -92,6 +94,7 @@ function scaleOnDisconnect() {
 }
 
 async function scaleConnect() {
+  scale.userDisconnect = false;
   if (!scaleSupported()) throw new Error('unsupported');
   if (scale.device?.gatt?.connected) return scale.device;
   const device = scale.device || await navigator.bluetooth.requestDevice({
@@ -105,6 +108,9 @@ async function scaleConnect() {
   const service = await server.getPrimaryService(SCALE_SERVICE);
   const notify = await service.getCharacteristic(SCALE_CHAR_NOTIFY);
   scale.cmdChar = await service.getCharacteristic(SCALE_CHAR_CMD);
+  // Al reconectar Chrome puede devolver el mismo objeto: evitar listeners duplicados
+  scale.notifyChar?.removeEventListener('characteristicvaluechanged', scaleOnNotify);
+  scale.notifyChar = notify;
   notify.addEventListener('characteristicvaluechanged', scaleOnNotify);
   await notify.startNotifications();
   scaleEmit('scale:connected', {name: device.name});
@@ -112,6 +118,7 @@ async function scaleConnect() {
 }
 
 function scaleDisconnect() {
+  scale.userDisconnect = true;
   if (scale.device?.gatt?.connected) scale.device.gatt.disconnect();
 }
 
@@ -142,6 +149,7 @@ function scaleLabInit() {
     scaleLabRenderLive(pkt, bytes);
   });
   scale.bus.addEventListener('scale:connected', e => scaleLabStatus(t('scale.connected', {name: e.detail.name || 'Bookoo'})));
+  scaleLabStatus(t('scale.not_connected'));
   scale.bus.addEventListener('scale:disconnected', () => scaleLabStatus(t('scale.disconnected')));
 }
 
@@ -163,15 +171,6 @@ function scaleLabRenderLive(pkt, bytes) {
 
 function scaleLabRenderCount() {
   document.getElementById('scale-lab-count').textContent = t('scale.lab.frames', {count: scaleLab.frames.length});
-}
-
-async function scaleLabConnect() {
-  try {
-    scaleLabStatus(t('scale.connecting'));
-    await scaleConnect();
-  } catch (err) {
-    scaleLabStatus(`${t('scale.connect_failed')} (${err.message})`);
-  }
 }
 
 function scaleLabRecord(label) {

@@ -54,7 +54,11 @@ function openModal(id) {
   document.body.classList.add('modal-open');
 }
 
+// Limpieza al cerrar un modal (botón, overlay o código): {modalId: fn}
+const MODAL_ON_CLOSE = {};
+
 function closeModal(id) {
+  MODAL_ON_CLOSE[id]?.();
   document.getElementById(id).classList.remove('open');
   if (!document.querySelector('.modal-overlay.open')) {
     document.body.classList.remove('modal-open');

@@ -1,6 +1,6 @@
 # Feature spec — Bookoo Themis Mini integration (Web Bluetooth)
 
-> Status: **F0 done** (sign bytes, packet rate, no `0D`, auto-stop semantics; real fixtures in `tests/js/fixtures/`, see §8). **Next: F1.**
+> Status: **F1 implemented** (2026-09-26). F0 findings in §8. Pending: validation on the Pixel with real shots, then F2.
 > Backlog code: **PM-14** in [`docs/REVIEW-2026-09.md`](../REVIEW-2026-09.md) §6.
 > Protocol source: [BooKooCode/OpenSource](https://github.com/BooKooCode/OpenSource) (MIT), files `bookoo_mini_scale/protocols.md` and `bookoo_ultra_scale/protocols.md`.
 
@@ -175,6 +175,15 @@ A real shot at a 1.5 g/s target looks like this: a slow start → it ramps up to
 - **Main-phase flow ≈ 1.73 g/s** (5.6 → 37.1 g between 4 s and 22.2 s), versus the scale's 1.38. This is exactly the gap §5.4 is meant to show.
 - **Packet rate:** the same ~11 Hz during the shot. The timer advances in 100 ms steps.
 - The shot is kept as a fixture; a test asserts the end-of-shot semantics.
+
+## 8.2 F1 implementation notes
+
+- `static/js/scale-analysis.js` (pure, node-tested): `DoseTracker`, `ShotTracker`, `flowSeries` (1 s linear regression), `analyzeShot`.
+  Thresholds: ramp end = flow ≥ 90 % of the reference held for 1 s; tail = flow < 50 % of the reference; irregular = deviation > 25 % from the 3 s local median held for 0.3 s, excluding the edges of the main phase. Reference = the target if the shot reaches it, otherwise the median of the flow ≥ 50 % of the peak. **These are tuned on a single real shot; re-check with more captures.**
+- `static/js/scale-ui.js`: nav chip, ⚖️ dose in the brew modal, "⏱ Shot with scale" → live-shot modal (curve + band, summary, comparison with the best-rated shot of the same coffee), and the **scale test page** (Settings → "⚖️ Test scale": normal/auto tabs, frame capture).
+- Backend: `migrate_v9` (`brews.shot_metrics` JSON, `recipes.target_flow`), `flow_tolerance` setting.
+- E2E: `tests/e2e/scale-flow.e2e.js` replays the real capture through a fake Web Bluetooth device (not in CI).
+- Deviation from §6: there is no in-app `?scale=sim` simulator; the replay lives in the E2E harness.
 
 ## 9. Risks and open points
 

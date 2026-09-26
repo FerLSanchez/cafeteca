@@ -10,6 +10,8 @@ const SHELL = [
   '/static/js/api.js',
   '/static/js/utils.js',
   '/static/js/scale.js',
+  '/static/js/scale-analysis.js',
+  '/static/js/scale-ui.js',
   '/static/js/chips.js',
   '/static/js/autocomplete.js',
   '/static/js/options.js',
