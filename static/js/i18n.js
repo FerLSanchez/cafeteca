@@ -2,7 +2,7 @@
 // i18n — translation helper
 // ---------------------------------------------------------------------------
 let _translations = {};
-const _currentLang = localStorage.getItem('lang') || 'es';
+const _currentLang = (() => { try { return localStorage.getItem('lang') || 'es'; } catch (_) { return 'es'; } })();
 
 async function initI18n() {
   try {
@@ -43,6 +43,6 @@ function applyI18n() {
 }
 
 function changeLang(lang) {
-  localStorage.setItem('lang', lang);
+  try { localStorage.setItem('lang', lang); } catch (_) {}
   location.reload();
 }

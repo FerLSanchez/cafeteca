@@ -16,6 +16,7 @@ async function fetchAndRender() {
 
 function onSortChange() {
   currentSort = document.getElementById('sort-select').value;
+  saveListPrefs();
   visibleCount = PAGE_SIZE;
   renderList();
 }
@@ -176,7 +177,7 @@ function loadMore() {
 
 function toggleCompactView() {
   compactList = !compactList;
-  localStorage.setItem('compactList', compactList ? '1' : '0');
+  try { localStorage.setItem('compactList', compactList ? '1' : '0'); } catch (_) {}
   renderList();
 }
 

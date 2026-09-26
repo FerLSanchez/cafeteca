@@ -233,7 +233,7 @@
   "toast.brew_deleted": "Brew deleted",
   "toast.catalog_renamed": "✓ Renamed successfully",
   "toast.catalog_entry_deleted": "🗑 Entry deleted",
-  "toast.catalog_purged": "🧹 {count} entr{s} deleted",
+  "toast.catalog_purged": "🧹 Deleted: {count}",
   "toast.settings_saved": "✓ Settings saved",
 
   "validation.grams_invalid": "⚠️ Value between 1 and 100 g",
@@ -406,5 +406,14 @@
   "settings.field.grind_step": "Grind step (− / + buttons)",
   "settings.grind_step_hint": "1 for grinders with whole numbers; 0.5 or 0.1 for half steps or stepless grinders.",
   "validation.grind_step_invalid": "The grind step must be between 0.1 and 5",
-  "error.settings.grind_step_invalid": "The grind step must be between 0.1 and 5"
+  "error.settings.grind_step_invalid": "The grind step must be between 0.1 and 5",
+  "settings.field.low_stock_threshold": "Low stock alert (shots)",
+  "settings.low_stock_hint": "Shows ⚠️ on the bag when this many shots or fewer are left.",
+  "list.shots_count": "{shots} shot{s}",
+  "list.shots_unit": " shots",
+  "list.low_stock_alert": "Low stock — buy more soon!",
+  "validation.threshold_invalid": "⚠️ Value between 1 and 50",
+  "error.settings.threshold_invalid": "low_stock_threshold must be an integer between 1 and 50",
+  "error.generic": "Something went wrong",
+  "list.per_cup": "{price}\u20ac/cup"
 }

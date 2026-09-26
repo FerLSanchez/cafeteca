@@ -7,6 +7,7 @@ async function init() {
   lowStockThreshold = settings.low_stock_threshold ?? 5;
   flowTolerance = settings.flow_tolerance ?? 0.2;
   grindStep = settings.grind_step ?? 1;
+  restoreListPrefs();
   await fetchAndRender();
 }
 

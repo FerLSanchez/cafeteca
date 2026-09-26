@@ -129,6 +129,7 @@ La app **no tiene autenticación propia**: `cafeteca.fersanchez.com` está detr�
 - Los `.modal-overlay` con `data-keep-open` no se cierran al tocar fuera (el modal de brew, para no perder un shot)
 - `purgeOldBrews()` — en `form.js`; muestra confirmación y llama `DELETE /api/brews/purge` con los meses seleccionados en `#s-purge-months`
 - **Scroll infinito en pestaña Prepas**: `loadBrews(reset=true)` en `brews.js`; carga 20 registros por página usando IntersectionObserver sobre `#brews-sentinel`
+- **Preferencias de la lista**: estado, orden y filtros avanzados se guardan en `localStorage('listPrefs')` (`saveListPrefs()` / `restoreListPrefs()` en `filters.js`, restaurados en `init()` tras `loadOptions()`); la búsqueda no. Todo acceso a `localStorage` va en `try` (modo privado).
 - **Vista compacta**: `toggleCompactView()` alterna `compactList` (boolean en `state.js`), persiste en `localStorage('compactList')`, y llama `renderList()`; `renderCompactCard(c)` en `list.js`
 - **time_s (tiempo de extracción)**: campo opcional en recetas y brews; `fmtFlow(yld, time_s)` en `brews.js` calcula el flujo en g/s; el ratio y flujo se muestran en `#r-ratio-display` / `#b-ratio-display`
 
@@ -246,9 +247,12 @@ node --test tests/js/*.test.js # tests JS (parser, detectores y análisis de la 
 # BASE_URL=http://localhost:5323 node tests/e2e/wake-lock.e2e.js
 # BASE_URL=http://localhost:5323 node tests/e2e/brew-flow.e2e.js      # brew manual, valorar después, deshacer
 # BASE_URL=http://localhost:5323 node tests/e2e/modals.e2e.js          # Esc, foco y Tab en los modales
+# BASE_URL=http://localhost:5323 node tests/e2e/list-prefs.e2e.js      # filtros recordados, localStorage bloqueado
 # BASE_URL=http://localhost:5323 node tests/e2e/touch-targets.e2e.js [carpeta-capturas]
 #   ↑ recorre todas las pantallas a 390 px: falla con controles < 36 px, pegados (< 8 px) o fuera de pantalla
 ```
+
+`tests/js/i18n.test.js` (en CI) exige las mismas claves en todos los idiomas y que toda clave usada en JS/HTML/backend exista en `es.json`.
 
 Los tests usan una BD SQLite en memoria. `conftest.py` provee el fixture `client`.
 

@@ -24,7 +24,7 @@ const CHIP_FIELDS = {
 };
 
 // List view mode
-let compactList = localStorage.getItem('compactList') === '1';
+let compactList = (() => { try { return localStorage.getItem('compactList') === '1'; } catch (_) { return false; } })();
 
 // Pagination
 const PAGE_SIZE = 15;
