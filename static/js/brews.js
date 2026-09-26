@@ -57,7 +57,7 @@ function _appendBrewCards(brews, el) {
     <div class="brew-card">
       <div class="brew-card-header">
         <span class="brew-date">${fmtDate(b.brew_date)}</span>
-        <span class="brew-rating">${b.rating ? stars(b.rating) : ''}</span>
+        <span class="brew-rating">${b.rating ? stars(b.rating) : canQuickRate(b) ? '' : `<span style="color:var(--text3)">${t('brew.unrated')}</span>`}</span>
         <div class="brew-card-actions">
           <button class="btn-brew-edit" onclick="openBrewModal(null,${b.id})" title="${esc(t('brew.btn.edit'))}" aria-label="${esc(t('brew.btn.edit'))}">${icon('edit')}</button>
           <button class="btn-brew-delete" onclick="deleteBrew(${b.id})" title="${esc(t('brew.btn.delete'))}" aria-label="${esc(t('brew.btn.delete'))}">${icon('trash')}</button>
@@ -67,7 +67,7 @@ function _appendBrewCards(brews, el) {
       <div class="brew-summary">${esc(brewSummaryLine(b))}</div>
       ${b.shot_metrics ? `<div class="brew-metrics">${b.shot_curve ? curveSparkline(b.shot_curve) : ''}${esc(brewMetricsLine(b))}</div>` : ''}
       ${b.notes ? `<div class="brew-notes">"${esc(b.notes)}"</div>` : ''}
-      ${b.rating ? '' : quickRateHtml(b)}
+      ${canQuickRate(b) ? quickRateHtml(b) : ''}
     </div>
   `).join(''));
   if (_brewsHasMore) {
@@ -181,11 +181,11 @@ async function renderBrewsSection(coffeeId) {
       <div class="detail-brew-row">
         <span class="detail-brew-date">${fmtDate(b.brew_date)}</span>
         <span class="detail-brew-summary">${esc(brewSummaryLine(b))}</span>
-        <span class="detail-brew-rating">${b.rating ? stars(b.rating) : ''}</span>
+        <span class="detail-brew-rating">${b.rating ? stars(b.rating) : canQuickRate(b) ? '' : '—'}</span>
         <button class="btn-inline-edit" onclick="openBrewModal(${coffeeId},${b.id})" title="${esc(t('brew.btn.edit'))}" aria-label="${esc(t('brew.btn.edit'))}">${icon('edit')}</button>
         <button class="btn-inline-edit" onclick="deleteBrew(${b.id}, ${coffeeId})" title="${esc(t('brew.btn.delete'))}" aria-label="${esc(t('brew.btn.delete'))}" style="color:var(--text3)">${icon('trash')}</button>
         ${b.shot_metrics ? `<div class="brew-metrics detail-brew-metrics">${b.shot_curve ? curveSparkline(b.shot_curve) : ''}${esc(brewMetricsLine(b))}</div>` : ''}
-        ${b.rating ? '' : `<div class="detail-brew-quick">${quickRateHtml(b)}</div>`}
+        ${canQuickRate(b) ? `<div class="detail-brew-quick">${quickRateHtml(b)}</div>` : ''}
       </div>`).join('')}`;
 }
 
@@ -344,8 +344,12 @@ function updateBrewRatioDisplay() {
   if (!el) return;
   const parts = [];
   if (dose && yld) parts.push(t('brew.ratio', {ratio: '1:' + (yld / dose).toFixed(2)}));
-  const flow = fmtFlow(yld, time);
-  if (flow) parts.push(t('brew.flow', {flow}));
+  // Con métricas de báscula se muestra el flujo principal (el mismo que el resumen del shot),
+  // no la media salida/tiempo, para no tener dos "flujos" distintos en pantalla
+  const metrics = _brewShotMetrics === undefined ? _brewCache[_editBrewId]?.shot_metrics : _brewShotMetrics;
+  const flow = metrics?.main_flow != null ? null : fmtFlow(yld, time);
+  if (metrics?.main_flow != null) parts.push(t('scale.summary_flow', {main: metrics.main_flow.toFixed(2)}));
+  else if (flow) parts.push(t('brew.flow', {flow}));
   el.textContent = parts.join('  ·  ');
   updateBrewSteps();
 }
@@ -419,7 +423,15 @@ function refreshBrewViews() {
   if (document.getElementById('page-brews')?.classList.contains('active')) loadBrews();
 }
 
-// Valorar después de probarlo: estrellas en las filas de brews sin valorar
+// Valorar después de probarlo: estrellas en los brews sin valorar de los últimos días
+// (los antiguos, p. ej. de "Consumir", no llenan la lista de "¿Qué tal estaba?")
+const QUICK_RATE_DAYS = 2;
+function canQuickRate(b) {
+  if (b.rating || !b.brew_date) return false;
+  const [y, m, d] = b.brew_date.split('-').map(Number);
+  return (new Date() - new Date(y, m - 1, d)) / 86400000 < QUICK_RATE_DAYS + 1;
+}
+
 function quickRateHtml(b) {
   return `<span class="quick-rate" role="group" aria-label="${esc(t('brew.quick_rate'))}">
     <span class="quick-rate-label">${esc(t('brew.quick_rate'))}</span>${[1, 2, 3, 4, 5].map(v =>

@@ -89,6 +89,9 @@ async function apiCall(page, method, url, body) {
   // El resultado se aplica solo al terminar
   assert.strictEqual(await page.inputValue('#b-yield'), '38.5');
   assert.strictEqual(await page.inputValue('#b-time'), '28');
+  // Un solo "flujo" en pantalla: el principal del shot, no la media salida/tiempo
+  assert.match(await page.textContent('#b-ratio-display'), /1\.7\d g\/s/);
+  assert.doesNotMatch(await page.textContent('#b-ratio-display'), /1\.38/);
 
   // 3) Guardar con valoración: el brew lleva métricas y curva
   await page.click('#modal-brew .brew-star[data-val="5"]');

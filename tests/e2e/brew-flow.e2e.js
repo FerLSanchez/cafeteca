@@ -63,6 +63,12 @@ const BASE = process.env.BASE_URL || 'http://localhost:5323';
   await page.waitForTimeout(600);
   assert.strictEqual((await brewsOf(coffee.id))[0].rating, 5);
 
+  // 3b) Solo piden valoración los brews sin valorar de los últimos días
+  assert.deepStrictEqual(await page.evaluate(() => [
+    canQuickRate({brew_date: todayLocal()}), canQuickRate({brew_date: '2026-01-10'}),
+    canQuickRate({brew_date: todayLocal(), rating: 3}),
+  ]), [true, false, false]);
+
   // 4) Siguiente preparación: sin receta parte del último brew
   await page.evaluate(id => openBrewModal(id), coffee.id);
   await page.waitForSelector('#modal-brew.open');
