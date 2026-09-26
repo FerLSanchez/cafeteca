@@ -5,6 +5,7 @@ from lookup_config import create_lookup_tables, get_or_create
 SETTING_GRAMS_PER_SHOT     = 'grams_per_shot'
 SETTING_LOW_STOCK_THRESHOLD = 'low_stock_threshold'
 SETTING_FLOW_TOLERANCE     = 'flow_tolerance'
+SETTING_GRIND_STEP         = 'grind_step'   # paso de los −/+ de molienda (molinillos con medios pasos o decimales)
 
 FTS_ENABLED = False
 
@@ -17,6 +18,7 @@ def init_settings(conn):
     conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES (?, '17')", (SETTING_GRAMS_PER_SHOT,))
     conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES (?, '5')", (SETTING_LOW_STOCK_THRESHOLD,))
     conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES (?, '0.2')", (SETTING_FLOW_TOLERANCE,))
+    conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES (?, '1')", (SETTING_GRIND_STEP,))
 
 
 def init_db():

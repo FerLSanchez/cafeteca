@@ -401,5 +401,10 @@
   "form.chip_remove": "Remove {name}",
   "brew.btn.new": "🫖 New brew",
   "brew.pick.title": "Which coffee?",
-  "brew.pick.none": "No open bags: open one first"
+  "brew.pick.none": "No open bags: open one first",
+  "settings.section.grinder": "Grinder",
+  "settings.field.grind_step": "Grind step (− / + buttons)",
+  "settings.grind_step_hint": "1 for grinders with whole numbers; 0.5 or 0.1 for half steps or stepless grinders.",
+  "validation.grind_step_invalid": "The grind step must be between 0.1 and 5",
+  "error.settings.grind_step_invalid": "The grind step must be between 0.1 and 5"
 }

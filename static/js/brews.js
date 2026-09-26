@@ -238,7 +238,8 @@ async function submitRecipe() {
   const dose_g  = parseFloat(document.getElementById('r-dose').value)  || null;
   const yield_g = parseFloat(document.getElementById('r-yield').value) || null;
   const time_s  = parseInt(document.getElementById('r-time').value)    || null;
-  const grind   = parseInt(document.getElementById('r-grind').value)   || null;
+  const grindV  = parseFloat(document.getElementById('r-grind').value);   // decimales: medios pasos
+  const grind   = Number.isNaN(grindV) ? null : grindV;
   const temp_c  = parseInt(document.getElementById('r-temp').value)    || null;
   const target_flow = parseFloat(document.getElementById('r-target-flow').value) || null;
   await api('/coffees/' + _recipeTargetId + '/recipe', {
@@ -366,12 +367,13 @@ function updateBrewSteps() {
   Object.entries(done).forEach(([id, ok]) => _bv(id)?.classList.toggle('done', ok));
 }
 
-// Botones −/+ de molienda y temperatura (ajustes de dial-in de uno en uno)
+// Botones −/+ de molienda (paso de Ajustes: 1, 0.5, 0.1…) y temperatura (de 1 en 1)
 function brewStep(id, delta) {
   const el = _bv(id);
-  const base = parseInt(el.value, 10);
-  const start = Number.isNaN(base) ? parseInt(el.placeholder, 10) || 0 : base + delta;
-  el.value = Math.max(0, Math.min(parseInt(el.max, 10) || 1000, start));
+  const step = id === 'b-grind' ? grindStep : 1;
+  const base = parseFloat(el.value);
+  const next = Number.isNaN(base) ? parseFloat(el.placeholder) || 0 : base + delta * step;
+  el.value = +Math.max(0, Math.min(parseFloat(el.max) || 1000, next)).toFixed(2);   // sin 13.600000001
   updateBrewSteps();
 }
 
@@ -396,7 +398,7 @@ async function submitBrew() {
   const dose_g    = num('b-dose', parseFloat) || null;
   const yield_g   = num('b-yield', parseFloat) || null;
   const time_s    = num('b-time', v => parseInt(v, 10)) || null;
-  const grind     = num('b-grind', v => parseInt(v, 10));
+  const grind     = num('b-grind', parseFloat);
   const temp_c    = num('b-temp', v => parseInt(v, 10)) || null;
   const brew_date = _bv('b-date').value || null;
   const notes     = _bv('b-notes').value || null;

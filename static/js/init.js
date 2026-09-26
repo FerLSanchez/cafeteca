@@ -6,6 +6,7 @@ async function init() {
   gramsPerShot = settings.grams_per_shot || 17;
   lowStockThreshold = settings.low_stock_threshold ?? 5;
   flowTolerance = settings.flow_tolerance ?? 0.2;
+  grindStep = settings.grind_step ?? 1;
   await fetchAndRender();
 }
 

@@ -408,5 +408,10 @@
   "form.chip_remove": "Quitar {name}",
   "brew.btn.new": "🫖 Nueva preparación",
   "brew.pick.title": "¿Qué café?",
-  "brew.pick.none": "No hay bolsas abiertas: abre una primero"
+  "brew.pick.none": "No hay bolsas abiertas: abre una primero",
+  "settings.section.grinder": "Molinillo",
+  "settings.field.grind_step": "Paso de molienda (botones − / +)",
+  "settings.grind_step_hint": "1 para molinillos con números enteros; 0.5 o 0.1 para medios pasos o molinillos sin pasos.",
+  "validation.grind_step_invalid": "El paso de molienda debe estar entre 0.1 y 5",
+  "error.settings.grind_step_invalid": "El paso de molienda debe estar entre 0.1 y 5"
 }

@@ -550,7 +550,7 @@
     <div style="font-size:13px;color:var(--accent2);min-height:18px;margin-bottom:8px" id="r-ratio-display"></div>
     <div class="form-group">
       <label class="form-label" data-i18n="recipe.field.grind">Grado de molienda</label>
-      <input class="form-input" id="r-grind" type="number" min="0" placeholder="ej. 15">
+      <input class="form-input" id="r-grind" type="number" min="0" step="any" inputmode="decimal" placeholder="ej. 15">
     </div>
     <div class="form-group">
       <label class="form-label" data-i18n="recipe.field.temp">Temperatura del agua (°C)</label>
@@ -608,7 +608,7 @@
           <label class="form-label" for="b-grind" data-i18n="brew.field.grind">Molienda</label>
           <div class="stepper">
             <button type="button" class="stepper-btn" onclick="brewStep('b-grind',-1)" aria-label="−">−</button>
-            <input class="form-input" id="b-grind" type="number" min="0" inputmode="numeric" placeholder="15" oninput="updateBrewSteps()">
+            <input class="form-input" id="b-grind" type="number" min="0" step="any" inputmode="decimal" placeholder="15" oninput="updateBrewSteps()">
             <button type="button" class="stepper-btn" onclick="brewStep('b-grind',1)" aria-label="+">+</button>
           </div>
         </div>
@@ -794,6 +794,12 @@
         <button class="btn-danger" onclick="purgeOldBrews()" style="white-space:nowrap;padding:8px 12px" data-i18n="settings.btn.purge">Purgar</button>
       </div>
       <div style="font-size:12px;color:var(--text3);margin-top:4px" data-i18n="settings.purge_hint">Elimina permanentemente las preparaciones anteriores al período seleccionado.</div>
+    </div>
+    <div class="form-section" data-i18n="settings.section.grinder">Molinillo</div>
+    <div class="form-group">
+      <label class="form-label" for="s-grind-step" data-i18n="settings.field.grind_step">Paso de molienda (botones − / +)</label>
+      <input class="form-input" id="s-grind-step" type="number" step="any" min="0.1" max="5" inputmode="decimal" placeholder="1">
+      <div class="form-hint" data-i18n="settings.grind_step_hint">1 para molinillos con números enteros; 0.5 o 0.1 para medios pasos o molinillos sin pasos.</div>
     </div>
     <div class="form-section" data-i18n="settings.section.scale">Báscula</div>
     <div class="form-group">

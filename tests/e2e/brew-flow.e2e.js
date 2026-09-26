@@ -69,12 +69,18 @@ const BASE = process.env.BASE_URL || 'http://localhost:5323';
     canQuickRate({brew_date: todayLocal(), rating: 3}),
   ]), [true, false, false]);
 
-  // 4) Siguiente preparación: sin receta parte del último brew
+  // 4) Siguiente preparación: sin receta parte del último brew; molienda con medios pasos
+  await page.evaluate(() => { grindStep = 0.5; });   // Ajustes → Paso de molienda
   await page.evaluate(id => openBrewModal(id), coffee.id);
   await page.waitForSelector('#modal-brew.open');
   assert.strictEqual(await page.inputValue('#b-grind'), '13');
   assert.ok(await page.$('#b-last:not([hidden])'));
-  await page.evaluate(() => closeModal('modal-brew'));
+  await page.tap('#b-step-dial .stepper-btn:last-child');
+  assert.strictEqual(await page.inputValue('#b-grind'), '13.5');
+  await page.tap('#b-submit');
+  await page.waitForSelector('#modal-brew:not(.open)', {state: 'attached'});
+  assert.strictEqual((await brewsOf(coffee.id))[0].grind, 13.5);
+  await page.evaluate(() => { grindStep = 1; });
 
   // 5) "Nueva preparación" en Prepas con varias bolsas abiertas → selector
   await page.tap('.btn-new-brew');
@@ -90,11 +96,11 @@ const BASE = process.env.BASE_URL || 'http://localhost:5323';
   const before = (await call('GET', `/api/coffees/${coffee.id}`)).remaining_g;   // 232: el brew manual descontó 18 g
   await page.tap(`${card} .btn-cc.consume`);
   await page.waitForSelector('.toast.show .toast-action');
-  assert.strictEqual((await brewsOf(coffee.id)).length, 2);
+  assert.strictEqual((await brewsOf(coffee.id)).length, 3);
   await page.tap('.toast-action');
   await page.waitForTimeout(600);
   assert.strictEqual((await call('GET', `/api/coffees/${coffee.id}`)).remaining_g, before);
-  assert.strictEqual((await brewsOf(coffee.id)).length, 1, 'el brew del consumo se borra');
+  assert.strictEqual((await brewsOf(coffee.id)).length, 2, 'el brew del consumo se borra');
   await page.tap(`${card} .btn-cc.finish`);
   await page.waitForSelector('.toast.show .toast-action');
   await page.tap('.toast-action');

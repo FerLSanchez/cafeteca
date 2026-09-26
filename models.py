@@ -156,7 +156,7 @@ BREW_NUMERIC = [
     ('dose_g',  (int, float), 0, 200),
     ('yield_g', (int, float), 0, 1000),
     ('time_s',  int,          0, 3600),
-    ('grind',   int,          0, 1000),
+    ('grind',   (int, float), 0, 1000),   # decimales: molinillos con medios pasos (columna INTEGER, SQLite guarda el REAL)
     ('temp_c',  int,          0, 110),
 ]
 

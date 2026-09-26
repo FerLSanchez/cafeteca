@@ -97,6 +97,7 @@ La app **no tiene autenticación propia**: `cafeteca.fersanchez.com` está detr�
 - `init_db()` se llama al arrancar y es idempotente — incluye todas las migraciones
 - Hay dos fases de migración: `migrate_v1()` (texto→FK, legado) y `migrate_v2()` (FK→M2M + link región-país)
 - Añadir un nuevo cambio de esquema: crear `migrate_v11()` en `schema.py` y llamarla desde `init_db()` (la última es `migrate_v10`: `brews.shot_curve`)
+- `SETTING_GRIND_STEP` — paso de los −/+ de molienda (0.1–5, default 1) en `/api/settings` (`grind_step`); `grind` admite decimales (medios pasos): la columna es INTEGER pero SQLite guarda el REAL sin migración
 - `SETTING_LOW_STOCK_THRESHOLD` — umbral configurable (1-50, default 5) en `schema.py`; cuando `floor(remaining_g / grams_per_shot) <= threshold` se muestra ⚠️ en la ficha
 - Registrar un brew descuenta `dose_g` de `remaining_g` del café si está abierto y tiene restante definido (se descuenta solo al crear, no al editar ni borrar)
 - **Pulsar "Consumir"** (`POST /api/coffees/:id/consume`) devuelve 409 si el café está terminado (`error.coffee.consume_finished`) o no tiene `remaining_g` (`error.coffee.consume_no_stock`). También crea un registro de brew automáticamente con los datos de la receta del café si existe, o solo con `dose_g = grams_per_shot`. El descuento de `remaining_g` lo hace el propio endpoint de consume; el brew creado **no** vuelve a descontarlo.

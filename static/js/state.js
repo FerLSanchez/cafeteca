@@ -10,6 +10,7 @@ let searchQuery = '';
 let searchTimer = null;
 let currentSort = 'smart';
 let gramsPerShot = 17;         // loaded from /api/settings
+let grindStep = 1;             // paso de los −/+ de molienda (/api/settings)
 let lowStockThreshold = 5;    // loaded from /api/settings
 
 // Multi-select chip state for m2m fields
