@@ -1,6 +1,6 @@
 # Feature spec — Bookoo Themis Mini integration (Web Bluetooth)
 
-> Status: **F1 implemented** (2026-09-26). F0 findings in §8. Pending: validation on the Pixel with real shots, then F2.
+> Status: **F1 + F2 implemented** (2026-09-26), plus the F3 low-battery hint. F0 findings in §8. Pending: validation on the Pixel with real shots.
 > Backlog code: **PM-14** in [`docs/REVIEW-2026-09.md`](../REVIEW-2026-09.md) §6.
 > Protocol source: [BooKooCode/OpenSource](https://github.com/BooKooCode/OpenSource) (MIT), files `bookoo_mini_scale/protocols.md` and `bookoo_ultra_scale/protocols.md`.
 
@@ -184,6 +184,13 @@ A real shot at a 1.5 g/s target looks like this: a slow start → it ramps up to
 - Backend: `migrate_v9` (`brews.shot_metrics` JSON, `recipes.target_flow`), `flow_tolerance` setting.
 - E2E: `tests/e2e/scale-flow.e2e.js` replays the real capture through a fake Web Bluetooth device (not in CI).
 - Deviation from §6: there is no in-app `?scale=sim` simulator; the replay lives in the E2E harness.
+
+## 8.3 F2 implementation notes
+
+- Brew rows (coffee detail and the Brews tab) show a second line: 🌊 ramp · % in band · peak · tail. The summary line shows the main flow (⚠️ if irregular).
+- Editing a brew with metrics shows the full metrics card in the brew modal (and so does a new brew after "Usar resultado").
+- Coffee detail → **Dial-in** section (≥ 2 shots with metrics): a scatter of main flow vs rating with the target band shaded (latest highlighted, irregular shots ringed in red), plus lines for your best-rated shots' main flow/ramp range, shots in band, and irregular shots.
+- F3 low-battery hint: the chip turns red at ≤ 15 %, with one toast per session. Continuous mode is still open.
 
 ## 9. Risks and open points
 

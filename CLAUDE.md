@@ -243,7 +243,7 @@ Los tests usan una BD SQLite en memoria. `conftest.py` provee el fixture `client
 
 Revisión completa (UX, ingeniería, producto) con backlog codificado: `docs/REVIEW-2026-09.md`.
 
-- **Siguiente feature: báscula Bookoo Themis Mini por Web Bluetooth** (PM-14): la dosis en modo normal → campo "Café (g)", y el rendimiento + tiempo del shot en modo auto. La spec completa está en `docs/features/bookoo-scale.md`; F0 y F1 están hechas (hallazgos y notas de implementación en §8 de la spec). Falta validar F1 en el Pixel con shots reales y después F2 (mostrar métricas y tendencias). La UX del modo auto (análisis de flujo por fases, métricas guardadas, sin guardar la curva) está acordada en §5.4 de la spec.
+- **Siguiente feature: báscula Bookoo Themis Mini por Web Bluetooth** (PM-14): la dosis en modo normal → campo "Café (g)", y el rendimiento + tiempo del shot en modo auto. La spec completa está en `docs/features/bookoo-scale.md`; F0, F1 y F2 están hechas (hallazgos y notas en §8 de la spec): dosis y shot desde la báscula, métricas en las filas de brews y sección Dial-in en la ficha del café. Falta validarlo en el Pixel con shots reales; queda opcional el modo continuo (F3). La UX del modo auto (análisis de flujo por fases, métricas guardadas, sin guardar la curva) está acordada en §5.4 de la spec.
 
 - Exportar/importar datos (CSV o JSON)
 - Foto de la bolsa del café

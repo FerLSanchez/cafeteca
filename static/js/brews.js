@@ -52,6 +52,7 @@ function _appendBrewCards(brews, el) {
       </div>
       <div class="brew-coffees">${b.coffees.map(n=>`<span class="brew-coffee-tag">${esc(n)}</span>`).join('')}</div>
       <div class="brew-summary">${esc(brewSummaryLine(b))}</div>
+      ${b.shot_metrics ? `<div class="brew-metrics">${esc(brewMetricsLine(b))}</div>` : ''}
       ${b.notes ? `<div class="brew-notes">"${esc(b.notes)}"</div>` : ''}
     </div>
   `).join(''));
@@ -93,6 +94,17 @@ function brewSummaryLine(b) {
   if (b.grind)  parts.push(t('brew.grind_label', {grind: b.grind}));
   if (b.temp_c) parts.push(`${b.temp_c}°C`);
   return parts.join(' · ') || '—';
+}
+
+// Segunda línea con las métricas de flujo de la báscula (vacía si el brew no las tiene)
+function brewMetricsLine(b) {
+  const m = b.shot_metrics;
+  if (!m) return '';
+  const parts = [t('scale.row.ramp', {s: (+m.t_ramp_s).toFixed(1)})];
+  if (m.in_band_pct != null) parts.push(t('scale.row.in_band', {pct: m.in_band_pct}));
+  parts.push(t('scale.row.peak', {flow: (+m.peak_flow).toFixed(2)}));
+  parts.push(t('scale.row.tail', {s: (+m.tail_s).toFixed(1)}));
+  return '🌊 ' + parts.join(' · ');
 }
 
 
@@ -146,6 +158,7 @@ async function renderBrewsSection(coffeeId) {
     const r = await fetch('/api/coffees/' + coffeeId + '/brews', {headers:{'Content-Type':'application/json'}});
     if (r.ok) brews = await r.json();
   } catch (_) {}
+  renderDialIn(coffeeId, brews);
   if (!brews.length) { el.innerHTML = ''; return; }
   brews.forEach(b => { _brewCache[b.id] = b; });
   el.innerHTML = `
@@ -157,6 +170,7 @@ async function renderBrewsSection(coffeeId) {
         <span class="detail-brew-rating">${b.rating ? stars(b.rating) : '—'}</span>
         <button class="btn-inline-edit" onclick="openBrewModal(${coffeeId},${b.id})" title="Editar preparación">${icon('edit')}</button>
         <button class="btn-inline-edit" onclick="deleteBrew(${b.id}, ${coffeeId})" title="Eliminar" style="color:var(--text3)">${icon('x')}</button>
+        ${b.shot_metrics ? `<div class="brew-metrics detail-brew-metrics">${esc(brewMetricsLine(b))}</div>` : ''}
       </div>`).join('')}`;
 }
 
@@ -251,6 +265,7 @@ async function openBrewModal(coffeeId = null, brewId = null) {
   _brewShotMetrics = _editBrewId ? undefined : null;   // undefined = no tocar al editar
   brewScaleDoseStop();
   document.getElementById('b-dose-scale').hidden = true;
+  brewShowShotSummary(_editBrewId ? _brewCache[_editBrewId]?.shot_metrics : null);
 
   const titleEl  = document.querySelector('#modal-brew .modal-title');
   const submitEl = document.querySelector('#modal-brew .btn-primary');

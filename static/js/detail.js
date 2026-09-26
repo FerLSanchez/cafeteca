@@ -151,6 +151,7 @@ function showDetail(id) {
     ${actionsRow}
 
     <div id="detail-recipe-section" style="margin-top:4px"></div>
+    <div id="detail-dialin-section" style="margin-top:14px"></div>
     <div id="detail-brews-section" style="margin-top:14px"></div>
   `;
   openModal('modal-detail');

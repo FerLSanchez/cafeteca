@@ -356,5 +356,16 @@
   "settings.field.flow_tolerance": "Tolerancia del flujo objetivo (± g/s)",
   "validation.flow_tolerance_invalid": "La tolerancia debe estar entre 0.05 y 1 g/s",
   "error.brew.shot_metrics_invalid": "Métricas del shot inválidas",
-  "error.settings.flow_tolerance_invalid": "La tolerancia debe estar entre 0.05 y 1 g/s"
+  "error.settings.flow_tolerance_invalid": "La tolerancia debe estar entre 0.05 y 1 g/s",
+
+  "scale.row.ramp": "rampa {s} s",
+  "scale.row.in_band": "{pct} % en banda",
+  "scale.row.peak": "pico {flow}",
+  "scale.row.tail": "cola {s} s",
+  "scale.low_battery": "🔋 Batería de la báscula baja ({pct} %)",
+  "scale.dialin.title": "Dial-in · {count} shots con báscula",
+  "scale.dialin.legend": "Flujo principal (g/s) vs valoración · banda = objetivo · el más reciente, resaltado",
+  "scale.dialin.best": "Tus mejores shots ({stars}, {n}): flujo principal {flow} g/s · rampa {ramp} s",
+  "scale.dialin.in_band": "{n} de {total} shots con el flujo principal en la banda de {target} g/s",
+  "scale.dialin.irregular": "⚠️ {n} de {total} shots con flujo irregular"
 }

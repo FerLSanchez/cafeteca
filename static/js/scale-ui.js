@@ -40,7 +40,16 @@ function scaleChipRender() {
   chip.hidden = !scaleConnected();
   const bat = scale.last?.battery;
   chip.textContent = bat != null ? `⚖️ ${bat}%` : '⚖️';
+  const low = bat != null && bat <= SCALE_LOW_BATTERY;
+  chip.classList.toggle('low', low);
+  if (low && !_lowBatteryWarned) {
+    _lowBatteryWarned = true;
+    showToast(t('scale.low_battery', {pct: bat}));
+  }
 }
+
+const SCALE_LOW_BATTERY = 15;   // %
+let _lowBatteryWarned = false;  // un aviso por sesión
 
 function scaleChipClick() {
   showConfirm({
@@ -324,6 +333,7 @@ async function brewScaleShot() {
       document.getElementById('b-yield').value = r.yield_g;
       document.getElementById('b-time').value = r.time_s;
       _brewShotMetrics = metrics;
+      brewShowShotSummary(metrics);
       updateBrewRatioDisplay();
       closeShotModal();
     },
@@ -394,3 +404,101 @@ function scaleTestAutoStart() {
   _testShotView = createShotView(document.getElementById('st-shot-view'), {dose, target, tol: flowTolerance});
 }
 
+
+// ---------------------------------------------------------------------------
+// F2 — métricas guardadas y dial-in por café
+// ---------------------------------------------------------------------------
+function brewShowShotSummary(metrics) {
+  const el = document.getElementById('b-shot-summary');
+  if (!el) return;
+  el.hidden = !metrics;
+  el.innerHTML = metrics ? shotSummaryHtml(metrics, null, {}) : '';
+}
+
+// Rango [min, max] de un array de números, formateado
+const fmtRange = (vals, d = 2) => {
+  const lo = Math.min(...vals), hi = Math.max(...vals);
+  return lo === hi ? lo.toFixed(d) : `${lo.toFixed(d)}–${hi.toFixed(d)}`;
+};
+
+// Sección "Dial-in" en la ficha: flujo principal vs valoración de los shots con báscula.
+async function renderDialIn(coffeeId, brews) {
+  const el = document.getElementById('detail-dialin-section');
+  if (!el) return;
+  const shots = brews.filter(b => b.shot_metrics?.main_flow != null);
+  if (shots.length < 2) { el.innerHTML = ''; return; }
+  let target = null;
+  try {
+    const r = await fetch('/api/coffees/' + coffeeId + '/recipe');
+    if (r.ok) target = (await r.json()).target_flow ?? null;
+  } catch (_) {}
+
+  const rated = shots.filter(b => b.rating);
+  const lines = [];
+  if (rated.length) {
+    const top = Math.max(...rated.map(b => b.rating));
+    const best = rated.filter(b => b.rating === top);
+    lines.push(t('scale.dialin.best', {
+      stars: '★'.repeat(top), n: best.length,
+      flow: fmtRange(best.map(b => b.shot_metrics.main_flow)),
+      ramp: fmtRange(best.map(b => b.shot_metrics.t_ramp_s), 1),
+    }));
+  }
+  if (target) {
+    const inBand = shots.filter(b => Math.abs(b.shot_metrics.main_flow - target) <= flowTolerance).length;
+    lines.push(t('scale.dialin.in_band', {n: inBand, total: shots.length, target: target.toFixed(1)}));
+  }
+  const irregular = shots.filter(b => b.shot_metrics.irregular).length;
+  if (irregular) lines.push(t('scale.dialin.irregular', {n: irregular, total: shots.length}));
+
+  el.innerHTML = `
+    <div class="detail-brews-header">${esc(t('scale.dialin.title', {count: shots.length}))}</div>
+    <canvas class="dialin-chart"></canvas>
+    <div class="dialin-legend">${esc(t('scale.dialin.legend'))}</div>
+    ${lines.map(l => `<div class="dialin-line">${esc(l)}</div>`).join('')}`;
+  drawDialIn(el.querySelector('canvas'), shots, target);
+}
+
+// Dispersión: x = flujo principal (g/s), y = valoración (sin valorar abajo). El más reciente, resaltado.
+function drawDialIn(canvas, shots, target) {
+  const dpr = window.devicePixelRatio || 1;
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  if (!w || !h) return;
+  canvas.width = w * dpr; canvas.height = h * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const css = getComputedStyle(document.documentElement);
+  const col = name => css.getPropertyValue(name).trim();
+  const flows = shots.map(b => b.shot_metrics.main_flow);
+  if (target) flows.push(target - flowTolerance, target + flowTolerance);
+  const xMin = Math.max(0, Math.floor((Math.min(...flows) - 0.2) * 10) / 10);
+  const xMax = Math.ceil((Math.max(...flows) + 0.2) * 10) / 10;
+  const pad = {l: 22, r: 8, t: 8, b: 18};
+  const X = f => pad.l + (f - xMin) / (xMax - xMin) * (w - pad.l - pad.r);
+  const Y = r => pad.t + (5 - r) / 5 * (h - pad.t - pad.b);   // r=0 → sin valorar
+
+  ctx.font = '10px system-ui, sans-serif';
+  ctx.fillStyle = col('--text3');
+  ctx.strokeStyle = col('--border');
+  for (let r = 0; r <= 5; r++) {
+    ctx.beginPath(); ctx.moveTo(pad.l, Y(r)); ctx.lineTo(w - pad.r, Y(r)); ctx.stroke();
+    ctx.fillText(r ? `${r}★` : '—', 2, Y(r) + 3);
+  }
+  const step = xMax - xMin > 1.5 ? 0.5 : 0.2;
+  for (let f = Math.ceil(xMin / step) * step; f <= xMax + 1e-9; f += step) ctx.fillText(f.toFixed(1), X(f) - 8, h - 4);
+  if (target) {
+    ctx.fillStyle = col('--green-dim');
+    ctx.fillRect(X(target - flowTolerance), pad.t, X(target + flowTolerance) - X(target - flowTolerance), h - pad.t - pad.b);
+  }
+  // brews llega ordenado del más reciente al más antiguo
+  shots.slice().reverse().forEach((b, i, arr) => {
+    const last = i === arr.length - 1;
+    ctx.beginPath();
+    ctx.arc(X(b.shot_metrics.main_flow), Y(b.rating || 0), last ? 5 : 4, 0, Math.PI * 2);
+    ctx.fillStyle = last ? col('--accent2') : col('--accent');
+    ctx.globalAlpha = last ? 1 : 0.7;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    if (b.shot_metrics.irregular) { ctx.strokeStyle = col('--red'); ctx.lineWidth = 1.5; ctx.stroke(); ctx.lineWidth = 1; }
+  });
+}

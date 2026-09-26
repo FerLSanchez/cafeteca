@@ -349,5 +349,16 @@
   "settings.field.flow_tolerance": "Target flow tolerance (± g/s)",
   "validation.flow_tolerance_invalid": "Tolerance must be between 0.05 and 1 g/s",
   "error.brew.shot_metrics_invalid": "Invalid shot metrics",
-  "error.settings.flow_tolerance_invalid": "Tolerance must be between 0.05 and 1 g/s"
+  "error.settings.flow_tolerance_invalid": "Tolerance must be between 0.05 and 1 g/s",
+
+  "scale.row.ramp": "ramp {s} s",
+  "scale.row.in_band": "{pct} % in band",
+  "scale.row.peak": "peak {flow}",
+  "scale.row.tail": "tail {s} s",
+  "scale.low_battery": "🔋 Scale battery low ({pct} %)",
+  "scale.dialin.title": "Dial-in · {count} shots with scale",
+  "scale.dialin.legend": "Main flow (g/s) vs rating · band = target · latest highlighted",
+  "scale.dialin.best": "Your best shots ({stars}, {n}): main flow {flow} g/s · ramp {ramp} s",
+  "scale.dialin.in_band": "{n} of {total} shots with main flow in the {target} g/s band",
+  "scale.dialin.irregular": "⚠️ {n} of {total} shots with irregular flow"
 }
