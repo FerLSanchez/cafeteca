@@ -7,6 +7,19 @@ let _brewsLoading = false;
 let _brewsHasMore = true;
 let _brewsObserver = null;
 
+// "+ Nueva preparación" en Prepas: elige entre las bolsas abiertas (si solo hay una, va directo)
+async function newBrewFromBrews() {
+  const open = await api('/coffees?status=active');
+  if (!open.length) { showToast(t('brew.pick.none')); return; }
+  if (open.length === 1) { openBrewModal(open[0].id, null, open[0].name); return; }
+  document.getElementById('pick-coffee-list').innerHTML = open.map(c => `
+    <button type="button" class="pick-coffee" onclick="closeModal('modal-pick-coffee');openBrewModal(${c.id},null,${esc(JSON.stringify(c.name))})">
+      <span class="pick-coffee-name">${esc(c.name)}</span>
+      <span class="pick-coffee-sub">${esc([c.roaster, c.remaining_g != null ? c.remaining_g + 'g' : null].filter(Boolean).join(' · '))}</span>
+    </button>`).join('');
+  openModal('modal-pick-coffee');
+}
+
 async function loadBrews(reset = true) {
   if (reset) {
     _brewsOffset  = 0;
@@ -263,7 +276,7 @@ let _brewHistory  = null;   // brews del café (último para la pista, mejor par
 const BREW_FIELDS = {dose: 'b-dose', yield: 'b-yield', time: 'b-time', grind: 'b-grind', temp: 'b-temp'};
 const _bv = id => document.getElementById(id);
 
-async function openBrewModal(coffeeId = null, brewId = null) {
+async function openBrewModal(coffeeId = null, brewId = null, coffeeName = null) {
   _brewTargetId = coffeeId ?? currentDetail?.id ?? null;
   _editBrewId   = brewId ?? null;
   _brewRecipe   = null;
@@ -288,7 +301,8 @@ async function openBrewModal(coffeeId = null, brewId = null) {
   _brewRating = src.rating ?? 0;
   document.querySelector('#modal-brew .modal-title').textContent = t(editing ? 'modal.edit_brew' : 'modal.brew');
   _bv('b-coffee-name').textContent = editing ? (editing.coffees || []).join(' · ')
-    : (currentDetail?.id === _brewTargetId ? currentDetail?.name || '' : '');
+    : coffeeName ?? (currentDetail?.id === _brewTargetId ? currentDetail?.name
+      : displayedCoffees.find(c => c.id === _brewTargetId)?.name) ?? '';
 
   if (!editing && _brewTargetId) {
     const [recipe, history] = await Promise.all([

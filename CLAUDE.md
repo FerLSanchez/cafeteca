@@ -123,6 +123,7 @@ La app **no tiene autenticación propia**: `cafeteca.fersanchez.com` está detr�
 - **Modal de brew por pasos** (orden del proceso): 1 Dosis · 2 Molienda y temperatura (steppers `brewStep()`) · 3 Extracción · 4 Cata. `updateBrewSteps()` marca ✓ los pasos con datos. Sin receta, dosis/molienda/temp parten del último brew del café (línea "Último"). Con la báscula conectada, abrir el modal empieza a leer la dosis. El shot con báscula se aplica solo al terminar (sin modal aparte). Sin estrellas el botón es "Guardar · valorar después"; los brews sin valorar muestran `quickRateHtml()` en Prepas y en la ficha (`quickRateBrew()` → `PUT /api/brews/:id {rating}`). Tocar la estrella marcada quita la valoración.
 - **Deshacer**: `showToast(msg, {undo})` (en `api.js`) añade un botón "Deshacer" y dura 5 s; lo usan consumir (`undoConsume()` en `list.js`: borra el brew creado y restaura `remaining_g` con `previous_g`/`brew_id` que devuelve `/consume`) y terminar bolsa (`PUT finished_date: null`). `refreshCoffee(coffee)` repinta lista y ficha.
 - **Objetivos táctiles**: mínimo 36–40 px (44 px en estrellas y acciones del modal de brew) y ≥ 10 px entre acciones vecinas; los borrados usan el icono 🗑 (`icon('trash')`), no ✕.
+- **Empezar una preparación**: desde la ficha, desde "🫖 Preparar" en la tarjeta de una bolsa abierta, o desde "🫖 Nueva preparación" en Prepas (`newBrewFromBrews()` en `brews.js`: una bolsa abierta → directo; varias → `modal-pick-coffee`). `openBrewModal(coffeeId, brewId, coffeeName)`.
 - Los `.modal-overlay` con `data-keep-open` no se cierran al tocar fuera (el modal de brew, para no perder un shot)
 - `purgeOldBrews()` — en `form.js`; muestra confirmación y llama `DELETE /api/brews/purge` con los meses seleccionados en `#s-purge-months`
 - **Scroll infinito en pestaña Prepas**: `loadBrews(reset=true)` en `brews.js`; carga 20 registros por página usando IntersectionObserver sobre `#brews-sentinel`
@@ -241,6 +242,7 @@ node --test tests/js/*.test.js # tests JS (parser, detectores y análisis de la 
 # E2E báscula (manual, necesita playwright y la app corriendo):
 # BASE_URL=http://localhost:5323 node tests/e2e/scale-flow.e2e.js
 # BASE_URL=http://localhost:5323 node tests/e2e/wake-lock.e2e.js
+# BASE_URL=http://localhost:5323 node tests/e2e/brew-flow.e2e.js      # brew manual, valorar después, deshacer
 # BASE_URL=http://localhost:5323 node tests/e2e/touch-targets.e2e.js [carpeta-capturas]
 #   ↑ recorre todas las pantallas a 390 px: falla con controles < 36 px, pegados (< 8 px) o fuera de pantalla
 ```

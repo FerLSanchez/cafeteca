@@ -112,6 +112,7 @@ function renderList() {
     const daysOpenTag = daysOpen !== null ? `<span class="tag">${t('list.days_open_tag', {days: daysOpen, s: daysOpen!==1?'s':''})}</span>` : '';
     const price = fmtPrice(c);
     const actions = !finished ? `<div class="card-actions" id="actions-${c.id}">
+      ${c.opened_date?`<button class="btn-quick brew" onclick="event.stopPropagation();openBrewModal(${c.id})">${t('detail.btn.brew')}</button>`:''}
       ${!c.opened_date?`<button class="btn-quick open" onclick="showOpenDatePicker(event,${c.id})">${t('list.btn.open_today')}</button>`:''}
       ${c.opened_date?`<button class="btn-quick finish" onclick="quickFinish(event,${c.id})">${t('list.btn.finish_today')}</button>`:''}
     </div>` : '';

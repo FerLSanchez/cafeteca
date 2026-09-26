@@ -30,6 +30,8 @@ async function measure(page) {
       .filter(hit);
     const name = el => `${el.tagName.toLowerCase()}${el.id ? '#' + el.id : ''}.${[...el.classList].join('.')} "${
       (el.getAttribute('aria-label') || el.textContent || el.placeholder || '').trim().slice(0, 20)}"`;
+    // Barras fijas (nav): el contenido pasa por debajo al hacer scroll, no cuentan como "pegados"
+    const fixed = el => { for (; el; el = el.parentElement) if (getComputedStyle(el).position === 'fixed' && !el.classList.contains('modal-overlay')) return true; return false; };
     const small = [], close = [], overflow = [];
     // Controles que se salen de la pantalla por los lados (scroll horizontal en móvil)
     for (const el of document.querySelectorAll(sel)) {
@@ -46,6 +48,7 @@ async function measure(page) {
     for (let i = 0; i < els.length; i++) for (let j = i + 1; j < els.length; j++) {
       const [a, b] = [els[i], els[j]];
       if (a.contains(b) || b.contains(a) || (a.matches(GROUPED) && b.matches(GROUPED))) continue;
+      if (fixed(a) !== fixed(b)) continue;
       const ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect();
       const gap = Math.max(Math.max(ra.left, rb.left) - Math.min(ra.right, rb.right),
                            Math.max(ra.top, rb.top) - Math.min(ra.bottom, rb.bottom), 0);
@@ -111,7 +114,8 @@ async function measure(page) {
   await check('ajustes', () => { closeModal('modal-form'); openSettings(); });
   await check('ajustes-abajo', () => document.getElementById('modal-settings').scrollTo(0, 5000));
   await check('prepas', () => { closeModal('modal-settings'); showPage('brews'); });
-  await check('stats', () => showPage('stats'));
+  await check('elegir-cafe', () => newBrewFromBrews());
+  await check('stats', () => { closeModal('modal-pick-coffee'); showPage('stats'); });
   await check('catalogo', () => { showPage('catalog'); document.querySelector('.catalog-header')?.click(); });
   await check('confirmar', () => { showPage('list'); showConfirm({title: 'TT', onConfirm() {}}); });
 

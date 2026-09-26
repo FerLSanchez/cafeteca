@@ -493,7 +493,8 @@ body {
   font-style: italic;
 }
 
-.card-actions { display: flex; gap: 6px; margin-top: 10px; }
+.card-actions { display: flex; gap: 12px; margin-top: 10px; justify-content: space-between; }
+.btn-quick.brew { border-color: var(--border2); color: var(--text); }
 .btn-quick {
   border: 1px solid var(--border);
   background: var(--surface2);
@@ -1688,6 +1689,22 @@ body.modal-open { overflow: hidden; touch-action: none; }
 .brew-submit-bar .btn-primary { margin-top: 0; min-height: 50px; }
 
 /* Valorar después (filas de brews sin valorar) */
+.btn-new-brew {
+  width: 100%; min-height: 48px; margin-bottom: 12px;
+  background: var(--accent); color: #fff; border: none; border-radius: var(--r);
+  font-size: 15px; font-weight: 600; font-family: 'Figtree', 'DM Sans', sans-serif; cursor: pointer;
+}
+.btn-new-brew:active { opacity: .88; }
+.pick-coffee-list { display: flex; flex-direction: column; gap: 10px; }
+.pick-coffee {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left;
+  min-height: 56px; padding: 10px 14px; border-radius: var(--r);
+  background: var(--surface2); border: 1px solid var(--border2); color: var(--text); cursor: pointer;
+  font-family: 'Figtree', 'DM Sans', sans-serif;
+}
+.pick-coffee:active { border-color: var(--accent); }
+.pick-coffee-name { font-size: 15px; font-weight: 600; }
+.pick-coffee-sub { font-size: 12px; color: var(--text3); }
 .quick-rate { display: flex; align-items: center; gap: 0; margin-top: 6px; flex-wrap: wrap; }
 .quick-rate-label { font-size: 12px; color: var(--text3); margin-right: 4px; }
 .quick-star {

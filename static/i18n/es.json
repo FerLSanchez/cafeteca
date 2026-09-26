@@ -405,5 +405,8 @@
   "detail.btn.edit_remaining": "Editar restante",
   "stats.gantt_prev": "Mes anterior",
   "stats.gantt_next": "Mes siguiente",
-  "form.chip_remove": "Quitar {name}"
+  "form.chip_remove": "Quitar {name}",
+  "brew.btn.new": "🫖 Nueva preparación",
+  "brew.pick.title": "¿Qué café?",
+  "brew.pick.none": "No hay bolsas abiertas: abre una primero"
 }

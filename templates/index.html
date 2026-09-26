@@ -292,6 +292,7 @@
 
 <!-- PÁGINA: PREPAS -->
 <div class="page" id="page-brews">
+  <button class="btn-new-brew" type="button" onclick="newBrewFromBrews()" data-i18n="brew.btn.new">🫖 Nueva preparación</button>
   <div id="brews-list"><div class="loading" data-i18n="loading">Cargando...</div></div>
 </div>
 
@@ -665,6 +666,19 @@
     <div class="brew-submit-bar">
       <button class="btn-primary" id="b-submit" onclick="submitBrew()" data-i18n="brew.btn.submit">Registrar preparación</button>
     </div>
+  </div>
+</div>
+
+<!-- MODAL: ELEGIR CAFÉ PARA PREPARAR -->
+<div class="modal-overlay" id="modal-pick-coffee">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-header">
+      <div class="modal-title" data-i18n="brew.pick.title">¿Qué café?</div>
+      <button class="modal-close" onclick="closeModal('modal-pick-coffee')" data-i18n-title="btn.close">
+        <svg class="ic" viewBox="0 0 24 24"><use href="#ic-x"/></svg>
+      </button>
+    </div>
+    <div id="pick-coffee-list" class="pick-coffee-list"></div>
   </div>
 </div>
 

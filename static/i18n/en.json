@@ -398,5 +398,8 @@
   "detail.btn.edit_remaining": "Edit remaining",
   "stats.gantt_prev": "Previous month",
   "stats.gantt_next": "Next month",
-  "form.chip_remove": "Remove {name}"
+  "form.chip_remove": "Remove {name}",
+  "brew.btn.new": "🫖 New brew",
+  "brew.pick.title": "Which coffee?",
+  "brew.pick.none": "No open bags: open one first"
 }
