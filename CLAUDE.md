@@ -118,6 +118,7 @@ La app **no tiene autenticación propia**: `cafeteca.fersanchez.com` está detr�
 - **Cascada región→país**: `onOriginChange()` actualiza el hint de región en el formulario; `onFilterOriginChange()` filtra el desplegable de región en el panel de filtros avanzados
 - `renderAC()` filtra automáticamente los chips ya seleccionados y las regiones por país
 - `consumeShot(id)` — función global en `list.js` que llama a `POST /api/coffees/:id/consume` y refresca la lista; usada desde el `.consume-block` inline en tarjetas de bolsas abiertas. El endpoint además crea un brew automáticamente.
+- **Pantalla encendida**: `wakeSessionStart/End(reason)` en `scale-ui.js` mantiene un Screen Wake Lock mientras la báscula está conectada y el modal de brew o la página de prueba están abiertos; se vuelve a pedir al volver a la app y se suelta tras 10 min sin actividad en la báscula
 - `MODAL_ON_CLOSE[id]` (en `api.js`) — limpieza que `closeModal(id)` ejecuta siempre (botón, overlay o código); la usa la báscula para soltar suscripciones y el wake lock
 - `purgeOldBrews()` — en `form.js`; muestra confirmación y llama `DELETE /api/brews/purge` con los meses seleccionados en `#s-purge-months`
 - **Scroll infinito en pestaña Prepas**: `loadBrews(reset=true)` en `brews.js`; carga 20 registros por página usando IntersectionObserver sobre `#brews-sentinel`
@@ -235,6 +236,7 @@ pytest tests/test_brews.py     # un módulo específico
 node --test tests/js/*.test.js # tests JS (parser, detectores y análisis de la báscula)
 # E2E báscula (manual, necesita playwright y la app corriendo):
 # BASE_URL=http://localhost:5323 node tests/e2e/scale-flow.e2e.js
+# BASE_URL=http://localhost:5323 node tests/e2e/wake-lock.e2e.js
 ```
 
 Los tests usan una BD SQLite en memoria. `conftest.py` provee el fixture `client`.

@@ -10,6 +10,11 @@ function scaleUiInit() {
   document.querySelectorAll('.scale-only').forEach(el => { el.hidden = !supported; });
   if (!supported) return;
   scale.bus.addEventListener('scale:connected', scaleChipRender);
+  scale.bus.addEventListener('scale:connected', wakeSessionSync);
+  scale.bus.addEventListener('scale:disconnected', wakeSessionSync);
+  scale.bus.addEventListener('scale:weight', e => wakeSessionActivity(e.detail));
+  // Chrome suelta el wake lock al pasar a segundo plano: se pide de nuevo al volver
+  document.addEventListener('visibilitychange', wakeSessionSync);
   scale.bus.addEventListener('scale:weight', scaleChipRender);
   scale.bus.addEventListener('scale:disconnected', () => {
     scaleChipRender();
@@ -154,13 +159,8 @@ function createShotView(root, opts) {
       `<div class="shot-legend">${esc(t('scale.shot.ghost', {rating: '★'.repeat(opts.compare.rating || 0)}))}</div>`);
   }
   const tracker = new ShotTracker();
-  let wakeLock = null;
   let metrics = null;
 
-  const requestWake = async () => {
-    try { wakeLock = await navigator.wakeLock?.request('screen'); } catch (_) { wakeLock = null; }
-  };
-  requestWake();
 
   const setStatus = key => { q('.shot-status').textContent = t(key); };
   setStatus('scale.shot.waiting');
@@ -196,7 +196,6 @@ function createShotView(root, opts) {
 
   function finish() {
     unsub();
-    wakeLock?.release?.().catch(() => {});
     setStatus('scale.shot.done');
     const r = tracker.result;
     if (!r) return;
@@ -220,7 +219,6 @@ function createShotView(root, opts) {
     destroy() {
       unsub();
       window.removeEventListener('resize', onResize);
-      wakeLock?.release?.().catch(() => {});
       root.innerHTML = '';
     },
     get metrics() { return metrics; },
@@ -363,7 +361,7 @@ async function brewScaleShot() {
 function closeShotModal() { closeModal('modal-shot'); }
 
 MODAL_ON_CLOSE['modal-shot'] = () => { _shotView?.destroy(); _shotView = null; };
-MODAL_ON_CLOSE['modal-brew'] = () => brewScaleDoseStop();
+MODAL_ON_CLOSE['modal-brew'] = () => { brewScaleDoseStop(); wakeSessionEnd('brew'); };
 
 // ---------------------------------------------------------------------------
 // Página de prueba de la báscula (modo normal + modo auto)
@@ -374,11 +372,13 @@ let _testShotView = null;
 function openScaleTest() {
   closeModal('modal-settings');
   openModal('modal-scale');
+  wakeSessionStart('test');
   scaleTestTab('normal');
   document.getElementById('st-target').value = document.getElementById('st-target').value || '1.5';
 }
 
 MODAL_ON_CLOSE['modal-scale'] = () => {
+  wakeSessionEnd('test');
   _testDose?.unsub(); _testDose = null;
   _testShotView?.destroy(); _testShotView = null;
 };
@@ -558,4 +558,61 @@ function drawDialIn(canvas, shots, target) {
     ctx.globalAlpha = 1;
     if (b.shot_metrics.irregular) { ctx.strokeStyle = col('--red'); ctx.lineWidth = 1.5; ctx.stroke(); ctx.lineWidth = 1; }
   });
+}
+
+// ---------------------------------------------------------------------------
+// Pantalla encendida durante la sesión de báscula (Screen Wake Lock)
+// Activa mientras la báscula esté conectada y el modal de brew o la página de
+// prueba estén abiertos; se suelta tras WAKE_IDLE_MS sin actividad en la báscula.
+// ---------------------------------------------------------------------------
+const WAKE_IDLE_MS = 10 * 60 * 1000;
+const WAKE_ACTIVITY_G = 0.3;   // cambio de peso que cuenta como actividad
+const _wake = {reasons: new Set(), lock: null, pending: false, lastActivity: 0, lastWeight: null, lastMs: 0, timer: null};
+
+function wakeSessionStart(reason) {
+  _wake.reasons.add(reason);
+  _wake.lastActivity = Date.now();
+  wakeSessionSync();
+}
+
+function wakeSessionEnd(reason) {
+  _wake.reasons.delete(reason);
+  wakeSessionSync();
+}
+
+function wakeSessionActivity({weight, ms}) {
+  const moved = _wake.lastWeight === null || Math.abs(weight - _wake.lastWeight) >= WAKE_ACTIVITY_G;
+  if (moved || ms !== _wake.lastMs) {
+    _wake.lastWeight = weight;
+    _wake.lastMs = ms;
+    const wasIdle = Date.now() - _wake.lastActivity > WAKE_IDLE_MS;
+    _wake.lastActivity = Date.now();
+    if (wasIdle || !_wake.lock) wakeSessionSync();
+  }
+}
+
+function wakeSessionWanted() {
+  return _wake.reasons.size > 0 && scaleConnected() && document.visibilityState === 'visible'
+    && Date.now() - _wake.lastActivity <= WAKE_IDLE_MS;
+}
+
+async function wakeSessionSync() {
+  clearTimeout(_wake.timer);
+  if (wakeSessionWanted()) {
+    _wake.timer = setTimeout(wakeSessionSync, WAKE_IDLE_MS - (Date.now() - _wake.lastActivity) + 1000);
+    if ((_wake.lock && !_wake.lock.released) || _wake.pending) return;
+    _wake.pending = true;
+    try {
+      _wake.lock = await navigator.wakeLock?.request('screen') ?? null;
+    } catch (_) {
+      _wake.lock = null;   // p. ej. ahorro de batería: el navegador puede denegarlo
+    } finally {
+      _wake.pending = false;
+    }
+    if (!wakeSessionWanted()) wakeSessionSync();   // cambió mientras se pedía
+  } else if (_wake.lock) {
+    const lock = _wake.lock;
+    _wake.lock = null;
+    lock.release().catch(() => {});
+  }
 }

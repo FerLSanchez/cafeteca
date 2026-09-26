@@ -201,6 +201,10 @@ The owner decided to **store the curve** after all, so the metrics can be recomp
 - Brew rows show a flow sparkline; the brew modal shows the stored curve above the metrics card.
 - Settings → "Recalcular métricas de flujo" re-runs `reanalyzeCurve()` on every brew with a curve (using the current tolerance and the target stored in its metrics).
 
+## 8.5 Screen wake lock (2026-09-26)
+
+The screen stays on for the **whole scale session**, not only during the shot: while the scale is connected and the brew modal or the test page is open. The lock is requested again when the app returns to the foreground (Chrome drops it in the background), and released after **10 min without scale activity** (weight change ≥ 0.3 g or the timer moving), or on closing/disconnecting. Tested in `tests/e2e/wake-lock.e2e.js` with a fake clock. Continuous mode was discarded by the owner.
+
 ## 9. Risks and open points
 
 - ✅ **Sign bytes:** ASCII, see §8.

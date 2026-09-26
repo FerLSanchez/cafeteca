@@ -316,6 +316,7 @@ async function openBrewModal(coffeeId = null, brewId = null) {
   }
   updateBrewRatioDisplay();
   openModal('modal-brew');
+  wakeSessionStart('brew');
 }
 
 function updateBrewRatioDisplay() {
