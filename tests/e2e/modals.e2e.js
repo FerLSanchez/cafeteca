@@ -52,6 +52,15 @@ const BASE = process.env.BASE_URL || 'http://localhost:5323';
   await page.keyboard.press('Escape');
   assert.strictEqual(await isOpen('modal-detail'), false);
 
+  // 5) Versión nueva del service worker: nunca en la primera visita, y con un modal
+  //    abierto espera a que se cierre (no se pierde un shot o un formulario a medias)
+  await page.evaluate(() => { window.__marker = 1; onSwUpdated(false); });
+  assert.strictEqual(await page.evaluate(() => window.__marker), 1, 'primera visita: sin recarga');
+  await page.evaluate(() => { openSettings(); onSwUpdated(true); });
+  assert.strictEqual(await page.evaluate(() => window.__marker), 1, 'modal abierto: sin recarga');
+  await Promise.all([page.waitForEvent('load'), page.keyboard.press('Escape')]);
+  assert.strictEqual(await page.evaluate(() => window.__marker), undefined, 'recarga al cerrar el modal');
+
   await browser.close();
   assert.deepStrictEqual(errors, []);
   console.log('ok — modals e2e');

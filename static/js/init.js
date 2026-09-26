@@ -27,9 +27,18 @@ async function startup() {
 
 startup();
 
+// Nueva versión desplegada → recargar, pero nunca en la primera visita (no había versión
+// anterior) ni con un modal abierto (un shot o un formulario a medias): se espera a cerrarlo.
+function onSwUpdated(hadController) {
+  if (!hadController) return;
+  if (document.querySelector('.modal-overlay.open')) reloadWhenModalsClosed = true;
+  else window.location.reload();
+}
+
 if ('serviceWorker' in navigator) {
+  const hadController = !!navigator.serviceWorker.controller;
   navigator.serviceWorker.register('/sw.js');
   navigator.serviceWorker.addEventListener('message', e => {
-    if (e.data?.type === 'SW_UPDATED') window.location.reload();
+    if (e.data?.type === 'SW_UPDATED') onSwUpdated(hadController);
   });
 }

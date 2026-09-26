@@ -87,6 +87,9 @@ function openModal(id) {
   if (dialog && !dialog.contains(document.activeElement)) dialog.focus({preventScroll: true});
 }
 
+// Recarga pendiente por una versión nueva (onSwUpdated en init.js): al cerrar el último modal
+let reloadWhenModalsClosed = false;
+
 // Limpieza al cerrar un modal (botón, overlay o código): {modalId: fn}
 const MODAL_ON_CLOSE = {};
 
@@ -95,6 +98,7 @@ function closeModal(id) {
   document.getElementById(id).classList.remove('open');
   if (!document.querySelector('.modal-overlay.open')) {
     document.body.classList.remove('modal-open');
+    if (reloadWhenModalsClosed) { window.location.reload(); return; }
   }
   const i = _modalStack.findIndex(m => m.id === id);
   if (i !== -1) {
