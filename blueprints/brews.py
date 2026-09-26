@@ -1,9 +1,23 @@
+import json
 from datetime import datetime
 from flask import Blueprint, request, jsonify
 from db import db_conn
 from models import validate_brew
 
-BREW_FIELDS = ['brew_date', 'dose_g', 'yield_g', 'time_s', 'grind', 'temp_c', 'rating', 'notes']
+BREW_FIELDS = ['brew_date', 'dose_g', 'yield_g', 'time_s', 'grind', 'temp_c', 'rating', 'notes', 'shot_metrics']
+BREW_COLS = 'id, brew_date, dose_g, yield_g, time_s, grind, temp_c, rating, notes, shot_metrics, created_at'
+RECIPE_COLS = 'id, dose_g, yield_g, time_s, grind, temp_c, target_flow, updated_at'
+
+
+def _brew_out(row):
+    d = dict(row)
+    if 'shot_metrics' in d:
+        d['shot_metrics'] = json.loads(d['shot_metrics']) if d['shot_metrics'] else None
+    return d
+
+
+def _metrics_in(value):
+    return json.dumps(value, separators=(',', ':')) if value else None
 
 
 def _validation_error(err):
@@ -35,7 +49,7 @@ def list_brews():
         total = conn.execute('SELECT COUNT(*) FROM brews').fetchone()[0]
         rows = conn.execute('''
             SELECT b.id, b.brew_date, b.dose_g, b.yield_g, b.time_s, b.grind, b.temp_c,
-                   b.rating, b.notes, b.created_at,
+                   b.rating, b.notes, b.shot_metrics, b.created_at,
                    GROUP_CONCAT(c.name, '|||') AS coffee_names
             FROM brews b
             LEFT JOIN coffee_brews cb ON cb.brew_id = b.id
@@ -46,7 +60,7 @@ def list_brews():
         ''', (limit, offset)).fetchall()
     result = []
     for r in rows:
-        d = dict(r)
+        d = _brew_out(r)
         names = d.pop('coffee_names') or ''
         d['coffees'] = [n for n in names.split('|||') if n] if names else []
         result.append(d)
@@ -81,7 +95,7 @@ def get_recipe(cid):
         if not conn.execute('SELECT 1 FROM coffees WHERE id=?', (cid,)).fetchone():
             return jsonify({'error': 'Café no encontrado', 'error_key': 'error.coffee.not_found'}), 404
         row = conn.execute('''
-            SELECT r.id, r.dose_g, r.yield_g, r.time_s, r.grind, r.temp_c, r.updated_at
+            SELECT r.id, r.dose_g, r.yield_g, r.time_s, r.grind, r.temp_c, r.target_flow, r.updated_at
             FROM recipes r
             JOIN coffee_recipes cr ON cr.recipe_id = r.id
             WHERE cr.coffee_id = ?
@@ -103,6 +117,7 @@ def upsert_recipe(cid):
     time_s  = data.get('time_s')
     grind   = data.get('grind')
     temp_c  = data.get('temp_c')
+    target_flow = data.get('target_flow')
     now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     with db_conn() as conn:
         if not conn.execute('SELECT 1 FROM coffees WHERE id=?', (cid,)).fetchone():
@@ -115,19 +130,21 @@ def upsert_recipe(cid):
         ''', (cid,)).fetchone()
         if existing:
             conn.execute(
-                'UPDATE recipes SET dose_g=?, yield_g=?, time_s=?, grind=?, temp_c=?, updated_at=? WHERE id=?',
-                (dose_g, yield_g, time_s, grind, temp_c, now, existing['id'])
+                'UPDATE recipes SET dose_g=?, yield_g=?, time_s=?, grind=?, temp_c=?, target_flow=?, updated_at=? '
+                'WHERE id=?',
+                (dose_g, yield_g, time_s, grind, temp_c, target_flow, now, existing['id'])
             )
             rid = existing['id']
         else:
             cur = conn.execute(
-                'INSERT INTO recipes (dose_g, yield_g, time_s, grind, temp_c, updated_at) VALUES (?,?,?,?,?,?)',
-                (dose_g, yield_g, time_s, grind, temp_c, now)
+                'INSERT INTO recipes (dose_g, yield_g, time_s, grind, temp_c, target_flow, updated_at) '
+                'VALUES (?,?,?,?,?,?,?)',
+                (dose_g, yield_g, time_s, grind, temp_c, target_flow, now)
             )
             rid = cur.lastrowid
             conn.execute('INSERT INTO coffee_recipes (coffee_id, recipe_id) VALUES (?,?)', (cid, rid))
         row = conn.execute(
-            'SELECT id, dose_g, yield_g, time_s, grind, temp_c, updated_at FROM recipes WHERE id=?', (rid,)
+            f'SELECT {RECIPE_COLS} FROM recipes WHERE id=?', (rid,)
         ).fetchone()
     return jsonify(dict(row))
 
@@ -153,13 +170,13 @@ def list_coffee_brews(cid):
             return jsonify({'error': 'Café no encontrado', 'error_key': 'error.coffee.not_found'}), 404
         rows = conn.execute('''
             SELECT b.id, b.brew_date, b.dose_g, b.yield_g, b.time_s, b.grind, b.temp_c,
-                   b.rating, b.notes, b.created_at
+                   b.rating, b.notes, b.shot_metrics, b.created_at
             FROM brews b
             JOIN coffee_brews cb ON cb.brew_id = b.id
             WHERE cb.coffee_id = ?
             ORDER BY b.brew_date DESC, b.created_at DESC
         ''', (cid,)).fetchall()
-    return jsonify([dict(r) for r in rows])
+    return jsonify([_brew_out(r) for r in rows])
 
 
 @bp.route('/api/coffees/<int:cid>/brews', methods=['POST'])
@@ -176,6 +193,7 @@ def add_brew(cid):
     temp_c  = data.get('temp_c')
     notes   = data.get('notes') or None
     rating  = data.get('rating')
+    shot_metrics = _metrics_in(data.get('shot_metrics'))
     with db_conn() as conn:
         coffee_row = conn.execute(
             'SELECT remaining_g, opened_date, finished_date FROM coffees WHERE id=?', (cid,)
@@ -183,9 +201,9 @@ def add_brew(cid):
         if not coffee_row:
             return jsonify({'error': 'Café no encontrado', 'error_key': 'error.coffee.not_found'}), 404
         cur = conn.execute(
-            'INSERT INTO brews (brew_date, dose_g, yield_g, time_s, grind, temp_c, rating, notes) '
-            'VALUES (?,?,?,?,?,?,?,?)',
-            (brew_date, dose_g, yield_g, time_s, grind, temp_c, rating, notes)
+            'INSERT INTO brews (brew_date, dose_g, yield_g, time_s, grind, temp_c, rating, notes, shot_metrics) '
+            'VALUES (?,?,?,?,?,?,?,?,?)',
+            (brew_date, dose_g, yield_g, time_s, grind, temp_c, rating, notes, shot_metrics)
         )
         bid = cur.lastrowid
         conn.execute('INSERT INTO coffee_brews (coffee_id, brew_id) VALUES (?,?)', (cid, bid))
@@ -194,11 +212,8 @@ def add_brew(cid):
                 and coffee_row['remaining_g'] is not None):
             new_remaining = max(0, int(coffee_row['remaining_g'] - dose_g))
             conn.execute('UPDATE coffees SET remaining_g=? WHERE id=?', (new_remaining, cid))
-        row = conn.execute(
-            'SELECT id, brew_date, dose_g, yield_g, time_s, grind, temp_c, rating, notes, created_at '
-            'FROM brews WHERE id=?', (bid,)
-        ).fetchone()
-    result = dict(row)
+        row = conn.execute(f'SELECT {BREW_COLS} FROM brews WHERE id=?', (bid,)).fetchone()
+    result = _brew_out(row)
     if new_remaining is not None:
         result['remaining_g'] = new_remaining
     return jsonify(result), 201
@@ -217,17 +232,16 @@ def update_brew(bid):
     updates = {f: data[f] for f in BREW_FIELDS if f in data}
     if 'notes' in updates:
         updates['notes'] = updates['notes'] or None
+    if 'shot_metrics' in updates:
+        updates['shot_metrics'] = _metrics_in(updates['shot_metrics'])
     with db_conn() as conn:
         if not conn.execute('SELECT 1 FROM brews WHERE id=?', (bid,)).fetchone():
             return jsonify({'error': 'Preparación no encontrada', 'error_key': 'error.brew.not_found'}), 404
         if updates:
             sets = ', '.join(f'{f}=?' for f in updates)
             conn.execute(f'UPDATE brews SET {sets} WHERE id=?', list(updates.values()) + [bid])
-        row = conn.execute(
-            'SELECT id, brew_date, dose_g, yield_g, time_s, grind, temp_c, rating, notes, created_at FROM brews WHERE id=?',
-            (bid,)
-        ).fetchone()
-    return jsonify(dict(row))
+        row = conn.execute(f'SELECT {BREW_COLS} FROM brews WHERE id=?', (bid,)).fetchone()
+    return jsonify(_brew_out(row))
 
 
 @bp.route('/api/brews/<int:bid>', methods=['DELETE'])

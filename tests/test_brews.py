@@ -295,3 +295,58 @@ class TestUpdateBrewPartial:
 class TestDeleteRecipeNotFound:
     def test_delete_recipe_unknown_coffee(self, client):
         assert client.delete('/api/coffees/999/recipe').status_code == 404
+
+
+METRICS = {'main_flow': 1.73, 'avg_flow': 1.38, 'peak_flow': 2.2, 't_peak_s': 21.7,
+           't_ramp_s': 6.7, 'overshoot_s': 9.7, 'in_band_pct': 33, 'flow_cv': 0.16,
+           'tail_s': 4.4, 'tail_g': 0.6, 'irregular': True, 'target_flow': 1.5}
+
+
+class TestShotMetrics:
+    def test_brew_stores_and_returns_metrics(self, client):
+        coffee = make_coffee(client)
+        brew = make_brew(client, coffee['id'], {'shot_metrics': METRICS})
+        assert brew['shot_metrics'] == METRICS
+        listed = client.get(f'/api/coffees/{coffee["id"]}/brews').get_json()[0]
+        assert listed['shot_metrics'] == METRICS
+        assert client.get('/api/brews').get_json()['brews'][0]['shot_metrics'] == METRICS
+
+    def test_brew_without_metrics_returns_null(self, client):
+        coffee = make_coffee(client)
+        assert make_brew(client, coffee['id'])['shot_metrics'] is None
+
+    def test_put_null_clears_metrics(self, client):
+        coffee = make_coffee(client)
+        brew = make_brew(client, coffee['id'], {'shot_metrics': METRICS})
+        resp = client.put(f'/api/brews/{brew["id"]}', json={'shot_metrics': None})
+        assert resp.get_json()['shot_metrics'] is None
+
+    def test_put_without_key_keeps_metrics(self, client):
+        coffee = make_coffee(client)
+        brew = make_brew(client, coffee['id'], {'shot_metrics': METRICS})
+        resp = client.put(f'/api/brews/{brew["id"]}', json={'rating': 4})
+        assert resp.get_json()['shot_metrics'] == METRICS
+
+    @pytest.mark.parametrize('bad', [
+        'x', [], {}, {'unknown': 1}, {'main_flow': 'fast'}, {'irregular': 1}, {'main_flow': True},
+    ])
+    def test_invalid_metrics_400(self, client, bad):
+        coffee = make_coffee(client)
+        resp = client.post(f'/api/coffees/{coffee["id"]}/brews', json={'shot_metrics': bad})
+        assert resp.status_code == 400
+        assert resp.get_json()['error_key'] == 'error.brew.shot_metrics_invalid'
+
+
+class TestRecipeTargetFlow:
+    def test_target_flow_roundtrip(self, client):
+        coffee = make_coffee(client)
+        resp = client.put(f'/api/coffees/{coffee["id"]}/recipe', json={'dose_g': 17, 'target_flow': 1.5})
+        assert resp.get_json()['target_flow'] == 1.5
+        assert client.get(f'/api/coffees/{coffee["id"]}/recipe').get_json()['target_flow'] == 1.5
+
+    @pytest.mark.parametrize('bad', [0, 11, 'x', True])
+    def test_target_flow_invalid(self, client, bad):
+        coffee = make_coffee(client)
+        resp = client.put(f'/api/coffees/{coffee["id"]}/recipe', json={'target_flow': bad})
+        assert resp.status_code == 400
+        assert resp.get_json()['error_key_params']['field'] == 'target_flow'
