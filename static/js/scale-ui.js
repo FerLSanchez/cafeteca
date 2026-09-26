@@ -147,6 +147,12 @@ function createShotView(root, opts) {
     <div class="shot-actions"></div>`;
   const q = sel => root.querySelector(sel);
   const canvas = q('.shot-chart');
+  // Curva fantasma: el mejor shot valorado del mismo café (si guardó curva)
+  if (opts.compare?.shot_curve) {
+    opts.ghostSeries = flowSeries(samplesFromCurve(opts.compare.shot_curve)).filter(p => p.flow !== null);
+    canvas.insertAdjacentHTML('afterend',
+      `<div class="shot-legend">${esc(t('scale.shot.ghost', {rating: '★'.repeat(opts.compare.rating || 0)}))}</div>`);
+  }
   const tracker = new ShotTracker();
   let wakeLock = null;
   let metrics = null;
@@ -202,7 +208,7 @@ function createShotView(root, opts) {
     q('.shot-summary').innerHTML = shotSummaryHtml(metrics, r, opts);
     if (opts.onUse) {
       q('.shot-actions').innerHTML = `<button class="btn-primary">${esc(t('scale.shot.use'))}</button>`;
-      q('.shot-actions button').onclick = () => opts.onUse(r, metrics);
+      q('.shot-actions button').onclick = () => opts.onUse(r, metrics, curveFromShot(tracker.samples, r));
     }
   }
 
@@ -263,8 +269,9 @@ function drawShotChart(canvas, samples, opts) {
   const css = getComputedStyle(document.documentElement);
   const col = name => css.getPropertyValue(name).trim();
   const series = samples.length >= 3 ? flowSeries(samples).filter(p => p.flow !== null) : [];
-  const tMax = Math.max(30, ...samples.map(s => s.t));
-  const fMax = Math.max(3, (opts.target || 0) + 1, ...series.map(p => p.flow * 1.1));
+  const ghost = opts.ghostSeries || [];
+  const tMax = Math.max(30, ...samples.map(s => s.t), ...ghost.map(p => p.t));
+  const fMax = Math.max(3, (opts.target || 0) + 1, ...series.map(p => p.flow * 1.1), ...ghost.map(p => p.flow * 1.1));
   const wMax = Math.max(opts.targetYield || 40, ...samples.map(s => s.weight * 1.1));
   const pad = {l: 26, r: 6, t: 6, b: 16};
   const X = tt => pad.l + tt / tMax * (w - pad.l - pad.r);
@@ -289,6 +296,15 @@ function drawShotChart(canvas, samples, opts) {
     ctx.beginPath(); ctx.moveTo(pad.l, Yf(opts.target)); ctx.lineTo(w - pad.r, Yf(opts.target)); ctx.stroke();
     ctx.setLineDash([]);
   }
+  if (ghost.length > 1) {
+    ctx.strokeStyle = col('--text2');
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath();
+    ghost.forEach((p, i) => (i ? ctx.lineTo(X(p.t), Yf(p.flow)) : ctx.moveTo(X(p.t), Yf(p.flow))));
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
   if (samples.length > 1) {
     ctx.strokeStyle = col('--text3');
     ctx.lineWidth = 1;
@@ -310,6 +326,7 @@ function drawShotChart(canvas, samples, opts) {
 // ---------------------------------------------------------------------------
 let _shotView = null;
 let _brewShotMetrics = null;
+let _brewShotCurve = null;
 
 async function brewScaleShot() {
   if (!await scaleEnsure()) return;
@@ -321,19 +338,22 @@ async function brewScaleShot() {
   if (_brewTargetId) {
     try {
       const brews = await api('/coffees/' + _brewTargetId + '/brews');
+      // Mejor valorado; a igual nota, primero el que tenga curva y luego el más reciente
       compare = (brews || []).filter(b => b.rating && b.shot_metrics?.main_flow != null && b.id !== _editBrewId)
-        .sort((a, b) => b.rating - a.rating || (b.brew_date > a.brew_date ? 1 : -1))[0] || null;
+        .sort((a, b) => b.rating - a.rating || !!b.shot_curve - !!a.shot_curve
+          || (b.brew_date > a.brew_date ? 1 : -1))[0] || null;
     } catch (_) {}
   }
   openModal('modal-shot');
   _shotView?.destroy();
   _shotView = createShotView(document.getElementById('shot-view'), {
     dose, target, tol: flowTolerance, targetYield, compare,
-    onUse: (r, metrics) => {
+    onUse: (r, metrics, curve) => {
       document.getElementById('b-yield').value = r.yield_g;
       document.getElementById('b-time').value = r.time_s;
       _brewShotMetrics = metrics;
-      brewShowShotSummary(metrics);
+      _brewShotCurve = curve;
+      brewShowShotSummary(metrics, curve);
       updateBrewRatioDisplay();
       closeShotModal();
     },
@@ -408,11 +428,48 @@ function scaleTestAutoStart() {
 // ---------------------------------------------------------------------------
 // F2 — métricas guardadas y dial-in por café
 // ---------------------------------------------------------------------------
-function brewShowShotSummary(metrics) {
+function brewShowShotSummary(metrics, curve) {
   const el = document.getElementById('b-shot-summary');
   if (!el) return;
   el.hidden = !metrics;
-  el.innerHTML = metrics ? shotSummaryHtml(metrics, null, {}) : '';
+  el.innerHTML = metrics ? (curve ? '<canvas class="shot-chart"></canvas>' : '') + shotSummaryHtml(metrics, null, {}) : '';
+  if (metrics && curve) {
+    // tras abrir el modal, para que el canvas ya tenga tamaño
+    requestAnimationFrame(() => drawShotChart(el.querySelector('canvas'), samplesFromCurve(curve),
+      {target: metrics.target_flow, tol: flowTolerance}));
+  }
+}
+
+// Mini curva de flujo (SVG) para las filas de brews
+function curveSparkline(curve) {
+  const series = flowSeries(samplesFromCurve(curve)).filter(p => p.flow !== null);
+  if (series.length < 3) return '';
+  const W = 64, H = 16;
+  const tMax = series[series.length - 1].t || 1;
+  const fMax = Math.max(1, ...series.map(p => p.flow));
+  const step = Math.max(1, Math.floor(series.length / 40));
+  const pts = series.filter((_, i) => i % step === 0)
+    .map(p => `${(p.t / tMax * W).toFixed(1)},${(H - Math.max(0, p.flow) / fMax * (H - 1)).toFixed(1)}`).join(' ');
+  return `<svg class="sparkline" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" aria-hidden="true"><polyline points="${pts}"/></svg>`;
+}
+
+// Recalcula shot_metrics de todos los brews con curva (tras cambiar el análisis o la tolerancia)
+async function recomputeShotMetrics() {
+  let offset = 0, updated = 0, more = true;
+  while (more) {
+    const page = await api(`/brews?limit=100&offset=${offset}`);
+    more = page.has_more;
+    offset += page.brews.length;
+    for (const b of page.brews) {
+      if (!b.shot_curve) continue;
+      const m = reanalyzeCurve(b.shot_curve, {target: b.shot_metrics?.target_flow ?? null, tol: flowTolerance, yield_g: b.yield_g});
+      if (m && JSON.stringify(m) !== JSON.stringify(b.shot_metrics)) {
+        await api('/brews/' + b.id, {method: 'PUT', body: JSON.stringify({shot_metrics: m})});
+        updated++;
+      }
+    }
+  }
+  showToast(t('scale.recompute_done', {count: updated}));
 }
 
 // Rango [min, max] de un array de números, formateado

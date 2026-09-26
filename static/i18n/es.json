@@ -367,5 +367,11 @@
   "scale.dialin.legend": "Flujo principal (g/s) vs valoración · banda = objetivo · el más reciente, resaltado",
   "scale.dialin.best": "Tus mejores shots ({stars}, {n}): flujo principal {flow} g/s · rampa {ramp} s",
   "scale.dialin.in_band": "{n} de {total} shots con el flujo principal en la banda de {target} g/s",
-  "scale.dialin.irregular": "⚠️ {n} de {total} shots con flujo irregular"
+  "scale.dialin.irregular": "⚠️ {n} de {total} shots con flujo irregular",
+
+  "scale.shot.ghost": "- - - tu mejor shot ({rating})",
+  "scale.recompute": "Recalcular métricas de flujo",
+  "scale.recompute_hint": "Vuelve a analizar los shots guardados con curva (p. ej. tras cambiar la tolerancia).",
+  "scale.recompute_done": "{count} preparación(es) recalculada(s)",
+  "error.brew.shot_curve_invalid": "Curva del shot inválida"
 }

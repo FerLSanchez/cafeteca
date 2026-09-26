@@ -4,7 +4,7 @@ import pytest
 import schema as schema_mod
 from schema import (
     init_settings, migrate_v3, migrate_v4, migrate_v5, migrate_v6, migrate_v7,
-    migrate_v8, migrate_v9,
+    migrate_v8, migrate_v9, migrate_v10,
 )
 from lookup_config import create_lookup_tables
 
@@ -232,6 +232,17 @@ def test_migrate_v9_adds_shot_metrics_and_target_flow():
     recipe_cols = [r[1] for r in conn.execute("PRAGMA table_info(recipes)").fetchall()]
     assert 'shot_metrics' in brew_cols
     assert 'target_flow' in recipe_cols
+    conn.close()
+
+
+def test_migrate_v10_adds_shot_curve():
+    conn = fresh_conn()
+    _base_schema(conn)
+    migrate_v6(conn)
+    migrate_v10(conn)
+    migrate_v10(conn)  # idempotent
+    cols = [r[1] for r in conn.execute("PRAGMA table_info(brews)").fetchall()]
+    assert 'shot_curve' in cols
     conn.close()
 
 

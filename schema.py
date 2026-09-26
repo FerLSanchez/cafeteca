@@ -58,6 +58,7 @@ def init_db():
         migrate_v7(conn)
         migrate_v8(conn)
         migrate_v9(conn)
+        migrate_v10(conn)
         if not col_exists(conn, 'coffees', 'altitude'):
             conn.execute('ALTER TABLE coffees ADD COLUMN altitude INTEGER')
 
@@ -273,6 +274,14 @@ def migrate_v9(conn):
         if col not in cols:
             conn.execute(f'ALTER TABLE {table} ADD COLUMN {col} {typ}')
             logging.info('[migration v9] Added %s to %s.', col, table)
+
+
+def migrate_v10(conn):
+    """Phase 10: Bookoo scale — raw shot curve per brew (JSON, ~3 KB) to re-analyse later."""
+    cols = [r[1] for r in conn.execute('PRAGMA table_info(brews)').fetchall()]
+    if 'shot_curve' not in cols:
+        conn.execute('ALTER TABLE brews ADD COLUMN shot_curve TEXT')
+        logging.info('[migration v10] Added shot_curve to brews.')
 
 
 def _rebuild_table_v1(conn):

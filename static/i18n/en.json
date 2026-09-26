@@ -360,5 +360,11 @@
   "scale.dialin.legend": "Main flow (g/s) vs rating · band = target · latest highlighted",
   "scale.dialin.best": "Your best shots ({stars}, {n}): main flow {flow} g/s · ramp {ramp} s",
   "scale.dialin.in_band": "{n} of {total} shots with main flow in the {target} g/s band",
-  "scale.dialin.irregular": "⚠️ {n} of {total} shots with irregular flow"
+  "scale.dialin.irregular": "⚠️ {n} of {total} shots with irregular flow",
+
+  "scale.shot.ghost": "- - - your best shot ({rating})",
+  "scale.recompute": "Recompute flow metrics",
+  "scale.recompute_hint": "Re-analyses saved shots that have a curve (e.g. after changing the tolerance).",
+  "scale.recompute_done": "{count} brew(s) recomputed",
+  "error.brew.shot_curve_invalid": "Invalid shot curve"
 }

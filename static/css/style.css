@@ -1610,3 +1610,7 @@ body.modal-open { overflow: hidden; touch-action: none; }
 .dialin-chart { width: 100%; height: 140px; display: block; }
 .dialin-legend { font-size: 11px; color: var(--text3); margin: 2px 0 6px; }
 .dialin-line { font-size: 13px; color: var(--text2); margin-top: 3px; }
+.sparkline { vertical-align: middle; margin-right: 6px; }
+.sparkline polyline { fill: none; stroke: var(--accent); stroke-width: 1.5; }
+.shot-legend { font-size: 11px; color: var(--text2); margin-top: 2px; }
+.brew-shot-summary .shot-chart { height: 130px; margin-bottom: 8px; }

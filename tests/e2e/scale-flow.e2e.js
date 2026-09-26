@@ -87,7 +87,8 @@ async function apiCall(page, method, url, body) {
   assert.strictEqual(await page.inputValue('#b-yield'), '38.5');
   assert.strictEqual(await page.inputValue('#b-time'), '28');
 
-  // 3) Guardar: el brew lleva las métricas
+  // 3) Guardar con valoración: el brew lleva métricas y curva
+  await page.click('#modal-brew .brew-star[data-val="5"]');
   await page.click('#modal-brew > .modal > .btn-primary');
   await page.waitForSelector('#modal-brew:not(.open)', {state: 'attached'});
   const brews = await apiCall(page, 'GET', `/api/coffees/${coffee.id}/brews`);
@@ -95,6 +96,14 @@ async function apiCall(page, method, url, body) {
   assert.ok(m.main_flow > 1.65 && m.main_flow < 1.8, JSON.stringify(m));
   assert.strictEqual(m.target_flow, 1.5);
   assert.strictEqual(brews[0].dose_g, 17);
+  assert.ok(brews[0].shot_curve.pts.length > 200, 'curva completa guardada');
+  assert.strictEqual(brews[0].shot_curve.time_ms, 27800);
+
+  // 4) Siguiente shot: la curva del mejor valorado aparece como fantasma
+  await page.evaluate(id => openBrewModal(id), coffee.id);
+  await page.click('#modal-brew .btn-shot');
+  await page.waitForSelector('#shot-view .shot-legend', {state: 'attached'});
+  await page.evaluate(() => closeModal('modal-shot'));
 
   assert.deepStrictEqual(errors, []);
   console.log('ok — scale flow e2e', JSON.stringify(m));

@@ -182,6 +182,9 @@ def validate_brew(data, recipe=False):
     sm = data.get('shot_metrics')
     if sm is not None and not _shot_metrics_ok(sm):
         return _verr('error.brew.shot_metrics_invalid', 'Métricas del shot inválidas')
+    sc = data.get('shot_curve')
+    if sc is not None and not _shot_curve_ok(sc):
+        return _verr('error.brew.shot_curve_invalid', 'Curva del shot inválida')
     r = data.get('rating')
     if r is not None and not _num_ok(r, int, 1, 5):
         return _verr('error.model.rating_invalid', 'La valoración debe estar entre 1 y 5')
@@ -212,3 +215,23 @@ def _shot_metrics_ok(sm):
         elif v is not None and not _num_ok(v, (int, float), -1000, 10000):
             return False
     return True
+
+
+SHOT_CURVE_MAX_POINTS = 2000   # ~3 min a 11 Hz
+
+
+def _shot_curve_ok(sc):
+    """{v: 1, time_ms: int|None, pts: [[t_s, weight_g], ...]}"""
+    if not isinstance(sc, dict) or sc.get('v') != 1 or set(sc) - {'v', 'time_ms', 'pts'}:
+        return False
+    tm = sc.get('time_ms')
+    if tm is not None and not _num_ok(tm, int, 0, 3_600_000):
+        return False
+    pts = sc.get('pts')
+    if not isinstance(pts, list) or not pts or len(pts) > SHOT_CURVE_MAX_POINTS:
+        return False
+    return all(
+        isinstance(p, list) and len(p) == 2
+        and _num_ok(p[0], (int, float), 0, 3600) and _num_ok(p[1], (int, float), -1000, 5000)
+        for p in pts
+    )

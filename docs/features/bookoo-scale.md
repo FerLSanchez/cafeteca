@@ -1,6 +1,6 @@
 # Feature spec — Bookoo Themis Mini integration (Web Bluetooth)
 
-> Status: **F1 + F2 implemented** (2026-09-26), plus the F3 low-battery hint. F0 findings in §8. Pending: validation on the Pixel with real shots.
+> Status: **F1 + F2 implemented** (2026-09-26), plus the shot curve (§8.4) and the F3 low-battery hint. F0 findings in §8. Pending: validation on the Pixel with real shots.
 > Backlog code: **PM-14** in [`docs/REVIEW-2026-09.md`](../REVIEW-2026-09.md) §6.
 > Protocol source: [BooKooCode/OpenSource](https://github.com/BooKooCode/OpenSource) (MIT), files `bookoo_mini_scale/protocols.md` and `bookoo_ultra_scale/protocols.md`.
 
@@ -191,6 +191,15 @@ A real shot at a 1.5 g/s target looks like this: a slow start → it ramps up to
 - Editing a brew with metrics shows the full metrics card in the brew modal (and so does a new brew after "Usar resultado").
 - Coffee detail → **Dial-in** section (≥ 2 shots with metrics): a scatter of main flow vs rating with the target band shaded (latest highlighted, irregular shots ringed in red), plus lines for your best-rated shots' main flow/ramp range, shots in band, and irregular shots.
 - F3 low-battery hint: the chip turns red at ≤ 15 %, with one toast per session. Continuous mode is still open.
+
+## 8.4 Shot curve (decision revised 2026-09-26)
+
+The owner decided to **store the curve** after all, so the metrics can be recomputed when the analysis changes, curves can be compared, and sparklines drawn.
+- `migrate_v10`: `brews.shot_curve` TEXT = `{"v":1,"time_ms":27800,"pts":[[t_s, weight_g], …]}` holding **every reading** (~11 Hz, t rounded to 0.01 s, weight to 0.1 g) → **~3 KB per shot**. Downsampling to 5 Hz was tested: it lost the irregular dip in the F0 shot, so it was rejected. Validation: max 2 000 points.
+- The curve is saved together with `shot_metrics` on "Usar resultado". Shots saved earlier have no curve.
+- Live view: the curve of the best-rated shot of the same coffee is drawn as a dashed "ghost".
+- Brew rows show a flow sparkline; the brew modal shows the stored curve above the metrics card.
+- Settings → "Recalcular métricas de flujo" re-runs `reanalyzeCurve()` on every brew with a curve (using the current tolerance and the target stored in its metrics).
 
 ## 9. Risks and open points
 

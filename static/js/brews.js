@@ -52,7 +52,7 @@ function _appendBrewCards(brews, el) {
       </div>
       <div class="brew-coffees">${b.coffees.map(n=>`<span class="brew-coffee-tag">${esc(n)}</span>`).join('')}</div>
       <div class="brew-summary">${esc(brewSummaryLine(b))}</div>
-      ${b.shot_metrics ? `<div class="brew-metrics">${esc(brewMetricsLine(b))}</div>` : ''}
+      ${b.shot_metrics ? `<div class="brew-metrics">${b.shot_curve ? curveSparkline(b.shot_curve) : ''}${esc(brewMetricsLine(b))}</div>` : ''}
       ${b.notes ? `<div class="brew-notes">"${esc(b.notes)}"</div>` : ''}
     </div>
   `).join(''));
@@ -104,7 +104,7 @@ function brewMetricsLine(b) {
   if (m.in_band_pct != null) parts.push(t('scale.row.in_band', {pct: m.in_band_pct}));
   parts.push(t('scale.row.peak', {flow: (+m.peak_flow).toFixed(2)}));
   parts.push(t('scale.row.tail', {s: (+m.tail_s).toFixed(1)}));
-  return '🌊 ' + parts.join(' · ');
+  return (b.shot_curve ? '' : '🌊 ') + parts.join(' · ');
 }
 
 
@@ -170,7 +170,7 @@ async function renderBrewsSection(coffeeId) {
         <span class="detail-brew-rating">${b.rating ? stars(b.rating) : '—'}</span>
         <button class="btn-inline-edit" onclick="openBrewModal(${coffeeId},${b.id})" title="Editar preparación">${icon('edit')}</button>
         <button class="btn-inline-edit" onclick="deleteBrew(${b.id}, ${coffeeId})" title="Eliminar" style="color:var(--text3)">${icon('x')}</button>
-        ${b.shot_metrics ? `<div class="brew-metrics detail-brew-metrics">${esc(brewMetricsLine(b))}</div>` : ''}
+        ${b.shot_metrics ? `<div class="brew-metrics detail-brew-metrics">${b.shot_curve ? curveSparkline(b.shot_curve) : ''}${esc(brewMetricsLine(b))}</div>` : ''}
       </div>`).join('')}`;
 }
 
@@ -263,9 +263,11 @@ async function openBrewModal(coffeeId = null, brewId = null) {
   _brewRating   = 0;
   _brewRecipe   = null;
   _brewShotMetrics = _editBrewId ? undefined : null;   // undefined = no tocar al editar
+  _brewShotCurve   = null;
   brewScaleDoseStop();
   document.getElementById('b-dose-scale').hidden = true;
-  brewShowShotSummary(_editBrewId ? _brewCache[_editBrewId]?.shot_metrics : null);
+  const editing = _editBrewId ? _brewCache[_editBrewId] : null;
+  brewShowShotSummary(editing?.shot_metrics, editing?.shot_curve);
 
   const titleEl  = document.querySelector('#modal-brew .modal-title');
   const submitEl = document.querySelector('#modal-brew .btn-primary');
@@ -344,7 +346,7 @@ async function submitBrew() {
   const brew_date = document.getElementById('b-date').value || null;
   const notes     = document.getElementById('b-notes').value || null;
   const rating    = _brewRating >= 1 ? _brewRating : null;
-  const extra     = _brewShotMetrics ? { shot_metrics: _brewShotMetrics } : {};
+  const extra     = _brewShotMetrics ? { shot_metrics: _brewShotMetrics, shot_curve: _brewShotCurve } : {};
 
   if (_editBrewId) {
     // Editar preparación existente

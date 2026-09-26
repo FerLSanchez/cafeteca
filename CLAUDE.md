@@ -9,7 +9,7 @@ App web personal para registrar cafés de especialidad. Flask + SQLite + HTML/CS
 ## Ficheros relevantes
 
 - `app.py` — app factory Flask: registra blueprints, security headers, PWA routes
-- `schema.py` — esquema de BD, init y migraciones (`init_db()`, `migrate_v1()` … `migrate_v9()`)
+- `schema.py` — esquema de BD, init y migraciones (`init_db()`, `migrate_v1()` … `migrate_v10()`)
 - `models.py` — helpers de datos: `row_to_coffee()`, `COFFEE_SELECT`, `resolve_ids()`, `set_m2m()`
 - `db.py` — conexión SQLite y variable `DB` (la BD usa `journal_mode=WAL`, activado en `init_db()`)
 - `lookup_config.py` — constantes `LOOKUP_TABLES`, `LOOKUP_FK`, `JUNCTION_TABLES` y `get_or_create()`
@@ -96,13 +96,13 @@ La app **no tiene autenticación propia**: `cafeteca.fersanchez.com` está detr�
 - La BD vive en `/data/coffee.db` (variable `DB` en `db.py`)
 - `init_db()` se llama al arrancar y es idempotente — incluye todas las migraciones
 - Hay dos fases de migración: `migrate_v1()` (texto→FK, legado) y `migrate_v2()` (FK→M2M + link región-país)
-- Añadir un nuevo cambio de esquema: crear `migrate_v10()` en `schema.py` y llamarla desde `init_db()` (la última es `migrate_v9`: `brews.shot_metrics` JSON y `recipes.target_flow`)
+- Añadir un nuevo cambio de esquema: crear `migrate_v11()` en `schema.py` y llamarla desde `init_db()` (la última es `migrate_v10`: `brews.shot_curve`)
 - `SETTING_LOW_STOCK_THRESHOLD` — umbral configurable (1-50, default 5) en `schema.py`; cuando `floor(remaining_g / grams_per_shot) <= threshold` se muestra ⚠️ en la ficha
 - Registrar un brew descuenta `dose_g` de `remaining_g` del café si está abierto y tiene restante definido (se descuenta solo al crear, no al editar ni borrar)
 - **Pulsar "Consumir"** (`POST /api/coffees/:id/consume`) devuelve 409 si el café está terminado (`error.coffee.consume_finished`) o no tiene `remaining_g` (`error.coffee.consume_no_stock`). También crea un registro de brew automáticamente con los datos de la receta del café si existe, o solo con `dose_g = grams_per_shot`. El descuento de `remaining_g` lo hace el propio endpoint de consume; el brew creado **no** vuelve a descontarlo.
 - **Fechas del cliente**: `open`, `finish` y `consume` aceptan un body opcional `{date: 'YYYY-MM-DD'}`; el frontend envía siempre `todayLocal()` (en `utils.js`) para evitar el desfase UTC del servidor. **No usar `toISOString()` para la fecha de hoy.**
 - **`PUT /api/coffees/:id` y `PUT /api/brews/:id` son actualizaciones parciales**: solo se modifican las claves presentes en el body; enviar `null` explícito borra el campo.
-- **Báscula**: los brews aceptan `shot_metrics` (objeto JSON con las claves de `SHOT_METRIC_KEYS` en `models.py`; se guarda como TEXT y se devuelve parseado) y las recetas `target_flow` (g/s, 0.1–10). Ajuste `flow_tolerance` (0.05–1, default 0.2) en `/api/settings`.
+- **Báscula**: los brews aceptan `shot_metrics` (objeto JSON con las claves de `SHOT_METRIC_KEYS` en `models.py`; se guarda como TEXT y se devuelve parseado) y `shot_curve` (`{v:1, time_ms, pts:[[t_s, g], …]}`, todas las lecturas del shot, ~3 KB; validada por `_shot_curve_ok`), y las recetas `target_flow` (g/s, 0.1–10). "Recalcular métricas de flujo" (Ajustes) reanaliza las curvas guardadas con `reanalyzeCurve()`. Ajuste `flow_tolerance` (0.05–1, default 0.2) en `/api/settings`.
 - Brews y recetas se validan con `validate_brew(data, recipe=False)` en `models.py` (tipos y rangos de `dose_g`, `yield_g`, `time_s`, `grind`, `temp_c`, `rating`, `brew_date`); los errores devuelven 400 con `error_key`.
 - **`GET /api/brews`** soporta paginación vía `?limit=20&offset=0`; devuelve `{brews, total, has_more}`. La pestaña de prepas usa scroll infinito cargando 20 a la vez.
 - **`DELETE /api/brews/purge`** (body JSON `{months: N}`) elimina preparaciones con `brew_date` anterior a N meses; devuelve `{ok, deleted}`. Configurable desde el modal de Ajustes.

@@ -2,7 +2,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const {parseScalePacket} = require('../../static/js/scale.js');
-const {DoseTracker, ShotTracker, analyzeShot} = require('../../static/js/scale-analysis.js');
+const {DoseTracker, ShotTracker, analyzeShot, curveFromShot, reanalyzeCurve} = require('../../static/js/scale-analysis.js');
 
 const {frames} = require('./fixtures/f0-real-2026-09-26.json');
 const pkts = frames.map(f => ({label: f.label, t: f.t / 1000,
@@ -85,4 +85,16 @@ test('análisis: flujo constante no es irregular', () => {
 
 test('análisis: pocas muestras → null', () => {
   assert.strictEqual(analyzeShot([{t: 0, weight: 0}]), null);
+});
+
+test('curva guardada: ~3 KB y reproduce las métricas del shot en vivo', () => {
+  const st = runShot();
+  const live = analyzeShot(st.samples, {target: 1.5, tol: 0.2, ...st.result});
+  const curve = curveFromShot(st.samples, st.result);
+  assert.ok(JSON.stringify(curve).length < 4000);
+  const again = reanalyzeCurve(JSON.parse(JSON.stringify(curve)), {target: 1.5, tol: 0.2, yield_g: st.result.yield_g});
+  assert.strictEqual(again.main_flow, live.main_flow);
+  assert.strictEqual(again.avg_flow, live.avg_flow);
+  assert.strictEqual(again.irregular, live.irregular);
+  assert.ok(Math.abs(again.t_ramp_s - live.t_ramp_s) <= 0.3);
 });

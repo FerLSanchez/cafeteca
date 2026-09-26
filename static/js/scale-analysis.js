@@ -219,6 +219,26 @@ function analyzeShot(samples, {target = null, tol = 0.2, time_ms = null, yield_g
   };
 }
 
+// Curva guardada con el brew (§5.4 revisado): todas las lecturas del shot, redondeadas.
+// A 5 Hz se perdía la caída del shot real de F0, por eso se guarda la resolución completa (~3 KB).
+function curveFromShot(samples, result) {
+  return {
+    v: 1,
+    time_ms: result?.time_ms ?? null,
+    pts: samples.map(s => [Math.round(s.t * 100) / 100, Math.round(s.weight * 10) / 10]),
+  };
+}
+
+function samplesFromCurve(curve) {
+  return (curve?.pts || []).map(([t, weight]) => ({t, weight}));
+}
+
+// Recalcula las métricas de un brew a partir de su curva (tras cambiar el análisis).
+function reanalyzeCurve(curve, {target = null, tol = 0.2, yield_g = null} = {}) {
+  const samples = samplesFromCurve(curve);
+  return analyzeShot(samples, {target, tol, time_ms: curve?.time_ms ?? null, yield_g});
+}
+
 if (typeof module !== 'undefined') {
-  module.exports = {DoseTracker, ShotTracker, flowSeries, analyzeShot};
+  module.exports = {DoseTracker, ShotTracker, flowSeries, analyzeShot, curveFromShot, samplesFromCurve, reanalyzeCurve};
 }

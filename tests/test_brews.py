@@ -350,3 +350,28 @@ class TestRecipeTargetFlow:
         resp = client.put(f'/api/coffees/{coffee["id"]}/recipe', json={'target_flow': bad})
         assert resp.status_code == 400
         assert resp.get_json()['error_key_params']['field'] == 'target_flow'
+
+
+CURVE = {'v': 1, 'time_ms': 27800, 'pts': [[1.1, 1.8], [1.2, 2.0], [27.8, 38.5]]}
+
+
+class TestShotCurve:
+    def test_roundtrip_and_clear(self, client):
+        coffee = make_coffee(client)
+        brew = make_brew(client, coffee['id'], {'shot_curve': CURVE})
+        assert brew['shot_curve'] == CURVE
+        assert client.get(f'/api/coffees/{coffee["id"]}/brews').get_json()[0]['shot_curve'] == CURVE
+        assert client.get('/api/brews').get_json()['brews'][0]['shot_curve'] == CURVE
+        resp = client.put(f'/api/brews/{brew["id"]}', json={'shot_curve': None})
+        assert resp.get_json()['shot_curve'] is None
+
+    @pytest.mark.parametrize('bad', [
+        [], {'v': 2, 'pts': [[0, 0]]}, {'v': 1, 'pts': []}, {'v': 1, 'pts': [[0]]},
+        {'v': 1, 'pts': [['a', 1]]}, {'v': 1, 'pts': [[0, 0]], 'extra': 1},
+        {'v': 1, 'time_ms': 1.5, 'pts': [[0, 0]]}, {'v': 1, 'pts': [[0, 0]] * 2001},
+    ])
+    def test_invalid_curve_400(self, client, bad):
+        coffee = make_coffee(client)
+        resp = client.post(f'/api/coffees/{coffee["id"]}/brews', json={'shot_curve': bad})
+        assert resp.status_code == 400
+        assert resp.get_json()['error_key'] == 'error.brew.shot_curve_invalid'

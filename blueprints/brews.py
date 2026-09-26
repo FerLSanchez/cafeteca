@@ -4,19 +4,23 @@ from flask import Blueprint, request, jsonify
 from db import db_conn
 from models import validate_brew
 
-BREW_FIELDS = ['brew_date', 'dose_g', 'yield_g', 'time_s', 'grind', 'temp_c', 'rating', 'notes', 'shot_metrics']
-BREW_COLS = 'id, brew_date, dose_g, yield_g, time_s, grind, temp_c, rating, notes, shot_metrics, created_at'
+BREW_FIELDS = ['brew_date', 'dose_g', 'yield_g', 'time_s', 'grind', 'temp_c', 'rating', 'notes', 'shot_metrics',
+               'shot_curve']
+BREW_COLS = ('id, brew_date, dose_g, yield_g, time_s, grind, temp_c, rating, notes, shot_metrics, shot_curve, '
+             'created_at')
+JSON_COLS = ('shot_metrics', 'shot_curve')
 RECIPE_COLS = 'id, dose_g, yield_g, time_s, grind, temp_c, target_flow, updated_at'
 
 
 def _brew_out(row):
     d = dict(row)
-    if 'shot_metrics' in d:
-        d['shot_metrics'] = json.loads(d['shot_metrics']) if d['shot_metrics'] else None
+    for col in JSON_COLS:
+        if col in d:
+            d[col] = json.loads(d[col]) if d[col] else None
     return d
 
 
-def _metrics_in(value):
+def _json_in(value):
     return json.dumps(value, separators=(',', ':')) if value else None
 
 
@@ -49,7 +53,7 @@ def list_brews():
         total = conn.execute('SELECT COUNT(*) FROM brews').fetchone()[0]
         rows = conn.execute('''
             SELECT b.id, b.brew_date, b.dose_g, b.yield_g, b.time_s, b.grind, b.temp_c,
-                   b.rating, b.notes, b.shot_metrics, b.created_at,
+                   b.rating, b.notes, b.shot_metrics, b.shot_curve, b.created_at,
                    GROUP_CONCAT(c.name, '|||') AS coffee_names
             FROM brews b
             LEFT JOIN coffee_brews cb ON cb.brew_id = b.id
@@ -170,7 +174,7 @@ def list_coffee_brews(cid):
             return jsonify({'error': 'Café no encontrado', 'error_key': 'error.coffee.not_found'}), 404
         rows = conn.execute('''
             SELECT b.id, b.brew_date, b.dose_g, b.yield_g, b.time_s, b.grind, b.temp_c,
-                   b.rating, b.notes, b.shot_metrics, b.created_at
+                   b.rating, b.notes, b.shot_metrics, b.shot_curve, b.created_at
             FROM brews b
             JOIN coffee_brews cb ON cb.brew_id = b.id
             WHERE cb.coffee_id = ?
@@ -193,7 +197,8 @@ def add_brew(cid):
     temp_c  = data.get('temp_c')
     notes   = data.get('notes') or None
     rating  = data.get('rating')
-    shot_metrics = _metrics_in(data.get('shot_metrics'))
+    shot_metrics = _json_in(data.get('shot_metrics'))
+    shot_curve = _json_in(data.get('shot_curve'))
     with db_conn() as conn:
         coffee_row = conn.execute(
             'SELECT remaining_g, opened_date, finished_date FROM coffees WHERE id=?', (cid,)
@@ -201,9 +206,9 @@ def add_brew(cid):
         if not coffee_row:
             return jsonify({'error': 'Café no encontrado', 'error_key': 'error.coffee.not_found'}), 404
         cur = conn.execute(
-            'INSERT INTO brews (brew_date, dose_g, yield_g, time_s, grind, temp_c, rating, notes, shot_metrics) '
-            'VALUES (?,?,?,?,?,?,?,?,?)',
-            (brew_date, dose_g, yield_g, time_s, grind, temp_c, rating, notes, shot_metrics)
+            'INSERT INTO brews (brew_date, dose_g, yield_g, time_s, grind, temp_c, rating, notes, shot_metrics, '
+            'shot_curve) VALUES (?,?,?,?,?,?,?,?,?,?)',
+            (brew_date, dose_g, yield_g, time_s, grind, temp_c, rating, notes, shot_metrics, shot_curve)
         )
         bid = cur.lastrowid
         conn.execute('INSERT INTO coffee_brews (coffee_id, brew_id) VALUES (?,?)', (cid, bid))
@@ -232,8 +237,9 @@ def update_brew(bid):
     updates = {f: data[f] for f in BREW_FIELDS if f in data}
     if 'notes' in updates:
         updates['notes'] = updates['notes'] or None
-    if 'shot_metrics' in updates:
-        updates['shot_metrics'] = _metrics_in(updates['shot_metrics'])
+    for col in JSON_COLS:
+        if col in updates:
+            updates[col] = _json_in(updates[col])
     with db_conn() as conn:
         if not conn.execute('SELECT 1 FROM brews WHERE id=?', (bid,)).fetchone():
             return jsonify({'error': 'Preparación no encontrada', 'error_key': 'error.brew.not_found'}), 404
