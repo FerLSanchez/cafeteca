@@ -62,12 +62,22 @@ const BASE = process.env.BASE_URL || 'http://localhost:5323';
   await page.tap(`${quick} >> nth=4`);
   await page.waitForTimeout(600);
   assert.strictEqual((await brewsOf(coffee.id))[0].rating, 5);
+  // con estrellas pero sin equilibrio la fila sigue a la vista para la cata
+  const seg = (field, v) => `.brew-card:has(.brew-coffee-tag:text-is("${coffee.name}")) .taste-scale[data-field="${field}"] .taste-seg[data-val="${v}"]`;
+  await page.tap(seg('taste_body', -1));
+  await page.waitForTimeout(300);
+  await page.tap(seg('taste_balance', -1));
+  await page.waitForTimeout(600);
+  const tasted = (await brewsOf(coffee.id))[0];
+  assert.deepStrictEqual([tasted.taste_balance, tasted.taste_body], [-1, -1]);
+  assert.ok(!(await page.$(seg('taste_balance', -1))), 'con estrellas y equilibrio desaparece');
 
   // 3b) Solo piden valoración los brews sin valorar de los últimos días
   assert.deepStrictEqual(await page.evaluate(() => [
     canQuickRate({brew_date: todayLocal()}), canQuickRate({brew_date: '2026-01-10'}),
     canQuickRate({brew_date: todayLocal(), rating: 3}),
-  ]), [true, false, false]);
+    canQuickRate({brew_date: todayLocal(), rating: 3, taste_balance: 0}),
+  ]), [true, false, true, false]);
 
   // 4) Siguiente preparación: sin receta parte del último brew; molienda con medios pasos
   await page.evaluate(() => { grindStep = 0.5; });   // Ajustes → Paso de molienda
@@ -75,11 +85,23 @@ const BASE = process.env.BASE_URL || 'http://localhost:5323';
   await page.waitForSelector('#modal-brew.open');
   assert.strictEqual(await page.inputValue('#b-grind'), '13');
   assert.ok(await page.$('#b-last:not([hidden])'));
+  assert.match(await page.textContent('#b-last'), /Algo ácido|A bit sour/);
+  // cuerpo aguado en el último shot (18 g → 36 g, 1:2) → salida sugerida más corta
+  assert.ok(await page.$('#b-ratio-hint:not([hidden])'));
+  await page.tap('#b-ratio-hint .brew-grind-use');
+  assert.strictEqual(await page.inputValue('#b-yield'), '33.5');
+  await page.fill('#b-yield', '');
+  // cata en el modal: un toque marca, otro lo quita
+  await page.tap('#b-taste .taste-scale[data-field="taste_balance"] .taste-seg[data-val="0"]');
+  assert.ok(await page.$('#b-step-taste.done'));
+  await page.tap('#b-taste .taste-scale[data-field="taste_body"] .taste-seg[data-val="1"]');
+  await page.tap('#b-taste .taste-scale[data-field="taste_body"] .taste-seg[data-val="1"]');
   await page.tap('#b-step-dial .stepper-btn:last-child');
   assert.strictEqual(await page.inputValue('#b-grind'), '13.5');
   await page.tap('#b-submit');
   await page.waitForSelector('#modal-brew:not(.open)', {state: 'attached'});
-  assert.strictEqual((await brewsOf(coffee.id))[0].grind, 13.5);
+  const next = (await brewsOf(coffee.id))[0];
+  assert.deepStrictEqual([next.grind, next.taste_balance, next.taste_body], [13.5, 0, null]);
   await page.evaluate(() => { grindStep = 1; });
 
   // 5) "Nueva preparación" en Prepas con varias bolsas abiertas → selector

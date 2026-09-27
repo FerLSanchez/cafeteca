@@ -1763,7 +1763,7 @@ body.modal-open { overflow: hidden; touch-action: none; }
 .brew-metrics { font-size: 12px; color: var(--text3); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .detail-brew-row { flex-wrap: wrap; }
 .detail-brew-metrics { flex-basis: 100%; margin-top: -4px; white-space: normal; }
-.detail-brew-quick { flex-basis: 100%; }
+.detail-brew-quick { flex-basis: 100%; min-width: 0; }
 .brew-shot-summary { margin: 0 0 12px; padding: 10px 12px; background: var(--surface2); border-radius: var(--r); }
 .dialin-chart { width: 100%; height: 140px; display: block; }
 .dialin-legend { font-size: 11px; color: var(--text3); margin: 2px 0 6px; }
@@ -1794,3 +1794,37 @@ body.modal-open { overflow: hidden; touch-action: none; }
 .stats-grind { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 8px; }
 .stats-grind-row { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 10px; }
 .stats-grind-row.best { border-color: var(--accent); }
+
+/* Cata: escalas de 5 paradas con el centro "en su punto" (taste-ui.js) */
+.brew-taste { display: flex; flex-direction: column; gap: 10px; margin: 0 0 14px; }
+.taste-scale-name { font-size: 12px; color: var(--text2); font-weight: 600; margin-bottom: 2px; }
+.taste-track { position: relative; display: flex; }
+.taste-track::before {   /* la barra: ácido/aguado ← justo → amargo/pesado */
+  content: ''; position: absolute; left: 10%; right: 10%; top: 50%; height: 4px; margin-top: -2px;
+  border-radius: 2px; background: linear-gradient(90deg, var(--amber), var(--green) 50%, var(--red));
+  opacity: .45; pointer-events: none;
+}
+.taste-seg {
+  position: relative; flex: 1; height: 44px; padding: 0;
+  background: none; border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.taste-dot {
+  width: 12px; height: 12px; border-radius: 50%;
+  background: var(--surface); border: 2px solid var(--border2); transition: transform .1s;
+}
+.taste-seg[data-val="0"] .taste-dot { border-color: var(--green-border); }
+.taste-seg.active .taste-dot {
+  width: 22px; height: 22px; background: var(--accent2); border: 3px solid var(--surface);
+  box-shadow: 0 0 0 2px var(--accent2);
+}
+.taste-seg:active .taste-dot { transform: scale(.85); }
+.taste-seg:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: var(--r-sm); }
+.taste-ends { display: grid; grid-template-columns: 1fr 1fr 1fr; font-size: 11px; color: var(--text3); margin-top: -4px; }
+.taste-ends span:nth-child(2) { text-align: center; }
+.taste-ends span:last-child { text-align: right; }
+.taste-scale.compact .taste-seg { height: 40px; }
+.taste-scale.compact .taste-scale-name { font-size: 11px; color: var(--text3); font-weight: 500; }
+.quick-taste { display: grid; gap: 6px 16px; margin-top: 4px; max-width: 460px; min-width: 0; }
+@media (min-width: 600px) { .quick-taste { grid-template-columns: 1fr 1fr; } }
+.brew-taste-line { font-size: 12px; color: var(--text2); margin-top: 3px; }

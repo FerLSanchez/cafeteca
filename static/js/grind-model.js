@@ -88,16 +88,63 @@ function bestGrindModel(rows) {
   return best?.model ?? null;
 }
 
-// Flujo objetivo: el de la receta; si no, la media de los mejor valorados (≥4★); si no, de los recientes
-function targetFlowFor(coffeeRows, recipeTarget = null) {
+// --- Cata: equilibrio (−2 ácido … 0 justo … +2 amargo) y cuerpo (−2 aguado … +2 pesado) ---------
+// Ácido = infraextraído = el flujo iba rápido → el flujo ideal de ese shot era más lento.
+// Cada shot catado estima su flujo ideal: flow + k·equilibrio (k en g/s por punto de la escala).
+const TASTE_LAST = 5;          // shots catados recientes de la bolsa que fijan el objetivo
+const TASTE_K_DEFAULT = 0.25;  // g/s por punto hasta que haya datos para estimarlo
+const TASTE_K_RANGE = [0.1, 0.6];
+const TASTE_MIN_POINTS = 6;
+
+// k a partir de los datos: pendiente de equilibrio vs flujo dentro de cada bolsa (k = −1/pendiente)
+function tasteSlope(rows) {
+  const by = new Map();
+  for (const r of rows) {
+    if (r.taste_balance == null || r.flow == null) continue;
+    if (!by.has(r.coffee_id)) by.set(r.coffee_id, []);
+    by.get(r.coffee_id).push(r);
+  }
+  let Sff = 0, Sfb = 0, n = 0;
+  for (const grp of by.values()) {
+    if (grp.length < 2) continue;
+    const mf = _mean(grp.map(r => r.flow)), mb = _mean(grp.map(r => r.taste_balance));
+    for (const r of grp) { Sff += (r.flow - mf) ** 2; Sfb += (r.flow - mf) * (r.taste_balance - mb); n++; }
+  }
+  if (n < TASTE_MIN_POINTS || Sff < 1e-9 || Sfb >= 0) return {k: TASTE_K_DEFAULT, fitted: false, n};
+  const k = Math.min(TASTE_K_RANGE[1], Math.max(TASTE_K_RANGE[0], -Sff / Sfb));
+  return {k, fitted: true, n};
+}
+
+// Flujo objetivo: el de la receta; si no, el que sugiere la cata de los últimos shots;
+// si no, la media de los mejor valorados (≥4★); si no, la de los recientes
+function targetFlowFor(coffeeRows, recipeTarget = null, k = TASTE_K_DEFAULT) {
   if (recipeTarget) return {flow: recipeTarget, source: 'recipe'};
   const withFlow = coffeeRows.filter(r => r.flow != null);
   if (!withFlow.length) return null;
+  const tasted = withFlow.filter(r => r.taste_balance != null).slice(-TASTE_LAST);
+  if (tasted.length) {
+    return {flow: _mean(tasted.map(r => r.flow + k * r.taste_balance)), source: 'taste'};
+  }
   const top = Math.max(0, ...withFlow.map(r => r.rating || 0));
   if (top >= 4) {
     return {flow: _mean(withFlow.filter(r => r.rating === top).map(r => r.flow)), source: 'best'};
   }
   return {flow: _mean(withFlow.slice(-GRIND_OFFSET_LAST).map(r => r.flow)), source: 'recent'};
+}
+
+// Ratio según el cuerpo de los últimos shots (brews más recientes primero, como /api/coffees/:id/brews):
+// aguado → ratio más corto, pesado → más largo. null si el cuerpo ya está en su punto.
+const RATIO_LAST = 3;
+const RATIO_STEP = 0.15;   // puntos de ratio por punto de la escala de cuerpo
+const RATIO_RANGE = [1.2, 3.5];
+function suggestRatio(brews, dose) {
+  const tasted = brews.filter(b => b.taste_body != null && b.dose_g && b.yield_g).slice(0, RATIO_LAST);
+  if (!tasted.length || !dose) return null;
+  const body = _mean(tasted.map(b => b.taste_body));
+  if (Math.abs(body) < 0.5) return null;
+  const from = tasted[0].yield_g / tasted[0].dose_g;
+  const ratio = +Math.min(RATIO_RANGE[1], Math.max(RATIO_RANGE[0], from + RATIO_STEP * body)).toFixed(2);
+  return {ratio, from: +from.toFixed(2), body, yield_g: Math.round(dose * ratio * 2) / 2};
 }
 
 // α de la bolsa con sus shots recientes (filas de la bolsa, antiguas primero)
@@ -135,6 +182,6 @@ function grindLine(model, coffeeRows, target, [d0, d1]) {
 }
 
 if (typeof module !== 'undefined') {
-  module.exports = {fitGrindModel, bestGrindModel, targetFlowFor, coffeeOffset, coffeeDaysAt, suggestGrind,
+  module.exports = {fitGrindModel, bestGrindModel, targetFlowFor, tasteSlope, suggestRatio, coffeeOffset, coffeeDaysAt, suggestGrind,
     grindLine, daysBetween};
 }

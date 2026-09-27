@@ -14,7 +14,8 @@ const fmtDrift = m => (m.per_week > 0 ? '+' : m.per_week < 0 ? '−' : '') + Mat
 // |γ| < 2·error típico: con estos datos no se distingue de "sin deriva"
 const driftConclusive = m => Math.abs(m.gamma) >= 2 * m.gamma_se;
 const GRIND_BASIS_KEYS  = {roast: 'grind.basis_roast', open: 'grind.basis_open'};
-const GRIND_SOURCE_KEYS = {recipe: 'grind.source_recipe', best: 'grind.source_best', recent: 'grind.source_recent'};
+const GRIND_SOURCE_KEYS = {recipe: 'grind.source_recipe', taste: 'grind.source_taste', best: 'grind.source_best',
+  recent: 'grind.source_recent'};
 const basisLabel = basis => t(GRIND_BASIS_KEYS[basis]);
 const targetSourceLabel = src => t(GRIND_SOURCE_KEYS[src]);
 
@@ -22,7 +23,7 @@ const targetSourceLabel = src => t(GRIND_SOURCE_KEYS[src]);
 function grindContext(rows, coffeeId, recipeTarget, date) {
   const model = bestGrindModel(rows);
   const coffeeRows = rows.filter(r => r.coffee_id === coffeeId);
-  const target = targetFlowFor(coffeeRows, recipeTarget);
+  const target = targetFlowFor(coffeeRows, recipeTarget, tasteSlope(rows).k);
   const suggestion = model && target ? suggestGrind(model, coffeeRows, {date, target: target.flow, step: grindStep}) : null;
   return {rows, model, coffeeRows, target, suggestion};
 }

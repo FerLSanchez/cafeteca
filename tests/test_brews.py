@@ -414,3 +414,38 @@ class TestBrewOrder:
         ids = [make_brew(client, c['id'], {'brew_date': '2026-09-20', 'grind': g})['id'] for g in (12, 13, 14)]
         assert [b['id'] for b in client.get(f'/api/coffees/{c["id"]}/brews').get_json()] == ids[::-1]
         assert [b['id'] for b in client.get('/api/brews').get_json()['brews']] == ids[::-1]
+
+
+class TestTasteScales:
+    def test_add_and_list_taste(self, client):
+        coffee = make_coffee(client)
+        resp = client.post(f'/api/coffees/{coffee["id"]}/brews',
+                           json={'taste_balance': -1, 'taste_body': 2, 'grind': 14, 'yield_g': 38, 'time_s': 28})
+        assert resp.status_code == 201
+        assert resp.get_json()['taste_balance'] == -1
+        assert resp.get_json()['taste_body'] == 2
+        listed = client.get(f'/api/coffees/{coffee["id"]}/brews').get_json()[0]
+        assert (listed['taste_balance'], listed['taste_body']) == (-1, 2)
+        assert client.get('/api/brews').get_json()['brews'][0]['taste_balance'] == -1
+        assert client.get('/api/grind-data').get_json()[0]['taste_balance'] == -1
+
+    def test_unrated_taste_is_null(self, client):
+        coffee = make_coffee(client)
+        brew = client.post(f'/api/coffees/{coffee["id"]}/brews', json={}).get_json()
+        assert brew['taste_balance'] is None and brew['taste_body'] is None
+
+    @pytest.mark.parametrize('val', [3, -3, 0.5, True, '1'])
+    def test_invalid_taste_rejected(self, client, val):
+        coffee = make_coffee(client)
+        for field in ('taste_balance', 'taste_body'):
+            resp = client.post(f'/api/coffees/{coffee["id"]}/brews', json={field: val})
+            assert resp.status_code == 400
+            assert resp.get_json()['error_key'] == 'error.brew.field_invalid'
+
+    def test_partial_update_and_clear(self, client):
+        coffee = make_coffee(client)
+        brew = client.post(f'/api/coffees/{coffee["id"]}/brews', json={'rating': 3, 'taste_body': 1}).get_json()
+        body = client.put(f'/api/brews/{brew["id"]}', json={'taste_balance': 0}).get_json()
+        assert (body['rating'], body['taste_balance'], body['taste_body']) == (3, 0, 1)
+        body = client.put(f'/api/brews/{brew["id"]}', json={'taste_body': None}).get_json()
+        assert body['taste_body'] is None and body['taste_balance'] == 0

@@ -9,7 +9,7 @@ App web personal para registrar cafés de especialidad. Flask + SQLite + HTML/CS
 ## Ficheros relevantes
 
 - `app.py` — app factory Flask: registra blueprints, security headers, PWA routes
-- `schema.py` — esquema de BD, init y migraciones (`init_db()`, `migrate_v1()` … `migrate_v10()`)
+- `schema.py` — esquema de BD, init y migraciones (`init_db()`, `migrate_v1()` … `migrate_v11()`)
 - `models.py` — helpers de datos: `row_to_coffee()`, `COFFEE_SELECT`, `resolve_ids()`, `set_m2m()`
 - `db.py` — conexión SQLite y variable `DB` (la BD usa `journal_mode=WAL`, activado en `init_db()`)
 - `lookup_config.py` — constantes `LOOKUP_TABLES`, `LOOKUP_FK`, `JUNCTION_TABLES` y `get_or_create()`
@@ -23,6 +23,7 @@ App web personal para registrar cafés de especialidad. Flask + SQLite + HTML/CS
 - `static/js/scale-ui.js` — chip ⚖️ del nav, panel de dosis (`brewScaleDoseStart()`: peso grande + Tara / Fijar dosis) y shot en vivo inline en el paso 3 del modal de brew (`brewScaleShot()`/`brewShotClose()`), `createShotView()` (curva en vivo + resumen; `onDone`/`onCancel`/`onRetry`) y la página de prueba (`modal-scale`, desde Ajustes)
 - `static/js/grind-model.js` — puro (testeado con node): modelo molienda vs edad de la bolsa `grind = α_bolsa + β·flow + γ·días` (efecto fijo por bolsa; se elige días desde tueste o apertura, la que mejor ajuste): `bestGrindModel()`, `targetFlowFor()`, `suggestGrind()`
 - `static/js/grind-ui.js` — molienda sugerida en el paso 2 del modal de brew (`brewGrindHint()`, botón Usar), sección "Molienda y edad de la bolsa" en la ficha (`renderGrindSection()`) y deriva por semana en Stats (`renderStatsGrind()`)
+- `static/js/taste-ui.js` — cata rápida: escalas de 5 paradas `tasteScaleHtml()` (equilibrio ácido↔amargo y cuerpo aguado↔pesado) en el paso 4 del modal de brew y en "¿Qué tal estaba?", `tasteLine()` y la salida sugerida por el cuerpo en el paso 3 (`renderBrewRatioHint()`, botón Usar)
 - `static/i18n/es.json` — todas las cadenas de la UI en español; `en.json` — traducción inglesa
 
 ## Arquitectura de datos
@@ -98,7 +99,7 @@ La app **no tiene autenticación propia**: `cafeteca.fersanchez.com` está detr�
 - La BD vive en `/data/coffee.db` (variable `DB` en `db.py`)
 - `init_db()` se llama al arrancar y es idempotente — incluye todas las migraciones
 - Hay dos fases de migración: `migrate_v1()` (texto→FK, legado) y `migrate_v2()` (FK→M2M + link región-país)
-- Añadir un nuevo cambio de esquema: crear `migrate_v11()` en `schema.py` y llamarla desde `init_db()` (la última es `migrate_v10`: `brews.shot_curve`)
+- Añadir un nuevo cambio de esquema: crear `migrate_v12()` en `schema.py` y llamarla desde `init_db()` (la última es `migrate_v11`: `brews.taste_balance`/`taste_body`)
 - `SETTING_GRIND_STEP` — paso de los −/+ de molienda (0.1–5, default 1) en `/api/settings` (`grind_step`); `grind` admite decimales (medios pasos): la columna es INTEGER pero SQLite guarda el REAL sin migración
 - `SETTING_LOW_STOCK_THRESHOLD` — umbral configurable (1-50, default 5) en `schema.py`; cuando `floor(remaining_g / grams_per_shot) <= threshold` se muestra ⚠️ en la ficha
 - Registrar un brew descuenta `dose_g` de `remaining_g` del café si está abierto y tiene restante definido (se descuenta solo al crear, no al editar ni borrar)
@@ -106,7 +107,8 @@ La app **no tiene autenticación propia**: `cafeteca.fersanchez.com` está detr�
 - **Fechas del cliente**: `open`, `finish` y `consume` aceptan un body opcional `{date: 'YYYY-MM-DD'}`; el frontend envía siempre `todayLocal()` (en `utils.js`) para evitar el desfase UTC del servidor. **No usar `toISOString()` para la fecha de hoy.**
 - **`PUT /api/coffees/:id` y `PUT /api/brews/:id` son actualizaciones parciales**: solo se modifican las claves presentes en el body; enviar `null` explícito borra el campo.
 - **Báscula**: los brews aceptan `shot_metrics` (objeto JSON con las claves de `SHOT_METRIC_KEYS` en `models.py`; se guarda como TEXT y se devuelve parseado) y `shot_curve` (`{v:1, time_ms, pts:[[t_s, g], …]}`, todas las lecturas del shot, ~3 KB; validada por `_shot_curve_ok`), y las recetas `target_flow` (g/s, 0.1–10). "Recalcular métricas de flujo" (Ajustes) reanaliza las curvas guardadas con `reanalyzeCurve()`. Ajuste `flow_tolerance` (0.05–1, default 0.2) en `/api/settings`.
-- **`GET /api/grind-data`**: un punto por brew con molienda y flujo (`main_flow` de la báscula o salida/tiempo) con `days_roast`/`days_open` en la fecha del brew; lo consume `grind-model.js`. El objetivo de flujo es el `target_flow` de la receta, si no la media de los shots mejor valorados (≥4★), si no la de los recientes.
+- **`GET /api/grind-data`**: un punto por brew con molienda y flujo (`main_flow` de la báscula o salida/tiempo) con `days_roast`/`days_open` en la fecha del brew; lo consume `grind-model.js`. El objetivo de flujo es el `target_flow` de la receta; si no, el de la cata (cada shot con equilibrio estima su flujo ideal `flow + k·taste_balance`, media de los 5 últimos; `k` sale de `tasteSlope()` o 0.25 g/s por punto); si no, la media de los shots mejor valorados (≥4★); si no, la de los recientes.
+- **Cata**: los brews aceptan `taste_balance` y `taste_body` (enteros −2…2, 0 = en su punto, `null` = sin catar; `TASTE_FIELDS` en `models.py`). Ácido → flujo objetivo más lento (molienda más fina); amargo → más rápido. El cuerpo de los 3 últimos shots mueve el ratio 0.15 por punto (`suggestRatio()` en `grind-model.js`). "¿Qué tal estaba?" sigue a la vista hasta que el brew tiene estrellas **y** equilibrio.
 - Brews y recetas se validan con `validate_brew(data, recipe=False)` en `models.py` (tipos y rangos de `dose_g`, `yield_g`, `time_s`, `grind`, `temp_c`, `rating`, `brew_date`); los errores devuelven 400 con `error_key`.
 - **`GET /api/brews`** soporta paginación vía `?limit=20&offset=0`; devuelve `{brews, total, has_more}`. La pestaña de prepas usa scroll infinito cargando 20 a la vez.
 - **`DELETE /api/brews/purge`** (body JSON `{months: N}`) elimina preparaciones con `brew_date` anterior a N meses; devuelve `{ok, deleted}`. Configurable desde el modal de Ajustes.

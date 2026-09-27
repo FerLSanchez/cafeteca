@@ -61,6 +61,7 @@ def init_db():
         migrate_v8(conn)
         migrate_v9(conn)
         migrate_v10(conn)
+        migrate_v11(conn)
         if not col_exists(conn, 'coffees', 'altitude'):
             conn.execute('ALTER TABLE coffees ADD COLUMN altitude INTEGER')
 
@@ -284,6 +285,15 @@ def migrate_v10(conn):
     if 'shot_curve' not in cols:
         conn.execute('ALTER TABLE brews ADD COLUMN shot_curve TEXT')
         logging.info('[migration v10] Added shot_curve to brews.')
+
+
+def migrate_v11(conn):
+    """Phase 11: tasting scales per brew, -2..2 with 0 = right (balance: sour ↔ bitter; body: thin ↔ heavy)."""
+    cols = [r[1] for r in conn.execute('PRAGMA table_info(brews)').fetchall()]
+    for col in ('taste_balance', 'taste_body'):
+        if col not in cols:
+            conn.execute(f'ALTER TABLE brews ADD COLUMN {col} INTEGER')
+            logging.info('[migration v11] Added %s to brews.', col)
 
 
 def _rebuild_table_v1(conn):

@@ -57,7 +57,7 @@ function _appendBrewCards(brews, el) {
     <div class="brew-card">
       <div class="brew-card-header">
         <span class="brew-date">${fmtDate(b.brew_date)}</span>
-        <span class="brew-rating">${b.rating ? stars(b.rating) : canQuickRate(b) ? '' : `<span style="color:var(--text3)">${t('brew.unrated')}</span>`}</span>
+        <span class="brew-rating">${canQuickRate(b) ? '' : b.rating ? stars(b.rating) : `<span style="color:var(--text3)">${t('brew.unrated')}</span>`}</span>
         <div class="brew-card-actions">
           <button class="btn-brew-edit" onclick="openBrewModal(null,${b.id})" title="${esc(t('brew.btn.edit'))}" aria-label="${esc(t('brew.btn.edit'))}">${icon('edit')}</button>
           <button class="btn-brew-delete" onclick="deleteBrew(${b.id})" title="${esc(t('brew.btn.delete'))}" aria-label="${esc(t('brew.btn.delete'))}">${icon('trash')}</button>
@@ -66,6 +66,7 @@ function _appendBrewCards(brews, el) {
       <div class="brew-coffees">${b.coffees.map(n=>`<span class="brew-coffee-tag">${esc(n)}</span>`).join('')}</div>
       <div class="brew-summary">${esc(brewSummaryLine(b))}</div>
       ${b.shot_metrics ? `<div class="brew-metrics">${b.shot_curve ? curveSparkline(b.shot_curve) : ''}${esc(brewMetricsLine(b))}</div>` : ''}
+      ${tasteLine(b) && !canQuickRate(b) ? `<div class="brew-taste-line">${esc(tasteLine(b))}</div>` : ''}
       ${b.notes ? `<div class="brew-notes">"${esc(b.notes)}"</div>` : ''}
       ${canQuickRate(b) ? quickRateHtml(b) : ''}
     </div>
@@ -181,9 +182,10 @@ async function renderBrewsSection(coffeeId) {
       <div class="detail-brew-row">
         <span class="detail-brew-date">${fmtDate(b.brew_date)}</span>
         <span class="detail-brew-summary">${esc(brewSummaryLine(b))}</span>
-        <span class="detail-brew-rating">${b.rating ? stars(b.rating) : canQuickRate(b) ? '' : '—'}</span>
+        <span class="detail-brew-rating">${canQuickRate(b) ? '' : b.rating ? stars(b.rating) : '—'}</span>
         <button class="btn-inline-edit" onclick="openBrewModal(${coffeeId},${b.id})" title="${esc(t('brew.btn.edit'))}" aria-label="${esc(t('brew.btn.edit'))}">${icon('edit')}</button>
         <button class="btn-inline-edit" onclick="deleteBrew(${b.id}, ${coffeeId})" title="${esc(t('brew.btn.delete'))}" aria-label="${esc(t('brew.btn.delete'))}" style="color:var(--text3)">${icon('trash')}</button>
+        ${tasteLine(b) && !canQuickRate(b) ? `<div class="brew-taste-line detail-brew-metrics">${esc(tasteLine(b))}</div>` : ''}
         ${b.shot_metrics ? `<div class="brew-metrics detail-brew-metrics">${b.shot_curve ? curveSparkline(b.shot_curve) : ''}${esc(brewMetricsLine(b))}</div>` : ''}
         ${canQuickRate(b) ? `<div class="detail-brew-quick">${quickRateHtml(b)}</div>` : ''}
       </div>`).join('')}`;
@@ -301,6 +303,7 @@ async function openBrewModal(coffeeId = null, brewId = null, coffeeName = null) 
   _bv('b-date').value  = src.brew_date ?? todayLocal();
   _bv('b-notes').value = src.notes   ?? '';
   _brewRating = src.rating ?? 0;
+  renderBrewTaste(src);
   document.querySelector('#modal-brew .modal-title').textContent = t(editing ? 'modal.edit_brew' : 'modal.brew');
   _bv('b-coffee-name').textContent = editing ? (editing.coffees || []).join(' · ')
     : coffeeName ?? (currentDetail?.id === _brewTargetId ? currentDetail?.name
@@ -324,7 +327,8 @@ async function openBrewModal(coffeeId = null, brewId = null, coffeeName = null) 
     if (last) {
       _bv('b-last').hidden = false;
       _bv('b-last').innerHTML = `<b>${esc(t('brew.last_label'))}</b> ${esc(brewSummaryLine(last))}`
-        + ` · ${last.rating ? '★'.repeat(last.rating) : esc(t('brew.unrated'))}`;
+        + ` · ${last.rating ? '★'.repeat(last.rating) : esc(t('brew.unrated'))}`
+        + (tasteLine(last) ? ` · ${esc(tasteLine(last))}` : '');
     }
     brewGrindHint(grindRows, _brewTargetId, recipe);   // antes de abrir: sin saltos de layout
   } else if (editing && _brewTargetId) {
@@ -355,6 +359,7 @@ function updateBrewRatioDisplay() {
   if (metrics?.main_flow != null) parts.push(t('scale.summary_flow', {main: metrics.main_flow.toFixed(2)}));
   else if (flow) parts.push(t('brew.flow', {flow}));
   el.textContent = parts.join('  ·  ');
+  renderBrewRatioHint();
   updateBrewSteps();
 }
 
@@ -365,7 +370,7 @@ function updateBrewSteps() {
     'b-step-dose': has('b-dose'),
     'b-step-dial': has('b-grind') || has('b-temp'),
     'b-step-shot': has('b-yield') && has('b-time'),
-    'b-step-taste': _brewRating >= 1,
+    'b-step-taste': _brewRating >= 1 || _brewTaste.taste_balance != null || _brewTaste.taste_body != null,
   };
   Object.entries(done).forEach(([id, ok]) => _bv(id)?.classList.toggle('done', ok));
   syncGrindUse();
@@ -408,7 +413,7 @@ async function submitBrew() {
   const notes     = _bv('b-notes').value || null;
   const rating    = _brewRating >= 1 ? _brewRating : null;
   const extra     = _brewShotMetrics ? { shot_metrics: _brewShotMetrics, shot_curve: _brewShotCurve } : {};
-  const body = JSON.stringify({ dose_g, yield_g, time_s, grind, temp_c, brew_date, notes, rating, ...extra });
+  const body = JSON.stringify({ dose_g, yield_g, time_s, grind, temp_c, brew_date, notes, rating, ..._brewTaste, ...extra });
 
   if (_editBrewId) {
     await api('/brews/' + _editBrewId, { method: 'PUT', body });
@@ -429,11 +434,11 @@ function refreshBrewViews() {
   if (document.getElementById('page-brews')?.classList.contains('active')) loadBrews();
 }
 
-// Valorar después de probarlo: estrellas en los brews sin valorar de los últimos días
-// (los antiguos, p. ej. de "Consumir", no llenan la lista de "¿Qué tal estaba?")
+// Valorar después de probarlo: estrellas y cata en los brews de los últimos días sin valorar o sin
+// equilibrio (los antiguos, p. ej. de "Consumir", no llenan la lista de "¿Qué tal estaba?")
 const QUICK_RATE_DAYS = 2;
 function canQuickRate(b) {
-  if (b.rating || !b.brew_date) return false;
+  if ((b.rating && b.taste_balance != null) || !b.brew_date) return false;
   const [y, m, d] = b.brew_date.split('-').map(Number);
   return (new Date() - new Date(y, m - 1, d)) / 86400000 < QUICK_RATE_DAYS + 1;
 }
@@ -441,8 +446,10 @@ function canQuickRate(b) {
 function quickRateHtml(b) {
   return `<span class="quick-rate" role="group" aria-label="${esc(t('brew.quick_rate'))}">
     <span class="quick-rate-label">${esc(t('brew.quick_rate'))}</span>${[1, 2, 3, 4, 5].map(v =>
-      `<button type="button" class="quick-star" aria-label="${v}" onclick="quickRateBrew(${b.id},${v},this)">★</button>`).join('')}
-  </span>`;
+      `<button type="button" class="quick-star${v <= (b.rating || 0) ? ' active' : ''}" aria-label="${v}" onclick="quickRateBrew(${b.id},${v},this)">★</button>`).join('')}
+  </span>
+  <div class="quick-taste">${Object.keys(TASTE_SCALES).map(f =>
+    tasteScaleHtml(f, b[f] ?? null, `quickTasteBrew.bind(null,${b.id})`, {compact: true})).join('')}</div>`;
 }
 
 async function quickRateBrew(id, rating, btn) {
@@ -450,6 +457,12 @@ async function quickRateBrew(id, rating, btn) {
   await api('/brews/' + id, { method: 'PUT', body: JSON.stringify({ rating }) });
   if (_brewCache[id]) _brewCache[id].rating = rating;
   showToast(t('toast.brew_rated', {stars: '★'.repeat(rating)}));
+  afterQuickRate(id);
+}
+
+// Repinta cuando ya no queda nada por valorar (estrellas + equilibrio); mientras, se queda a la vista
+function afterQuickRate(id) {
+  if (_brewCache[id] && canQuickRate(_brewCache[id])) return;
   setTimeout(() => {
     const coffeeId = currentDetail?.id;
     if (coffeeId && document.getElementById('modal-detail')?.classList.contains('open')) renderBrewsSection(coffeeId);

@@ -5,9 +5,9 @@ from db import db_conn
 from models import validate_brew
 
 BREW_FIELDS = ['brew_date', 'dose_g', 'yield_g', 'time_s', 'grind', 'temp_c', 'rating', 'notes', 'shot_metrics',
-               'shot_curve']
-BREW_COLS = ('id, brew_date, dose_g, yield_g, time_s, grind, temp_c, rating, notes, shot_metrics, shot_curve, '
-             'created_at')
+               'shot_curve', 'taste_balance', 'taste_body']
+BREW_COLS = ('id, brew_date, dose_g, yield_g, time_s, grind, temp_c, rating, taste_balance, taste_body, notes, '
+             'shot_metrics, shot_curve, created_at')
 JSON_COLS = ('shot_metrics', 'shot_curve')
 RECIPE_COLS = 'id, dose_g, yield_g, time_s, grind, temp_c, target_flow, updated_at'
 
@@ -53,7 +53,7 @@ def list_brews():
         total = conn.execute('SELECT COUNT(*) FROM brews').fetchone()[0]
         rows = conn.execute('''
             SELECT b.id, b.brew_date, b.dose_g, b.yield_g, b.time_s, b.grind, b.temp_c,
-                   b.rating, b.notes, b.shot_metrics, b.shot_curve, b.created_at,
+                   b.rating, b.taste_balance, b.taste_body, b.notes, b.shot_metrics, b.shot_curve, b.created_at,
                    GROUP_CONCAT(c.name, '|||') AS coffee_names
             FROM brews b
             LEFT JOIN coffee_brews cb ON cb.brew_id = b.id
@@ -174,7 +174,7 @@ def list_coffee_brews(cid):
             return jsonify({'error': 'Café no encontrado', 'error_key': 'error.coffee.not_found'}), 404
         rows = conn.execute('''
             SELECT b.id, b.brew_date, b.dose_g, b.yield_g, b.time_s, b.grind, b.temp_c,
-                   b.rating, b.notes, b.shot_metrics, b.shot_curve, b.created_at
+                   b.rating, b.taste_balance, b.taste_body, b.notes, b.shot_metrics, b.shot_curve, b.created_at
             FROM brews b
             JOIN coffee_brews cb ON cb.brew_id = b.id
             WHERE cb.coffee_id = ?
@@ -197,6 +197,8 @@ def add_brew(cid):
     temp_c  = data.get('temp_c')
     notes   = data.get('notes') or None
     rating  = data.get('rating')
+    taste_balance = data.get('taste_balance')
+    taste_body    = data.get('taste_body')
     shot_metrics = _json_in(data.get('shot_metrics'))
     shot_curve = _json_in(data.get('shot_curve'))
     with db_conn() as conn:
@@ -206,9 +208,10 @@ def add_brew(cid):
         if not coffee_row:
             return jsonify({'error': 'Café no encontrado', 'error_key': 'error.coffee.not_found'}), 404
         cur = conn.execute(
-            'INSERT INTO brews (brew_date, dose_g, yield_g, time_s, grind, temp_c, rating, notes, shot_metrics, '
-            'shot_curve) VALUES (?,?,?,?,?,?,?,?,?,?)',
-            (brew_date, dose_g, yield_g, time_s, grind, temp_c, rating, notes, shot_metrics, shot_curve)
+            'INSERT INTO brews (brew_date, dose_g, yield_g, time_s, grind, temp_c, rating, taste_balance, taste_body, '
+            'notes, shot_metrics, shot_curve) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',
+            (brew_date, dose_g, yield_g, time_s, grind, temp_c, rating, taste_balance, taste_body, notes,
+             shot_metrics, shot_curve)
         )
         bid = cur.lastrowid
         conn.execute('INSERT INTO coffee_brews (coffee_id, brew_id) VALUES (?,?)', (cid, bid))
@@ -270,7 +273,7 @@ def grind_data():
     Días desde tueste y desde apertura en la fecha del brew (null si falta la fecha del café)."""
     with db_conn() as conn:
         rows = conn.execute('''
-            SELECT b.id, b.brew_date, b.grind, b.dose_g, b.yield_g, b.time_s, b.rating, b.shot_metrics,
+            SELECT b.id, b.brew_date, b.grind, b.dose_g, b.yield_g, b.time_s, b.rating, b.taste_balance, b.shot_metrics,
                    cb.coffee_id,
                    CAST(julianday(b.brew_date) - julianday(c.roast_date)  AS INTEGER) AS days_roast,
                    CAST(julianday(b.brew_date) - julianday(c.opened_date) AS INTEGER) AS days_open
@@ -290,7 +293,8 @@ def grind_data():
             continue
         out.append({
             'brew_id': r['id'], 'coffee_id': r['coffee_id'], 'brew_date': r['brew_date'],
-            'grind': r['grind'], 'dose_g': r['dose_g'], 'rating': r['rating'], 'flow': flow,
+            'grind': r['grind'], 'dose_g': r['dose_g'], 'rating': r['rating'],
+            'taste_balance': r['taste_balance'], 'flow': flow,
             'days_roast': r['days_roast'] if r['days_roast'] is not None and r['days_roast'] >= 0 else None,
             'days_open': r['days_open'] if r['days_open'] is not None and r['days_open'] >= 0 else None,
         })

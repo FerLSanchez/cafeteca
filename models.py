@@ -161,6 +161,10 @@ BREW_NUMERIC = [
 ]
 
 
+# Escalas de cata: -2..2, 0 = en su punto (equilibrio: ácido ↔ amargo; cuerpo: aguado ↔ pesado)
+TASTE_FIELDS = ('taste_balance', 'taste_body')
+
+
 def _num_ok(val, types, lo, hi):
     return isinstance(val, types) and not isinstance(val, bool) and lo <= val <= hi
 
@@ -189,6 +193,11 @@ def validate_brew(data, recipe=False):
     r = data.get('rating')
     if r is not None and not _num_ok(r, int, 1, 5):
         return _verr('error.model.rating_invalid', 'La valoración debe estar entre 1 y 5')
+    for field in TASTE_FIELDS:
+        val = data.get(field)
+        if val is not None and not _num_ok(val, int, -2, 2):
+            return _verr('error.brew.field_invalid', f'Valor inválido para "{field}" (-2-2)',
+                         field=field, min=-2, max=2)
     d = data.get('brew_date')
     if d is not None and (not isinstance(d, str) or not DATE_RE.match(d)):
         return _verr('error.model.date_invalid',
