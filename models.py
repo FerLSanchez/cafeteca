@@ -9,7 +9,9 @@ SCALAR_FIELDS = ['name', 'quantity_g', 'price_kg', 'purchase_date', 'roast_date'
 COFFEE_SELECT = '''
     SELECT c.id, c.name, c.quantity_g, c.remaining_g, c.price_kg, c.altitude,
            c.purchase_date, c.roast_date, c.opened_date, c.finished_date,
-           c.rating, c.notes, c.created_at,
+           c.rating, c.notes, c.created_at, c.family_id,
+           (SELECT COUNT(*) FROM coffees f
+            WHERE COALESCE(f.family_id, f.id) = COALESCE(c.family_id, c.id)) AS family_size,
            c.roaster_id,  ro.name AS roaster,
            c.producer_id, p.name  AS producer,
            c.origin_id,   o.name  AS origin,
@@ -93,6 +95,56 @@ def resolve_ids(conn, data):
     }
 
 
+# ---------------------------------------------------------------------------
+# Familias: bolsas del mismo café. family_id apunta a la raíz (NULL = es su propia raíz);
+# la clave de familia es COALESCE(family_id, id).
+# ---------------------------------------------------------------------------
+FAMILY_KEY = 'COALESCE(family_id, id)'
+
+
+def family_key(conn, cid):
+    row = conn.execute(f'SELECT {FAMILY_KEY} FROM coffees WHERE id=?', (cid,)).fetchone()
+    return row[0] if row else None
+
+
+def family_ids(conn, cid):
+    key = family_key(conn, cid)
+    return [r[0] for r in conn.execute(f'SELECT id FROM coffees WHERE {FAMILY_KEY}=? ORDER BY id', (key,))]
+
+
+def set_family(conn, cid, target):
+    """Link coffee `cid` to the family of coffee `target` (None = its own family). A root takes its
+    family along when it joins another; when a root leaves, the next oldest member becomes the root."""
+    key = family_key(conn, cid)
+    if target is None:
+        if key != cid:
+            conn.execute('UPDATE coffees SET family_id=NULL WHERE id=?', (cid,))
+            return
+        rest = [i for i in family_ids(conn, cid) if i != cid]
+        if rest:
+            conn.execute('UPDATE coffees SET family_id=? WHERE family_id=?', (rest[0], cid))
+            conn.execute('UPDATE coffees SET family_id=NULL WHERE id=?', (rest[0],))
+        return
+    tkey = family_key(conn, target)
+    if tkey is None or tkey == key:
+        return
+    if key == cid:
+        conn.execute('UPDATE coffees SET family_id=? WHERE family_id=?', (tkey, cid))
+    conn.execute('UPDATE coffees SET family_id=? WHERE id=?', (tkey, cid))
+
+
+def family_recipe(conn, cid, cols='r.*'):
+    """Recipe of the coffee or, if it has none, the most recently updated one in its family."""
+    ids = family_ids(conn, cid)
+    if not ids:
+        return None
+    marks = ','.join('?' * len(ids))
+    return conn.execute(
+        f'SELECT {cols} FROM recipes r JOIN coffee_recipes cr ON cr.recipe_id = r.id '
+        f'WHERE cr.coffee_id IN ({marks}) '
+        'ORDER BY (cr.coffee_id = ?) DESC, r.updated_at DESC, r.id DESC LIMIT 1', ids + [cid]).fetchone()
+
+
 def get_coffee_by_id(conn, cid):
     """Fetch a single coffee by id and return it as a dict (None if it does not exist)."""
     row = conn.execute(COFFEE_SELECT + ' WHERE c.id=?', (cid,)).fetchone()
@@ -148,6 +200,9 @@ def validate_coffee(data, partial=False):
     notes = data.get('notes')
     if notes and len(str(notes)) > 5000:
         return _verr('error.model.notes_too_long', 'Las notas no pueden superar los 5000 caracteres')
+    fam = data.get('family_id')
+    if fam is not None and (not isinstance(fam, int) or isinstance(fam, bool) or fam <= 0):
+        return _verr('error.model.family_invalid', 'Café de la familia inválido')
     return None
 
 
@@ -159,6 +214,10 @@ BREW_NUMERIC = [
     ('grind',   (int, float), 0, 1000),   # decimales: molinillos con medios pasos (columna INTEGER, SQLite guarda el REAL)
     ('temp_c',  int,          0, 110),
 ]
+
+
+# Escalas de cata: -2..2, 0 = en su punto (equilibrio: ácido ↔ amargo; cuerpo: aguado ↔ pesado)
+TASTE_FIELDS = ('taste_balance', 'taste_body')
 
 
 def _num_ok(val, types, lo, hi):
@@ -189,6 +248,11 @@ def validate_brew(data, recipe=False):
     r = data.get('rating')
     if r is not None and not _num_ok(r, int, 1, 5):
         return _verr('error.model.rating_invalid', 'La valoración debe estar entre 1 y 5')
+    for field in TASTE_FIELDS:
+        val = data.get(field)
+        if val is not None and not _num_ok(val, int, -2, 2):
+            return _verr('error.brew.field_invalid', f'Valor inválido para "{field}" (-2-2)',
+                         field=field, min=-2, max=2)
     d = data.get('brew_date')
     if d is not None and (not isinstance(d, str) or not DATE_RE.match(d)):
         return _verr('error.model.date_invalid',

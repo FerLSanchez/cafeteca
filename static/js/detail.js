@@ -38,8 +38,9 @@ async function quickFinish(e, id) {
 // ---------------------------------------------------------------------------
 // Detail modal
 // ---------------------------------------------------------------------------
-function showDetail(id) {
-  const c = displayedCoffees.find(x=>x.id===id);
+// `coffee` permite abrir una bolsa que no está en la lista filtrada (p. ej. otra bolsa del mismo café)
+function showDetail(id, coffee = null) {
+  const c = coffee || displayedCoffees.find(x=>x.id===id);
   if (!c) return;
   currentDetail = c;
   document.getElementById('detail-title').textContent = c.name;
@@ -96,6 +97,7 @@ function showDetail(id) {
     profileRow(t('detail.label.process'),    chips(c.processes)),
     profileRow(t('detail.label.milk'),       chips(c.milk_types)),
     c.altitude ? `<div class="detail-cell span2"><div class="detail-cell-label">${t('detail.label.altitude')}</div><div class="detail-cell-val">${c.altitude} m</div></div>` : '',
+    c.family_size > 1 ? profileRow(t('detail.label.family'), '<div class="detail-family" id="detail-family"></div>') : '',
   ].join('');
 
   const gridHTML = [
@@ -159,10 +161,27 @@ function showDetail(id) {
     <div id="detail-brews-section" style="margin-top:14px"></div>
   `;
   openModal('modal-detail');
+  if (c.family_size > 1) renderFamilyBags(c.id);
   renderRecipeSection(c.id);
   renderBrewsSection(c.id);
   renderGrindSection(c.id);
 }
+
+// Las otras bolsas del mismo café, con su estado; tocar una abre su ficha
+async function renderFamilyBags(id) {
+  const bags = await fetch(`/api/coffees/${id}/family`).then(r => (r.ok ? r.json() : [])).catch(() => []);
+  const el = document.getElementById('detail-family');
+  if (!el || currentDetail?.id !== id) return;
+  _familyBags = Object.fromEntries(bags.map(b => [b.id, b]));
+  el.innerHTML = bags.map(b => {
+    const state = b.finished_date ? t('detail.family_finished', {date: fmtDate(b.finished_date)})
+      : b.opened_date ? t('status.open') : t('status.unopened');
+    return `<button type="button" class="detail-family-bag" onclick="showDetail(${b.id}, _familyBags[${b.id}])">
+      <span>${esc(b.roast_date ? '🔥 ' + fmtDate(b.roast_date) : b.name)}</span><span class="detail-family-state">${esc(state)}</span>
+    </button>`;
+  }).join('');
+}
+let _familyBags = {};
 
 function editCurrent() { closeModal('modal-detail'); openEditModal(currentDetail); }
 
@@ -189,6 +208,7 @@ function duplicateCurrent() {
   document.getElementById('f-altitude').value = c.altitude || '';
   document.getElementById('f-notes').value = c.notes || '';
   document.getElementById('f-purchase').value = todayLocal();
+  fillFamilySelect(null, c.id);   // nueva bolsa del mismo café
   // leave roast_date, opened_date, finished_date, rating blank (new bag)
   openModal('modal-form');
 }

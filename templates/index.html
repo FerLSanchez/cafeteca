@@ -356,6 +356,11 @@
         <label class="form-label" data-i18n="form.field.name">Nombre *</label>
         <input class="form-input" id="f-name" placeholder="ej. Ethiopia Yirgacheffe" data-i18n-placeholder="form.placeholder.name" required>
       </div>
+      <div class="form-group">
+        <label class="form-label" for="f-family" data-i18n="form.field.family">Mismo café que</label>
+        <select class="form-input" id="f-family"><option value="" data-i18n="form.family_none">— Ninguno (café nuevo) —</option></select>
+        <div class="form-hint" data-i18n="form.family_hint">Otra bolsa del mismo café: molienda, cata y receta se aprenden entre bolsas.</div>
+      </div>
       <div class="form-row">
         <div class="form-group">
           <label class="form-label" data-i18n="form.field.roaster">Tostador</label>
@@ -579,6 +584,7 @@
       </button>
     </div>
     <div class="brew-last" id="b-last" hidden></div>
+    <div class="brew-last brew-recipe-ref" id="b-recipe" hidden></div>
 
     <!-- 1 · Dosis -->
     <section class="brew-step" id="b-step-dose">
@@ -641,6 +647,7 @@
         </div>
       </div>
       <div class="brew-ratio" id="b-ratio-display"></div>
+      <div class="brew-grind-hint" id="b-ratio-hint" hidden></div>
       <div class="shot-summary brew-shot-summary" id="b-shot-summary" hidden></div>
     </section>
 
@@ -655,6 +662,7 @@
         <button type="button" class="brew-star" data-val="4" onclick="setBrewRating(4)" aria-label="4">★</button>
         <button type="button" class="brew-star" data-val="5" onclick="setBrewRating(5)" aria-label="5">★</button>
       </div>
+      <div class="brew-taste" id="b-taste"></div>
       <div class="form-group">
         <label class="form-label" for="b-notes" data-i18n="brew.field.notes">Notas</label>
         <textarea class="form-input" id="b-notes" rows="2" placeholder="Observaciones opcionales…" data-i18n-placeholder="form.placeholder.brew_notes"></textarea>
@@ -843,6 +851,7 @@
 <script src="/static/js/brews.js"></script>
 <script src="/static/js/grind-model.js"></script>
 <script src="/static/js/grind-ui.js"></script>
+<script src="/static/js/taste-ui.js"></script>
 <script src="/static/js/init.js"></script>
 </body>
 </html>

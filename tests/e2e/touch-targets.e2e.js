@@ -12,8 +12,8 @@ const BASE = process.env.BASE_URL || 'http://localhost:5323';
 const SHOTS = process.argv[2] || null;
 const MIN_PX = 36;   // lado corto mínimo de cualquier control
 const GAP_PX = 8;    // separación mínima entre controles si alguno es < 40 px
-// Grupos de estrellas: los botones van pegados a propósito (cada uno ≥ 36 px)
-const GROUPED = '.quick-star, .brew-star, .rating-star';
+// Grupos de estrellas y escalas de cata: los botones van pegados a propósito (cada uno ≥ 36 px)
+const GROUPED = '.quick-star, .brew-star, .rating-star, .taste-seg';
 
 async function measure(page) {
   return page.evaluate(([MIN_PX, GAP_PX, GROUPED]) => {

@@ -14,35 +14,46 @@ const fmtDrift = m => (m.per_week > 0 ? '+' : m.per_week < 0 ? '−' : '') + Mat
 // |γ| < 2·error típico: con estos datos no se distingue de "sin deriva"
 const driftConclusive = m => Math.abs(m.gamma) >= 2 * m.gamma_se;
 const GRIND_BASIS_KEYS  = {roast: 'grind.basis_roast', open: 'grind.basis_open'};
-const GRIND_SOURCE_KEYS = {recipe: 'grind.source_recipe', best: 'grind.source_best', recent: 'grind.source_recent'};
+const GRIND_SOURCE_KEYS = {recipe: 'grind.source_recipe', taste: 'grind.source_taste',
+  taste_recipe: 'grind.source_taste_recipe', best: 'grind.source_best', recent: 'grind.source_recent'};
 const basisLabel = basis => t(GRIND_BASIS_KEYS[basis]);
 const targetSourceLabel = src => t(GRIND_SOURCE_KEYS[src]);
 
-// Todo lo que necesita la bolsa: modelo global, sus filas, objetivo y sugerencia para `date`
-function grindContext(rows, coffeeId, recipeTarget, date) {
+// La bolsa para el modelo: sus fechas y su familia (bolsas del mismo café)
+const bagOf = c => (c ? {id: c.id, family: c.family_id ?? c.id, roast_date: c.roast_date, opened_date: c.opened_date} : null);
+
+// Todo lo que necesita la bolsa: modelo global, sus filas, las de su familia (antiguas primero),
+// objetivo y sugerencia para `date`. Una bolsa nueva aprende de las anteriores del mismo café.
+function grindContext(rows, coffeeId, recipeTarget, date, bag = null) {
   const model = bestGrindModel(rows);
   const coffeeRows = rows.filter(r => r.coffee_id === coffeeId);
-  const target = targetFlowFor(coffeeRows, recipeTarget);
-  const suggestion = model && target ? suggestGrind(model, coffeeRows, {date, target: target.flow, step: grindStep}) : null;
-  return {rows, model, coffeeRows, target, suggestion};
+  const family = bag?.family ?? coffeeRows[0]?.family_id;
+  const familyRows = family != null ? rows.filter(r => r.family_id === family) : coffeeRows;
+  const target = targetFlowFor(familyRows, recipeTarget, tasteSlope(rows).k);
+  const suggestion = model && target
+    ? suggestGrind(model, familyRows, {date, target: target.flow, step: grindStep, bag: bag?.opened_date || bag?.roast_date ? bag : null})
+    : null;
+  return {rows, model, coffeeRows, familyRows, target, suggestion};
 }
 
 // --- Modal de brew: "Sugerida 13.5 · para 1.8 g/s" + botón Usar ------------------------
 // Se pinta antes de abrir el modal (las filas llegan con la receta y el historial) para que
 // no empuje el formulario bajo el dedo; se recalcula si cambia la fecha del brew.
-let _brewGrind = null;   // {rows, coffeeId, recipeTarget, grind}
+let _brewGrind = null;   // {rows, coffeeId, recipeTarget, bag, grind}
 
-function brewGrindHint(rows, coffeeId, recipe) {
-  _brewGrind = rows ? {rows, coffeeId, recipeTarget: recipe?.target_flow ?? null, grind: null} : null;
+// Devuelve la molienda sugerida (o null) para rellenar el campo al abrir el modal
+function brewGrindHint(rows, coffeeId, recipe, bag = null) {
+  _brewGrind = rows ? {rows, coffeeId, recipeTarget: recipe?.target_flow ?? null, bag, grind: null} : null;
   renderBrewGrindHint();
+  return _brewGrind?.grind ?? null;
 }
 
 function renderBrewGrindHint() {
   const el = document.getElementById('b-grind-hint');
   const ctx = _brewGrind && grindContext(_brewGrind.rows, _brewGrind.coffeeId, _brewGrind.recipeTarget,
-    document.getElementById('b-date').value || todayLocal());
+    document.getElementById('b-date').value || todayLocal(), _brewGrind.bag);
   const s = ctx?.suggestion;
-  if (_brewGrind) _brewGrind.grind = s?.grind ?? null;
+  if (_brewGrind) { _brewGrind.grind = s?.grind ?? null; _brewGrind.target = ctx.target?.flow ?? null; }
   el.hidden = !s;
   if (!s) { el.innerHTML = ''; return; }
   el.innerHTML = `<span><b>${esc(t('grind.suggested_label'))}</b> ${esc(fmtGrind(s.grind))}`
@@ -52,6 +63,9 @@ function renderBrewGrindHint() {
     + ` aria-label="${esc(t('grind.use_aria', {grind: fmtGrind(s.grind)}))}"></button>`;
   syncGrindUse();
 }
+
+// Flujo objetivo aprendido (cata + receta) para la banda del shot con báscula
+const brewTargetFlow = () => _brewGrind?.target ?? _brewGrind?.recipeTarget ?? null;
 
 function useSuggestedGrind() {
   if (_brewGrind?.grind == null) return;
@@ -77,9 +91,9 @@ async function renderGrindSection(coffeeId) {
     const r = await fetch('/api/coffees/' + coffeeId + '/recipe');
     if (r.ok) recipeTarget = (await r.json()).target_flow ?? null;
   } catch (_) {}
-  const ctx = grindContext(await fetchGrindData(), coffeeId, recipeTarget, todayLocal());
+  const ctx = grindContext(await fetchGrindData(), coffeeId, recipeTarget, todayLocal(), bagOf(currentDetail));
   if (currentDetail?.id !== coffeeId) return;
-  const {model, coffeeRows, target, suggestion} = ctx;
+  const {model, coffeeRows, familyRows, target, suggestion} = ctx;
   const basis = model?.basis ?? (coffeeRows.some(r => r.days_open != null) ? 'open' : 'roast');
   const key = basis === 'roast' ? 'days_roast' : 'days_open';
   const pts = coffeeRows.filter(r => r[key] != null);
@@ -107,12 +121,13 @@ async function renderGrindSection(coffeeId) {
       <span class="grind-key fast">▲</span> ${esc(t('grind.key_fast'))}</div>
     ${lines.map(l => `<div class="dialin-line">${esc(l)}</div>`).join('')}`;
   const canvas = el.querySelector('canvas');
-  const opts = {pts, key, model, target: target?.flow ?? null, suggestion: currentDetail.finished_date ? null : suggestion};
+  const opts = {pts, lineRows: familyRows, key, model, target: target?.flow ?? null, suggestion: currentDetail.finished_date ? null : suggestion};
   drawCanvasFitted(canvas, () => drawGrindChart(canvas, opts));
 }
 
 // Dispersión x = días, y = molienda (más fino abajo). Línea discontinua = previsión para el objetivo.
-function drawGrindChart(canvas, {pts, key, model, target, suggestion}) {
+// La línea usa las filas de toda la familia, igual que la sugerida de hoy (el ○ cae sobre ella)
+function drawGrindChart(canvas, {pts, lineRows = pts, key, model, target, suggestion}) {
   const dpr = window.devicePixelRatio || 1;
   const w = canvas.clientWidth, h = canvas.clientHeight;
   if (!w || !h) return;
@@ -124,7 +139,7 @@ function drawGrindChart(canvas, {pts, key, model, target, suggestion}) {
 
   const days = pts.map(r => r[key]).concat(suggestion ? [suggestion.days] : []);
   const dMax = Math.max(1, ...days);
-  const line = model && target ? grindLine(model, pts, target, [0, dMax]) : [];
+  const line = model && target ? grindLine(model, lineRows, target, [0, dMax]) : [];
   const grinds = pts.map(r => r.grind).concat(line.map(p => p[1]), suggestion ? [suggestion.grind] : []);
   const gMin = Math.floor(Math.min(...grinds) - 0.5), gMax = Math.ceil(Math.max(...grinds) + 0.5);
   const pad = {l: 26, r: 8, t: 8, b: 18};

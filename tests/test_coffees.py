@@ -144,12 +144,83 @@ class TestAddCoffee:
         names = [r['name'] for r in resp.get_json()]
         assert 'New Roaster' in names
 
-    def test_source_id_copies_brews(self, client):
+    def test_source_id_links_family_without_sharing_brews(self, client):
         source = make_coffee(client, {'name': 'Source Coffee'})
         make_brew(client, source['id'])
+        client.put(f'/api/coffees/{source["id"]}/recipe', json={'dose_g': 17, 'yield_g': 39})
         copy = client.post('/api/coffees', json={'name': 'Copy', 'source_id': source['id']}).get_json()
-        brews_resp = client.get(f'/api/coffees/{copy["id"]}/brews')
-        assert len(brews_resp.get_json()) == 1
+        assert copy['family_id'] == source['id'] and copy['family_size'] == 2
+        assert client.get(f'/api/coffees/{copy["id"]}/brews').get_json() == []
+        fam = client.get(f'/api/coffees/{copy["id"]}/brews?family=1').get_json()
+        assert [(b['coffee_id'], b['coffee_name']) for b in fam] == [(source['id'], 'Source Coffee')]
+        assert client.get(f'/api/coffees/{copy["id"]}/recipe').get_json()['yield_g'] == 39
+
+
+class TestFamily:
+    def _fam(self, client, cid):
+        c = client.get(f'/api/coffees/{cid}').get_json()
+        return c['family_id'] or c['id']
+
+    def test_link_unlink_and_reroot(self, client):
+        a, b, c = (make_coffee(client, {'name': n}) for n in 'ABC')
+        client.put(f'/api/coffees/{b["id"]}', json={'family_id': a['id']})
+        client.put(f'/api/coffees/{c["id"]}', json={'family_id': b['id']})   # any member works
+        assert {self._fam(client, x['id']) for x in (a, b, c)} == {a['id']}
+        assert client.get(f'/api/coffees/{a["id"]}').get_json()['family_size'] == 3
+        # the root leaves: B and C stay together
+        client.put(f'/api/coffees/{a["id"]}', json={'family_id': None})
+        assert self._fam(client, a['id']) == a['id']
+        assert self._fam(client, b['id']) == self._fam(client, c['id']) != a['id']
+        assert client.get(f'/api/coffees/{a["id"]}').get_json()['family_size'] == 1
+
+    def test_root_joining_takes_family_along(self, client):
+        a, b, c = (make_coffee(client, {'name': n}) for n in 'ABC')
+        client.put(f'/api/coffees/{b["id"]}', json={'family_id': a['id']})
+        client.put(f'/api/coffees/{a["id"]}', json={'family_id': c['id']})
+        assert {self._fam(client, x['id']) for x in (a, b, c)} == {c['id']}
+
+    def test_invalid_family_rejected(self, client):
+        a = make_coffee(client)
+        resp = client.put(f'/api/coffees/{a["id"]}', json={'family_id': 'x'})
+        assert resp.status_code == 400
+        assert resp.get_json()['error_key'] == 'error.model.family_invalid'
+        for resp in (client.put(f'/api/coffees/{a["id"]}', json={'family_id': 99999}),
+                     client.post('/api/coffees', json={'name': 'X', 'family_id': 99999})):
+            assert resp.status_code == 400
+            assert resp.get_json()['error_key'] == 'error.model.family_invalid'
+
+    def test_deleting_the_bag_that_holds_the_recipe_keeps_it(self, client):
+        a = make_coffee(client, {'name': 'A'})
+        client.put(f'/api/coffees/{a["id"]}/recipe', json={'dose_g': 17, 'yield_g': 39})
+        b = client.post('/api/coffees', json={'name': 'B', 'source_id': a['id']}).get_json()
+        client.delete(f'/api/coffees/{a["id"]}')
+        assert client.get(f'/api/coffees/{b["id"]}/recipe').get_json()['yield_g'] == 39
+
+    def test_family_endpoint_lists_the_other_bags(self, client):
+        a = make_coffee(client, {'name': 'A', 'roast_date': '2026-08-01'})
+        b = make_coffee(client, {'name': 'B', 'roast_date': '2026-09-01', 'family_id': a['id']})
+        make_coffee(client, {'name': 'Other'})
+        assert [c['name'] for c in client.get(f'/api/coffees/{a["id"]}/family').get_json()] == ['B']
+        assert [c['name'] for c in client.get(f'/api/coffees/{b["id"]}/family').get_json()] == ['A']
+        assert client.get('/api/coffees/9999/family').status_code == 404
+
+    def test_recipe_is_shared_by_the_family(self, client):
+        a, b = make_coffee(client, {'name': 'A'}), make_coffee(client, {'name': 'B'})
+        client.put(f'/api/coffees/{a["id"]}/recipe', json={'dose_g': 17, 'yield_g': 39})
+        client.put(f'/api/coffees/{b["id"]}', json={'family_id': a['id']})
+        assert client.get(f'/api/coffees/{b["id"]}/recipe').get_json()['yield_g'] == 39
+        client.put(f'/api/coffees/{b["id"]}/recipe', json={'dose_g': 17, 'yield_g': 37})
+        assert client.get(f'/api/coffees/{a["id"]}/recipe').get_json()['yield_g'] == 37
+        client.delete(f'/api/coffees/{b["id"]}/recipe')
+        assert client.get(f'/api/coffees/{a["id"]}/recipe').status_code == 404
+
+    def test_consume_uses_family_recipe(self, client):
+        a = make_coffee(client, {'name': 'A'})
+        client.put(f'/api/coffees/{a["id"]}/recipe', json={'dose_g': 17, 'yield_g': 39, 'grind': 12})
+        b = make_coffee(client, {'name': 'B', 'family_id': a['id'], 'quantity_g': 250})
+        client.post(f'/api/coffees/{b["id"]}/open', json={'date': '2026-09-01'})
+        client.post(f'/api/coffees/{b["id"]}/consume', json={'date': '2026-09-02'})
+        assert client.get(f'/api/coffees/{b["id"]}/brews').get_json()[0]['grind'] == 12
 
 
 class TestUpdateCoffee:

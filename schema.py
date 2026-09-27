@@ -61,6 +61,8 @@ def init_db():
         migrate_v8(conn)
         migrate_v9(conn)
         migrate_v10(conn)
+        migrate_v11(conn)
+        migrate_v12(conn)
         if not col_exists(conn, 'coffees', 'altitude'):
             conn.execute('ALTER TABLE coffees ADD COLUMN altitude INTEGER')
 
@@ -284,6 +286,63 @@ def migrate_v10(conn):
     if 'shot_curve' not in cols:
         conn.execute('ALTER TABLE brews ADD COLUMN shot_curve TEXT')
         logging.info('[migration v10] Added shot_curve to brews.')
+
+
+def migrate_v11(conn):
+    """Phase 11: tasting scales per brew, -2..2 with 0 = right (balance: sour ↔ bitter; body: thin ↔ heavy)."""
+    cols = [r[1] for r in conn.execute('PRAGMA table_info(brews)').fetchall()]
+    for col in ('taste_balance', 'taste_body'):
+        if col not in cols:
+            conn.execute(f'ALTER TABLE brews ADD COLUMN {col} INTEGER')
+            logging.info('[migration v11] Added %s to brews.', col)
+
+
+def migrate_v12(conn):
+    """Phase 12: coffee families (bags of the same coffee). coffees.family_id points to the family's
+    root coffee (NULL = the coffee is its own root). "New bag" used to share the source bag's brews
+    (coffee_brews) and recipe: each shared brew goes back to one bag (the one opened most recently on or
+    before the brew date) and the coffees that shared brews or recipes become one family."""
+    cols = [r[1] for r in conn.execute('PRAGMA table_info(coffees)').fetchall()]
+    if 'family_id' in cols:
+        return
+    conn.execute('ALTER TABLE coffees ADD COLUMN family_id INTEGER')
+    parent = {}
+
+    def find(x):
+        while parent.get(x, x) != x:
+            x = parent[x]
+        return x
+
+    def union(ids):
+        roots = sorted({find(i) for i in ids})
+        for r in roots:
+            parent.setdefault(r, r)
+        for r in roots[1:]:
+            parent[r] = roots[0]
+
+    shared = conn.execute(
+        'SELECT cb.brew_id, b.brew_date, c.id, c.opened_date '
+        'FROM coffee_brews cb JOIN brews b ON b.id = cb.brew_id JOIN coffees c ON c.id = cb.coffee_id '
+        'WHERE cb.brew_id IN (SELECT brew_id FROM coffee_brews GROUP BY brew_id HAVING COUNT(*) > 1) '
+        'ORDER BY cb.brew_id, c.id').fetchall()
+    by_brew = {}
+    for r in shared:
+        by_brew.setdefault(r['brew_id'], []).append(r)
+    for bid, links in by_brew.items():
+        union([r['id'] for r in links])
+        opened = [r for r in links if r['opened_date'] and r['brew_date'] and r['opened_date'] <= r['brew_date']]
+        owner = max(opened, key=lambda r: (r['opened_date'], r['id']))['id'] if opened else links[0]['id']
+        conn.execute('DELETE FROM coffee_brews WHERE brew_id=? AND coffee_id!=?', (bid, owner))
+    for r in conn.execute('SELECT GROUP_CONCAT(coffee_id) AS ids FROM coffee_recipes GROUP BY recipe_id '
+                          'HAVING COUNT(*) > 1').fetchall():
+        union([int(i) for i in r['ids'].split(',')])
+    linked = 0
+    for cid in list(parent):
+        root = find(cid)
+        if root != cid:
+            conn.execute('UPDATE coffees SET family_id=? WHERE id=?', (root, cid))
+            linked += 1
+    logging.info('[migration v12] Added family_id; un-shared %d brews, linked %d coffees.', len(by_brew), linked)
 
 
 def _rebuild_table_v1(conn):
