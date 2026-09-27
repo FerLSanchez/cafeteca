@@ -406,3 +406,11 @@ class TestGrindData:
         make_brew(client, c['id'], {'brew_date': '2026-09-15', 'time_s': 30})
         r = client.get('/api/grind-data').get_json()[0]
         assert r['days_roast'] is None and r['days_open'] is None
+
+
+class TestBrewOrder:
+    def test_same_day_same_second_newest_first(self, client):
+        c = make_coffee(client)
+        ids = [make_brew(client, c['id'], {'brew_date': '2026-09-20', 'grind': g})['id'] for g in (12, 13, 14)]
+        assert [b['id'] for b in client.get(f'/api/coffees/{c["id"]}/brews').get_json()] == ids[::-1]
+        assert [b['id'] for b in client.get('/api/brews').get_json()['brews']] == ids[::-1]

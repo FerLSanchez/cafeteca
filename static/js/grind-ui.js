@@ -10,7 +10,7 @@ async function fetchGrindData() {
 }
 
 const fmtGrind = g => String(+g.toFixed(2));
-const fmtDrift = m => (m.per_week > 0 ? '+' : '') + m.per_week.toFixed(2);
+const fmtDrift = m => (m.per_week > 0 ? '+' : m.per_week < 0 ? '−' : '') + Math.abs(m.per_week).toFixed(2);
 // |γ| < 2·error típico: con estos datos no se distingue de "sin deriva"
 const driftConclusive = m => Math.abs(m.gamma) >= 2 * m.gamma_se;
 const GRIND_BASIS_KEYS  = {roast: 'grind.basis_roast', open: 'grind.basis_open'};
@@ -19,8 +19,7 @@ const basisLabel = basis => t(GRIND_BASIS_KEYS[basis]);
 const targetSourceLabel = src => t(GRIND_SOURCE_KEYS[src]);
 
 // Todo lo que necesita la bolsa: modelo global, sus filas, objetivo y sugerencia para `date`
-async function grindContext(coffeeId, recipeTarget, date) {
-  const rows = await fetchGrindData();
+function grindContext(rows, coffeeId, recipeTarget, date) {
   const model = bestGrindModel(rows);
   const coffeeRows = rows.filter(r => r.coffee_id === coffeeId);
   const target = targetFlowFor(coffeeRows, recipeTarget);
@@ -29,23 +28,44 @@ async function grindContext(coffeeId, recipeTarget, date) {
 }
 
 // --- Modal de brew: "Sugerida 13.5 · para 1.8 g/s" + botón Usar ------------------------
-async function brewGrindHint(coffeeId, recipe) {
+// Se pinta antes de abrir el modal (las filas llegan con la receta y el historial) para que
+// no empuje el formulario bajo el dedo; se recalcula si cambia la fecha del brew.
+let _brewGrind = null;   // {rows, coffeeId, recipeTarget, grind}
+
+function brewGrindHint(rows, coffeeId, recipe) {
+  _brewGrind = rows ? {rows, coffeeId, recipeTarget: recipe?.target_flow ?? null, grind: null} : null;
+  renderBrewGrindHint();
+}
+
+function renderBrewGrindHint() {
   const el = document.getElementById('b-grind-hint');
-  el.hidden = true;
-  const ctx = await grindContext(coffeeId, recipe?.target_flow ?? null, document.getElementById('b-date').value || todayLocal());
-  // El modal puede haberse cerrado o cambiado de café mientras tanto
-  if (_brewTargetId !== coffeeId || _editBrewId || !ctx.suggestion) return;
-  const s = ctx.suggestion;
+  const ctx = _brewGrind && grindContext(_brewGrind.rows, _brewGrind.coffeeId, _brewGrind.recipeTarget,
+    document.getElementById('b-date').value || todayLocal());
+  const s = ctx?.suggestion;
+  if (_brewGrind) _brewGrind.grind = s?.grind ?? null;
+  el.hidden = !s;
+  if (!s) { el.innerHTML = ''; return; }
   el.innerHTML = `<span><b>${esc(t('grind.suggested_label'))}</b> ${esc(fmtGrind(s.grind))}`
     + ` · ${esc(t('grind.for_flow', {flow: s.target.toFixed(1), source: targetSourceLabel(ctx.target.source)}))}`
     + ` · ${esc(t('grind.drift_short', {drift: fmtDrift(ctx.model), basis: basisLabel(ctx.model.basis)}))}</span>`
-    + `<button type="button" class="brew-grind-use" onclick="useSuggestedGrind(${s.grind})">${esc(t('grind.use'))}</button>`;
-  el.hidden = false;
+    + `<button type="button" class="brew-grind-use" onclick="useSuggestedGrind()"`
+    + ` aria-label="${esc(t('grind.use_aria', {grind: fmtGrind(s.grind)}))}"></button>`;
+  syncGrindUse();
 }
 
-function useSuggestedGrind(g) {
-  document.getElementById('b-grind').value = g;
+function useSuggestedGrind() {
+  if (_brewGrind?.grind == null) return;
+  document.getElementById('b-grind').value = _brewGrind.grind;
   updateBrewSteps();
+}
+
+// "Usar" pasa a "✓" (deshabilitado) cuando la molienda ya es la sugerida
+function syncGrindUse() {
+  const btn = document.querySelector('#b-grind-hint .brew-grind-use');
+  if (!btn) return;
+  const applied = parseFloat(document.getElementById('b-grind').value) === _brewGrind?.grind;
+  btn.disabled = applied;
+  btn.textContent = applied ? '✓' : t('grind.use');
 }
 
 // --- Ficha: molienda vs días, color = flujo respecto al objetivo -----------------------
@@ -57,7 +77,7 @@ async function renderGrindSection(coffeeId) {
     const r = await fetch('/api/coffees/' + coffeeId + '/recipe');
     if (r.ok) recipeTarget = (await r.json()).target_flow ?? null;
   } catch (_) {}
-  const ctx = await grindContext(coffeeId, recipeTarget, todayLocal());
+  const ctx = grindContext(await fetchGrindData(), coffeeId, recipeTarget, todayLocal());
   if (currentDetail?.id !== coffeeId) return;
   const {model, coffeeRows, target, suggestion} = ctx;
   const basis = model?.basis ?? (coffeeRows.some(r => r.days_open != null) ? 'open' : 'roast');
@@ -80,14 +100,15 @@ async function renderGrindSection(coffeeId) {
   }
   el.innerHTML = `
     <div class="detail-brews-header">${esc(t('grind.title'))}</div>
-    <canvas class="dialin-chart"></canvas>
-    <div class="dialin-legend">${esc(t('grind.legend', {basis: basisLabel(basis)}))}
-      <span class="grind-key slow">●</span> ${esc(t('grind.key_slow'))}
+    <canvas class="dialin-chart" role="img" aria-label="${esc(t('grind.legend', {basis: basisLabel(basis)}))}"></canvas>
+    <div class="dialin-legend" aria-hidden="true">${esc(t('grind.legend', {basis: basisLabel(basis)}))}<br>
+      <span class="grind-key slow">▼</span> ${esc(t('grind.key_slow'))}
       <span class="grind-key ok">●</span> ${esc(t('grind.key_ok'))}
-      <span class="grind-key fast">●</span> ${esc(t('grind.key_fast'))}</div>
+      <span class="grind-key fast">▲</span> ${esc(t('grind.key_fast'))}</div>
     ${lines.map(l => `<div class="dialin-line">${esc(l)}</div>`).join('')}`;
-  drawGrindChart(el.querySelector('canvas'), {pts, key, model, target: target?.flow ?? null,
-    suggestion: currentDetail.finished_date ? null : suggestion});
+  const canvas = el.querySelector('canvas');
+  const opts = {pts, key, model, target: target?.flow ?? null, suggestion: currentDetail.finished_date ? null : suggestion};
+  drawCanvasFitted(canvas, () => drawGrindChart(canvas, opts));
 }
 
 // Dispersión x = días, y = molienda (más fino abajo). Línea discontinua = previsión para el objetivo.
@@ -130,11 +151,16 @@ function drawGrindChart(canvas, {pts, key, model, target, suggestion}) {
   }
   const tol = flowTolerance;
   pts.forEach(r => {
-    const c = !target ? col('--accent2')
-      : r.flow < target - tol ? col('--amber') : r.flow > target + tol ? col('--red') : col('--green');
+    const kind = !target ? 0 : r.flow < target - tol ? -1 : r.flow > target + tol ? 1 : 0;
+    const x = X(r[key]), y = Y(r.grind);
     ctx.beginPath();
-    ctx.arc(X(r[key]), Y(r.grind), 4, 0, Math.PI * 2);
-    ctx.fillStyle = c;
+    if (kind) {   // triángulo: ▼ lento, ▲ rápido (no depende solo del color)
+      const s = 5 * kind;
+      ctx.moveTo(x, y - s); ctx.lineTo(x + 5, y + s * 0.8); ctx.lineTo(x - 5, y + s * 0.8); ctx.closePath();
+    } else {
+      ctx.arc(x, y, 4, 0, Math.PI * 2);
+    }
+    ctx.fillStyle = !target ? col('--accent2') : kind < 0 ? col('--amber') : kind > 0 ? col('--red') : col('--green');
     ctx.globalAlpha = 0.85;
     ctx.fill();
     ctx.globalAlpha = 1;

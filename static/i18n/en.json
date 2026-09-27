@@ -418,7 +418,7 @@
   "list.per_cup": "{price}\u20ac/cup",
 
   "grind.title": "Grind and bag age",
-  "grind.legend": "Grind vs days {basis} · line = predicted for the target flow · ○ = today ·",
+  "grind.legend": "Grind (lower = finer) vs days {basis} · line = predicted for the target flow · ○ = today",
   "grind.key_slow": "slow",
   "grind.key_ok": "on target",
   "grind.key_fast": "fast",
@@ -430,6 +430,7 @@
   "grind.suggested_label": "Suggested",
   "grind.for_flow": "for {flow} g/s ({source})",
   "grind.drift_short": "{drift}/wk {basis}",
+  "grind.use_aria": "Use grind {grind}",
   "grind.use": "Use",
   "grind.drift_line": "Drift: {drift} steps/week {basis} (± {se}) · {n} shots, {bags} bags",
   "grind.drift_unclear": "Drift: {drift} steps/week {basis} (± {se}), not conclusive yet · {n} shots, {bags} bags",

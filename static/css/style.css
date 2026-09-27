@@ -1786,6 +1786,7 @@ body.modal-open { overflow: hidden; touch-action: none; }
   background: var(--accent-dim); color: var(--accent2); border: 1px solid var(--border2);
   border-radius: var(--r-sm); font-size: 13px; font-weight: 600; cursor: pointer;
 }
+.brew-grind-use:disabled { background: transparent; color: var(--green); border-color: var(--green-border); cursor: default; }
 .grind-key { margin-left: 6px; }
 .grind-key.slow { color: var(--amber); }
 .grind-key.ok   { color: var(--green); }

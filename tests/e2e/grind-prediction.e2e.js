@@ -53,12 +53,21 @@ const daysAgo = n => ymd(new Date(Date.now() - n * 86400000));
   const text = await hint.textContent();
   assert.match(text, /13\.5/, text);
   assert.match(text, /1\.8 g\/s/, text);
-  assert.match(text, /-0\.[67]\d/, text);
+  assert.match(text, /−0\.[67]\d/, text);
   if (SHOTS) await page.screenshot({path: `${SHOTS}/grind-brew-modal.png`});
-  await hint.locator('button').tap();
-  assert.strictEqual(await page.inputValue('#b-grind'), '13.5');
-  const box = await hint.locator('button').boundingBox();
+  const use = hint.locator('button');
+  assert.match(await use.getAttribute('aria-label'), /13\.5/);
+  const box = await use.boundingBox();
   assert.ok(box.height >= 40 && box.width >= 40, 'botón Usar ≥ 40 px');
+  await use.tap();
+  assert.strictEqual(await page.inputValue('#b-grind'), '13.5');
+  assert.ok(await use.isDisabled(), 'tras usarla, ✓ deshabilitado');
+  await page.evaluate(() => brewStep('b-grind', 1));
+  assert.ok(await use.isEnabled(), 'al moverla, vuelve a ofrecer Usar');
+  // Registrar un shot de hace 7 días: la sugerida retrocede ~0.7 pasos (más gruesa)
+  await page.fill('#b-date', daysAgo(7));
+  await page.dispatchEvent('#b-date', 'change');
+  assert.match(await hint.textContent(), /14\.5/);
   await page.evaluate(() => closeModal('modal-brew'));
 
   // 2) Ficha: sección con gráfica y línea de hoy
@@ -72,6 +81,15 @@ const daysAgo = n => ymd(new Date(Date.now() - n * 86400000));
     .getImageData(0, 0, c.width, c.height).data.some((v, i) => i % 4 === 3 && v > 0));
   assert.ok(painted, 'la gráfica se dibuja');
   if (SHOTS) { await section.scrollIntoViewIfNeeded(); await page.screenshot({path: `${SHOTS}/grind-detail.png`}); }
+  assert.ok(await section.locator('canvas').getAttribute('aria-label'));
+  // Girar / redimensionar: el canvas se vuelve a dibujar a su nuevo ancho
+  await page.setViewportSize({width: 820, height: 1180});
+  await page.waitForFunction(() => {
+    const c = document.querySelector('#detail-grind-section canvas');
+    return c.width === Math.round(c.clientWidth * (window.devicePixelRatio || 1));
+  });
+  if (SHOTS) { await section.scrollIntoViewIfNeeded(); await page.screenshot({path: `${SHOTS}/grind-detail-tablet.png`}); }
+  await page.setViewportSize({width: 390, height: 844});
   await page.evaluate(() => closeModal('modal-detail'));
 
   // 3) Stats: deriva por base, resaltada la mejor

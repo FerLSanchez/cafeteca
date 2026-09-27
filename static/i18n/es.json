@@ -418,7 +418,7 @@
   "list.per_cup": "{price}\u20ac/taza",
 
   "grind.title": "Molienda y edad de la bolsa",
-  "grind.legend": "Molienda vs días {basis} · línea = prevista para el flujo objetivo · ○ = hoy ·",
+  "grind.legend": "Molienda (abajo, más fina) vs días {basis} · línea = prevista para el flujo objetivo · ○ = hoy",
   "grind.key_slow": "lento",
   "grind.key_ok": "en objetivo",
   "grind.key_fast": "rápido",
@@ -430,6 +430,7 @@
   "grind.suggested_label": "Sugerida",
   "grind.for_flow": "para {flow} g/s ({source})",
   "grind.drift_short": "{drift}/sem {basis}",
+  "grind.use_aria": "Usar molienda {grind}",
   "grind.use": "Usar",
   "grind.drift_line": "Deriva: {drift} pasos/semana {basis} (± {se}) · {n} shots, {bags} bolsas",
   "grind.drift_unclear": "Deriva: {drift} pasos/semana {basis} (± {se}), aún no concluyente · {n} shots, {bags} bolsas",

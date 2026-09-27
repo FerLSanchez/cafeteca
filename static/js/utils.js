@@ -15,6 +15,20 @@ function stars(rating) {
   return [1,2,3,4,5].map(i=>`<span class="star ${i<=r?'filled':''}">★</span>`).join('');
 }
 
+// Dibuja un canvas ahora y cada vez que cambie de tamaño (girar el móvil, redimensionar);
+// deja de observar cuando el canvas sale del DOM.
+function drawCanvasFitted(canvas, draw) {
+  if (typeof ResizeObserver === 'undefined') { draw(); return; }
+  let lastW = -1;
+  const ro = new ResizeObserver(() => {
+    if (!canvas.isConnected) { ro.disconnect(); return; }
+    if (canvas.clientWidth === lastW) return;
+    lastW = canvas.clientWidth;
+    draw();
+  });
+  ro.observe(canvas);
+}
+
 // Local calendar date as YYYY-MM-DD (toISOString() is UTC and gives
 // yesterday's date shortly after local midnight in UTC+ timezones).
 function todayLocal() {

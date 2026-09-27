@@ -59,7 +59,7 @@ def list_brews():
             LEFT JOIN coffee_brews cb ON cb.brew_id = b.id
             LEFT JOIN coffees c ON c.id = cb.coffee_id
             GROUP BY b.id
-            ORDER BY b.brew_date DESC, b.created_at DESC
+            ORDER BY b.brew_date DESC, b.created_at DESC, b.id DESC
             LIMIT ? OFFSET ?
         ''', (limit, offset)).fetchall()
     result = []
@@ -178,7 +178,7 @@ def list_coffee_brews(cid):
             FROM brews b
             JOIN coffee_brews cb ON cb.brew_id = b.id
             WHERE cb.coffee_id = ?
-            ORDER BY b.brew_date DESC, b.created_at DESC
+            ORDER BY b.brew_date DESC, b.created_at DESC, b.id DESC
         ''', (cid,)).fetchall()
     return jsonify([_brew_out(r) for r in rows])
 
@@ -278,7 +278,7 @@ def grind_data():
             JOIN coffee_brews cb ON cb.brew_id = b.id
             JOIN coffees c ON c.id = cb.coffee_id
             WHERE b.grind IS NOT NULL
-            ORDER BY b.brew_date, b.created_at
+            ORDER BY b.brew_date, b.created_at, b.id
         ''').fetchall()
     out = []
     for r in rows:
