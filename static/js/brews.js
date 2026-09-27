@@ -288,6 +288,7 @@ async function openBrewModal(coffeeId = null, brewId = null, coffeeName = null) 
   brewShotClose();
   _bv('b-dose-scale').hidden = true;
   _bv('b-last').hidden = true;
+  brewGrindHint(null);
   const editing = _editBrewId ? _brewCache[_editBrewId] : null;
   brewShowShotSummary(editing?.shot_metrics, editing?.shot_curve);
 
@@ -306,9 +307,10 @@ async function openBrewModal(coffeeId = null, brewId = null, coffeeName = null) 
       : displayedCoffees.find(c => c.id === _brewTargetId)?.name) ?? '';
 
   if (!editing && _brewTargetId) {
-    const [recipe, history] = await Promise.all([
+    const [recipe, history, grindRows] = await Promise.all([
       fetch('/api/coffees/' + _brewTargetId + '/recipe').then(r => (r.ok ? r.json() : null)).catch(() => null),
       fetch('/api/coffees/' + _brewTargetId + '/brews').then(r => (r.ok ? r.json() : [])).catch(() => []),
+      fetchGrindData(),
     ]);
     _brewRecipe  = recipe;
     _brewHistory = history;
@@ -324,6 +326,7 @@ async function openBrewModal(coffeeId = null, brewId = null, coffeeName = null) 
       _bv('b-last').innerHTML = `<b>${esc(t('brew.last_label'))}</b> ${esc(brewSummaryLine(last))}`
         + ` · ${last.rating ? '★'.repeat(last.rating) : esc(t('brew.unrated'))}`;
     }
+    brewGrindHint(grindRows, _brewTargetId, recipe);   // antes de abrir: sin saltos de layout
   } else if (editing && _brewTargetId) {
     fetch('/api/coffees/' + _brewTargetId + '/brews').then(r => (r.ok ? r.json() : null))
       .then(h => { if (h) _brewHistory = h; }).catch(() => {});
@@ -365,6 +368,7 @@ function updateBrewSteps() {
     'b-step-taste': _brewRating >= 1,
   };
   Object.entries(done).forEach(([id, ok]) => _bv(id)?.classList.toggle('done', ok));
+  syncGrindUse();
 }
 
 // Botones −/+ de molienda (paso de Ajustes: 1, 0.5, 0.1…) y temperatura (de 1 en 1)

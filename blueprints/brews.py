@@ -59,7 +59,7 @@ def list_brews():
             LEFT JOIN coffee_brews cb ON cb.brew_id = b.id
             LEFT JOIN coffees c ON c.id = cb.coffee_id
             GROUP BY b.id
-            ORDER BY b.brew_date DESC, b.created_at DESC
+            ORDER BY b.brew_date DESC, b.created_at DESC, b.id DESC
             LIMIT ? OFFSET ?
         ''', (limit, offset)).fetchall()
     result = []
@@ -178,7 +178,7 @@ def list_coffee_brews(cid):
             FROM brews b
             JOIN coffee_brews cb ON cb.brew_id = b.id
             WHERE cb.coffee_id = ?
-            ORDER BY b.brew_date DESC, b.created_at DESC
+            ORDER BY b.brew_date DESC, b.created_at DESC, b.id DESC
         ''', (cid,)).fetchall()
     return jsonify([_brew_out(r) for r in rows])
 
@@ -258,3 +258,40 @@ def delete_brew(bid):
             return jsonify({'error': 'Preparación no encontrada', 'error_key': 'error.brew.not_found'}), 404
         _purge_orphans(conn)
     return jsonify({'ok': True})
+
+
+# ---------------------------------------------------------------------------
+# Molienda vs edad de la bolsa — datos para el modelo de grind-model.js
+# ---------------------------------------------------------------------------
+
+@bp.route('/api/grind-data')
+def grind_data():
+    """Un punto por brew con molienda y flujo: flujo principal de la báscula o, si no, salida/tiempo.
+    Días desde tueste y desde apertura en la fecha del brew (null si falta la fecha del café)."""
+    with db_conn() as conn:
+        rows = conn.execute('''
+            SELECT b.id, b.brew_date, b.grind, b.dose_g, b.yield_g, b.time_s, b.rating, b.shot_metrics,
+                   cb.coffee_id,
+                   CAST(julianday(b.brew_date) - julianday(c.roast_date)  AS INTEGER) AS days_roast,
+                   CAST(julianday(b.brew_date) - julianday(c.opened_date) AS INTEGER) AS days_open
+            FROM brews b
+            JOIN coffee_brews cb ON cb.brew_id = b.id
+            JOIN coffees c ON c.id = cb.coffee_id
+            WHERE b.grind IS NOT NULL
+            ORDER BY b.brew_date, b.created_at, b.id
+        ''').fetchall()
+    out = []
+    for r in rows:
+        metrics = json.loads(r['shot_metrics']) if r['shot_metrics'] else {}
+        flow = metrics.get('main_flow')
+        if flow is None and r['yield_g'] and r['time_s']:
+            flow = round(r['yield_g'] / r['time_s'], 2)
+        if flow is None:
+            continue
+        out.append({
+            'brew_id': r['id'], 'coffee_id': r['coffee_id'], 'brew_date': r['brew_date'],
+            'grind': r['grind'], 'dose_g': r['dose_g'], 'rating': r['rating'], 'flow': flow,
+            'days_roast': r['days_roast'] if r['days_roast'] is not None and r['days_roast'] >= 0 else None,
+            'days_open': r['days_open'] if r['days_open'] is not None and r['days_open'] >= 0 else None,
+        })
+    return jsonify(out)

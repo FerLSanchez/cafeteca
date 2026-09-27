@@ -22,6 +22,8 @@ const SHELL = [
   '/static/js/stats.js',
   '/static/js/catalog.js',
   '/static/js/brews.js',
+  '/static/js/grind-model.js',
+  '/static/js/grind-ui.js',
   '/static/js/init.js',
 ];
 

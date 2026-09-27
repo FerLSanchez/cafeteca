@@ -533,10 +533,11 @@ async function renderDialIn(coffeeId, brews) {
 
   el.innerHTML = `
     <div class="detail-brews-header">${esc(t('scale.dialin.title', {count: shots.length}))}</div>
-    <canvas class="dialin-chart"></canvas>
-    <div class="dialin-legend">${esc(t('scale.dialin.legend'))}</div>
+    <canvas class="dialin-chart" role="img" aria-label="${esc(t('scale.dialin.legend'))}"></canvas>
+    <div class="dialin-legend" aria-hidden="true">${esc(t('scale.dialin.legend'))}</div>
     ${lines.map(l => `<div class="dialin-line">${esc(l)}</div>`).join('')}`;
-  drawDialIn(el.querySelector('canvas'), shots, target);
+  const canvas = el.querySelector('canvas');
+  drawCanvasFitted(canvas, () => drawDialIn(canvas, shots, target));
 }
 
 // Dispersión: x = flujo principal (g/s), y = valoración (sin valorar abajo). El más reciente, resaltado.

@@ -31,6 +31,7 @@ async function loadStats() {
 
   renderStatsHero(s);
   renderStatsGantt();
+  renderStatsGrind();
 
   const chartsEl = document.getElementById('stats-charts');
   chartsEl.textContent = '';

@@ -155,11 +155,13 @@ function showDetail(id) {
 
     <div id="detail-recipe-section" style="margin-top:4px"></div>
     <div id="detail-dialin-section" style="margin-top:14px"></div>
+    <div id="detail-grind-section" style="margin-top:14px"></div>
     <div id="detail-brews-section" style="margin-top:14px"></div>
   `;
   openModal('modal-detail');
   renderRecipeSection(c.id);
   renderBrewsSection(c.id);
+  renderGrindSection(c.id);
 }
 
 function editCurrent() { closeModal('modal-detail'); openEditModal(currentDetail); }
