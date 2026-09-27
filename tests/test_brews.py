@@ -386,3 +386,23 @@ class TestShotCurve:
         resp = client.post(f'/api/coffees/{coffee["id"]}/brews', json={'shot_curve': bad})
         assert resp.status_code == 400
         assert resp.get_json()['error_key'] == 'error.brew.shot_curve_invalid'
+
+
+class TestGrindData:
+    def test_flow_from_metrics_or_yield_time_and_bag_age(self, client):
+        c = make_coffee(client, {'roast_date': '2026-09-01', 'opened_date': '2026-09-10'})
+        make_brew(client, c['id'], {'brew_date': '2026-09-15', 'grind': 12.5, 'yield_g': 36, 'time_s': 30})
+        make_brew(client, c['id'], {'brew_date': '2026-09-16', 'grind': 12,
+                                    'shot_metrics': {'main_flow': 1.8}})
+        make_brew(client, c['id'], {'brew_date': '2026-09-17', 'grind': 12, 'yield_g': None})  # sin flujo
+        make_brew(client, c['id'], {'brew_date': '2026-09-17', 'grind': None, 'time_s': 28})   # sin molienda
+        rows = client.get('/api/grind-data').get_json()
+        assert [(r['grind'], r['flow']) for r in rows] == [(12.5, 1.2), (12, 1.8)]
+        assert rows[0]['coffee_id'] == c['id']
+        assert (rows[0]['days_roast'], rows[0]['days_open']) == (14, 5)
+
+    def test_missing_or_future_dates_are_null(self, client):
+        c = make_coffee(client, {'roast_date': '2026-10-01'})
+        make_brew(client, c['id'], {'brew_date': '2026-09-15', 'time_s': 30})
+        r = client.get('/api/grind-data').get_json()[0]
+        assert r['days_roast'] is None and r['days_open'] is None

@@ -288,6 +288,7 @@ async function openBrewModal(coffeeId = null, brewId = null, coffeeName = null) 
   brewShotClose();
   _bv('b-dose-scale').hidden = true;
   _bv('b-last').hidden = true;
+  _bv('b-grind-hint').hidden = true;
   const editing = _editBrewId ? _brewCache[_editBrewId] : null;
   brewShowShotSummary(editing?.shot_metrics, editing?.shot_curve);
 
@@ -324,6 +325,7 @@ async function openBrewModal(coffeeId = null, brewId = null, coffeeName = null) 
       _bv('b-last').innerHTML = `<b>${esc(t('brew.last_label'))}</b> ${esc(brewSummaryLine(last))}`
         + ` · ${last.rating ? '★'.repeat(last.rating) : esc(t('brew.unrated'))}`;
     }
+    brewGrindHint(_brewTargetId, recipe);
   } else if (editing && _brewTargetId) {
     fetch('/api/coffees/' + _brewTargetId + '/brews').then(r => (r.ok ? r.json() : null))
       .then(h => { if (h) _brewHistory = h; }).catch(() => {});

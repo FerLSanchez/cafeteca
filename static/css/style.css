@@ -1772,3 +1772,24 @@ body.modal-open { overflow: hidden; touch-action: none; }
 .sparkline polyline { fill: none; stroke: var(--accent); stroke-width: 1.5; }
 .shot-legend { font-size: 11px; color: var(--text2); margin-top: 2px; }
 .brew-shot-summary .shot-chart { height: 130px; margin-bottom: 8px; }
+
+/* Molienda vs edad de la bolsa (grind-ui.js) */
+.brew-grind-hint {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  font-size: 12px; color: var(--text2); background: var(--surface2);
+  border-radius: var(--r-sm); padding: 6px 6px 6px 10px; margin: 2px 0 8px;
+}
+.brew-grind-hint[hidden] { display: none; }
+.brew-grind-hint b { color: var(--text3); font-weight: 700; text-transform: uppercase; font-size: 10px; letter-spacing: .6px; margin-right: 4px; }
+.brew-grind-use {
+  flex-shrink: 0; min-height: 40px; min-width: 64px; padding: 0 12px;
+  background: var(--accent-dim); color: var(--accent2); border: 1px solid var(--border2);
+  border-radius: var(--r-sm); font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.grind-key { margin-left: 6px; }
+.grind-key.slow { color: var(--amber); }
+.grind-key.ok   { color: var(--green); }
+.grind-key.fast { color: var(--red); }
+.stats-grind { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 8px; }
+.stats-grind-row { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 10px; }
+.stats-grind-row.best { border-color: var(--accent); }
