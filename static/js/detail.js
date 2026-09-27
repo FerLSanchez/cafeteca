@@ -96,6 +96,8 @@ function showDetail(id) {
     profileRow(t('detail.label.process'),    chips(c.processes)),
     profileRow(t('detail.label.milk'),       chips(c.milk_types)),
     c.altitude ? `<div class="detail-cell span2"><div class="detail-cell-label">${t('detail.label.altitude')}</div><div class="detail-cell-val">${c.altitude} m</div></div>` : '',
+    c.family_size > 1 ? profileRow(t('detail.label.family'),
+      `<div class="detail-cell-val">${esc(t('detail.family_bags', {n: c.family_size}))}</div>`) : '',
   ].join('');
 
   const gridHTML = [
@@ -189,6 +191,7 @@ function duplicateCurrent() {
   document.getElementById('f-altitude').value = c.altitude || '';
   document.getElementById('f-notes').value = c.notes || '';
   document.getElementById('f-purchase').value = todayLocal();
+  fillFamilySelect(null, c.id);   // nueva bolsa del mismo café
   // leave roast_date, opened_date, finished_date, rating blank (new bag)
   openModal('modal-form');
 }

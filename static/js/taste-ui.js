@@ -52,16 +52,20 @@ function setBrewTaste(field, val, btn) {
   updateBrewSteps();
 }
 
-// --- Paso 3: salida sugerida por el cuerpo de los últimos shots --------------------------
+// --- Paso 3: salida aprendida del cuerpo de los últimos shots (y la receta como recomendación) ---
+// Se ve solo cuando cambia algo respecto a la receta (o, sin receta, cuando el cuerpo no estaba en su punto)
 function renderBrewRatioHint() {
   const el = document.getElementById('b-ratio-hint');
   if (!el) return;
-  const s = !_editBrewId && _brewHistory ? suggestRatio(_brewHistory, parseFloat(document.getElementById('b-dose').value)) : null;
-  el.hidden = !s;
-  if (!s) { el.innerHTML = ''; el.dataset.yield = ''; return; }
+  const dose = parseFloat(document.getElementById('b-dose').value);
+  const rr = recipeRatio(_brewRecipe);
+  const s = !_editBrewId && _brewHistory ? suggestRatio(_brewHistory, dose, rr) : null;
+  const differs = s && (rr ? Math.abs(s.yield_g - dose * rr) >= 0.5 : Math.abs(s.body) >= 0.5);
+  el.hidden = !differs;
+  if (!differs) { el.innerHTML = ''; el.dataset.yield = ''; return; }
   el.dataset.yield = s.yield_g;
   el.innerHTML = `<span><b>${esc(t('grind.suggested_label'))}</b> ${esc(s.yield_g + ' g')}`
-    + ` · ${esc(t(s.body < 0 ? 'brew.ratio_hint_thin' : 'brew.ratio_hint_heavy', {from: s.from, ratio: s.ratio}))}</span>`
+    + ` · ${esc(t('brew.ratio_learned', {ratio: s.ratio.toFixed(2), source: targetSourceLabel(s.source)}))}</span>`
     + `<button type="button" class="brew-grind-use" onclick="useSuggestedYield()"`
     + ` aria-label="${esc(t('brew.ratio_use_aria', {yield: s.yield_g}))}"></button>`;
   syncYieldUse();

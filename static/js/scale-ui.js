@@ -346,7 +346,7 @@ async function brewScaleShot() {
   brewScaleDoseLock();   // si la dosis seguía en vivo, se fija con el último valor
   const dose = parseFloat(document.getElementById('b-dose').value) || null;
   const targetYield = parseFloat(document.getElementById('b-yield').value) || _brewRecipe?.yield_g || null;
-  const target = _brewRecipe?.target_flow ?? null;
+  const target = brewTargetFlow() ?? _brewRecipe?.target_flow ?? null;
   // Mejor valorado; a igual nota, primero el que tenga curva y luego el más reciente
   const compare = (_brewHistory || []).filter(b => b.rating && b.shot_metrics?.main_flow != null && b.id !== _editBrewId)
     .sort((a, b) => b.rating - a.rating || !!b.shot_curve - !!a.shot_curve

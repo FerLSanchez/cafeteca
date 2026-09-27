@@ -86,8 +86,12 @@ const BASE = process.env.BASE_URL || 'http://localhost:5323';
   assert.strictEqual(await page.inputValue('#b-grind'), '13');
   assert.ok(await page.$('#b-last:not([hidden])'));
   assert.match(await page.textContent('#b-last'), /Algo ácido|A bit sour/);
-  // cuerpo aguado en el último shot (18 g → 36 g, 1:2) → salida sugerida más corta
+  // cuerpo aguado en el último shot (18 g → 36 g, 1:2) → la salida aprendida, más corta, ya viene puesta
   assert.ok(await page.$('#b-ratio-hint:not([hidden])'));
+  assert.strictEqual(await page.inputValue('#b-yield'), '33.5');
+  assert.ok(await page.isDisabled('#b-ratio-hint .brew-grind-use'), 'aplicada: ✓');
+  await page.fill('#b-yield', '');
+  await page.dispatchEvent('#b-yield', 'input');
   await page.tap('#b-ratio-hint .brew-grind-use');
   assert.strictEqual(await page.inputValue('#b-yield'), '33.5');
   await page.fill('#b-yield', '');

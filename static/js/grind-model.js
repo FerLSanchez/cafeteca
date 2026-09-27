@@ -115,16 +115,24 @@ function tasteSlope(rows) {
   return {k, fitted: true, n};
 }
 
-// Flujo objetivo: el de la receta; si no, el que sugiere la cata de los últimos shots;
-// si no, la media de los mejor valorados (≥4★); si no, la de los recientes
+// La receta es una recomendación, no una regla: pesa como RECIPE_WEIGHT shots catados y la
+// experiencia la va desplazando (con 3–4 shots catados manda la cata).
+const RECIPE_WEIGHT = 2;
+const _blend = (prior, ests) => (prior ? (RECIPE_WEIGHT * prior + ests.reduce((s, x) => s + x, 0)) / (RECIPE_WEIGHT + ests.length)
+  : _mean(ests));
+
+// Flujo objetivo: el que sugiere la cata de los últimos shots (mezclado con el de la receta, si hay);
+// si no hay cata, el de la receta; si no, la media de los mejor valorados (≥4★); si no, la de los recientes.
+// Las filas pueden ser de toda la familia (bolsas del mismo café), antiguas primero.
 function targetFlowFor(coffeeRows, recipeTarget = null, k = TASTE_K_DEFAULT) {
-  if (recipeTarget) return {flow: recipeTarget, source: 'recipe'};
   const withFlow = coffeeRows.filter(r => r.flow != null);
-  if (!withFlow.length) return null;
   const tasted = withFlow.filter(r => r.taste_balance != null).slice(-TASTE_LAST);
   if (tasted.length) {
-    return {flow: _mean(tasted.map(r => r.flow + k * r.taste_balance)), source: 'taste'};
+    return {flow: _blend(recipeTarget, tasted.map(r => r.flow + k * r.taste_balance)),
+      source: recipeTarget ? 'taste_recipe' : 'taste', n: tasted.length};
   }
+  if (recipeTarget) return {flow: recipeTarget, source: 'recipe'};
+  if (!withFlow.length) return null;
   const top = Math.max(0, ...withFlow.map(r => r.rating || 0));
   if (top >= 4) {
     return {flow: _mean(withFlow.filter(r => r.rating === top).map(r => r.flow)), source: 'best'};
@@ -132,19 +140,20 @@ function targetFlowFor(coffeeRows, recipeTarget = null, k = TASTE_K_DEFAULT) {
   return {flow: _mean(withFlow.slice(-GRIND_OFFSET_LAST).map(r => r.flow)), source: 'recent'};
 }
 
-// Ratio según el cuerpo de los últimos shots (brews más recientes primero, como /api/coffees/:id/brews):
-// aguado → ratio más corto, pesado → más largo. null si el cuerpo ya está en su punto.
+// Ratio aprendido del cuerpo de los últimos shots (brews más recientes primero, como
+// /api/coffees/:id/brews): cada shot estima su ratio ideal = el suyo + RATIO_STEP·cuerpo
+// (aguado → más corto, pesado → más largo), mezclado con el de la receta como recomendación.
 const RATIO_LAST = 3;
 const RATIO_STEP = 0.15;   // puntos de ratio por punto de la escala de cuerpo
 const RATIO_RANGE = [1.2, 3.5];
-function suggestRatio(brews, dose) {
+function suggestRatio(brews, dose, recipeRatio = null) {
   const tasted = brews.filter(b => b.taste_body != null && b.dose_g && b.yield_g).slice(0, RATIO_LAST);
   if (!tasted.length || !dose) return null;
-  const body = _mean(tasted.map(b => b.taste_body));
-  if (Math.abs(body) < 0.5) return null;
-  const from = tasted[0].yield_g / tasted[0].dose_g;
-  const ratio = +Math.min(RATIO_RANGE[1], Math.max(RATIO_RANGE[0], from + RATIO_STEP * body)).toFixed(2);
-  return {ratio, from: +from.toFixed(2), body, yield_g: Math.round(dose * ratio * 2) / 2};
+  const est = tasted.map(b => b.yield_g / b.dose_g + RATIO_STEP * b.taste_body);
+  const raw = _blend(recipeRatio, est);
+  const ratio = +Math.min(RATIO_RANGE[1], Math.max(RATIO_RANGE[0], raw)).toFixed(2);
+  return {ratio, yield_g: Math.round(dose * ratio * 2) / 2, n: tasted.length,
+    body: _mean(tasted.map(b => b.taste_body)), source: recipeRatio ? 'taste_recipe' : 'taste'};
 }
 
 // α de la bolsa con sus shots recientes (filas de la bolsa, antiguas primero)
@@ -155,18 +164,24 @@ function coffeeOffset(model, coffeeRows) {
   return _mean(pts.map(r => r.grind - model.beta * r.flow - model.gamma * r[k]));
 }
 
-// Días de la bolsa en una fecha, a partir de su último shot con esa base
-function coffeeDaysAt(model, coffeeRows, date) {
+// Días de la bolsa en una fecha: con sus fechas (bag = {roast_date, opened_date}) o, si no,
+// a partir de su último shot con esa base
+function coffeeDaysAt(model, coffeeRows, date, bag = null) {
+  const since = bag && (model.basis === 'roast' ? bag.roast_date : bag.opened_date);
+  if (since) { const d = daysBetween(since, date); return d >= 0 ? d : null; }
+  if (bag) return null;
   const k = daysKey(model.basis);
   const last = coffeeRows.filter(r => r[k] != null).at(-1);
   return last ? last[k] + daysBetween(last.brew_date, date) : null;
 }
 
-// Molienda prevista para la bolsa en `date` con el flujo objetivo, redondeada al paso de molienda
-function suggestGrind(model, coffeeRows, {date, target, step = 1}) {
+// Molienda prevista para la bolsa en `date` con el flujo objetivo, redondeada al paso de molienda.
+// `coffeeRows` pueden ser de toda la familia: una bolsa nueva parte de las anteriores del mismo café
+// (su α se calcula con los días de cada bolsa, así que la edad del tueste queda descontada).
+function suggestGrind(model, coffeeRows, {date, target, step = 1, bag = null}) {
   if (!model || !target) return null;
   const alpha = coffeeOffset(model, coffeeRows);
-  const days = coffeeDaysAt(model, coffeeRows, date);
+  const days = coffeeDaysAt(model, coffeeRows, date, bag);
   if (alpha == null || days == null) return null;
   const raw = alpha + model.beta * target + model.gamma * days;
   const grind = Math.max(0, +(Math.round(raw / step) * step).toFixed(2));

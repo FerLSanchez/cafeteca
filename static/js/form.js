@@ -24,8 +24,27 @@ function resetForm() {
   if (document.getElementById('region-hint')) document.getElementById('region-hint').textContent='';
 }
 
+// "Mismo café que…": bolsas del mismo café (familia). El valor es cualquier otra bolsa de la familia.
+let _familyInitial = '';
+async function fillFamilySelect(self = null, preselect = null) {
+  const sel = document.getElementById('f-family');
+  sel.length = 1;
+  _familyInitial = '';
+  const all = await fetch('/api/coffees').then(r => (r.ok ? r.json() : [])).catch(() => []);
+  const key = c => c.family_id ?? c.id;
+  const others = all.filter(c => c.id !== self?.id)
+    .sort((a, b) => a.name.localeCompare(b.name) || (b.roast_date || '').localeCompare(a.roast_date || ''));
+  others.forEach(c => {
+    const label = [c.name, c.roaster, c.roast_date ? '🔥 ' + fmtDate(c.roast_date) : null].filter(Boolean).join(' · ');
+    sel.add(new Option(label, c.id));
+  });
+  const pick = preselect ?? (self && self.family_size > 1 ? others.find(c => key(c) === key(self))?.id : null);
+  sel.value = _familyInitial = pick ? String(pick) : '';
+}
+
 function openAddModal() {
   resetForm();
+  fillFamilySelect();
   document.getElementById('f-purchase').value = todayLocal();
   openModal('modal-form');
 }
@@ -57,6 +76,7 @@ function openEditModal(c) {
   const r=parseInt(c.rating,10);
   if (r>=1&&r<=5) setRating(r);
   document.getElementById('edit-actions').style.display='flex';
+  fillFamilySelect(c);
   openModal('modal-form');
 }
 
@@ -94,6 +114,8 @@ async function submitForm(e) {
       return;
     }
   }
+  const fam = document.getElementById('f-family').value;
+  if (fam !== _familyInitial) data.family_id = fam ? parseInt(fam, 10) : null;
   if (id) {
     await api('/coffees/'+id, {method:'PUT', body:JSON.stringify(data)});
   } else {

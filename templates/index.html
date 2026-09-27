@@ -356,6 +356,11 @@
         <label class="form-label" data-i18n="form.field.name">Nombre *</label>
         <input class="form-input" id="f-name" placeholder="ej. Ethiopia Yirgacheffe" data-i18n-placeholder="form.placeholder.name" required>
       </div>
+      <div class="form-group">
+        <label class="form-label" for="f-family" data-i18n="form.field.family">Mismo café que</label>
+        <select class="form-input" id="f-family"><option value="" data-i18n="form.family_none">— Ninguno (café nuevo) —</option></select>
+        <div class="form-hint" data-i18n="form.family_hint">Otra bolsa del mismo café: molienda, cata y receta se aprenden entre bolsas.</div>
+      </div>
       <div class="form-row">
         <div class="form-group">
           <label class="form-label" data-i18n="form.field.roaster">Tostador</label>
@@ -579,6 +584,7 @@
       </button>
     </div>
     <div class="brew-last" id="b-last" hidden></div>
+    <div class="brew-last brew-recipe-ref" id="b-recipe" hidden></div>
 
     <!-- 1 · Dosis -->
     <section class="brew-step" id="b-step-dose">

@@ -91,7 +91,13 @@ test('objetivo por cata: ácido baja el flujo, amargo lo sube; la receta manda',
   // la cata va antes que las estrellas; la receta antes que todo
   assert.strictEqual(targetFlowFor([r(1.8, null, 5), r(2.0, -1)]).source, 'taste');
   assert.strictEqual(targetFlowFor([r(1.8, null, 5)]).source, 'best');
-  assert.strictEqual(targetFlowFor([r(2.0, -1)], 1.7).source, 'recipe');
+  // la receta es una recomendación: pesa como 2 shots catados
+  const blended = targetFlowFor([r(2.0, -1)], 1.9, 0.25);
+  assert.strictEqual(blended.source, 'taste_recipe');
+  assert.ok(Math.abs(blended.flow - (2 * 1.9 + 1.75) / 3) < 1e-9);
+  const many = targetFlowFor([r(2.0, -1), r(2.0, -1), r(2.0, -1), r(2.0, -1), r(2.0, -1), r(2.0, -1)], 1.9, 0.25);
+  assert.ok(Math.abs(many.flow - 1.75) < Math.abs(many.flow - 1.9), 'la experiencia desplaza la receta');
+  assert.deepStrictEqual(targetFlowFor([r(2.0, null)], 1.7), {flow: 1.7, source: 'recipe'});
 });
 
 test('k de la cata: pendiente dentro de cada bolsa, por defecto si no hay datos', () => {
@@ -106,14 +112,28 @@ test('k de la cata: pendiente dentro de cada bolsa, por defecto si no hay datos'
   assert.strictEqual(tasteSlope(wrong).fitted, false);
 });
 
-test('ratio por cuerpo: aguado acorta, pesado alarga, en su punto nada', () => {
+test('ratio aprendido: aguado acorta, pesado alarga, la receta como recomendación', () => {
   const b = (taste_body, dose_g = 17, yield_g = 39) => ({taste_body, dose_g, yield_g});
   const thin = suggestRatio([b(-1), b(-1)], 17);
-  assert.strictEqual(thin.from, 2.29);
   assert.strictEqual(thin.ratio, 2.14);
   assert.strictEqual(thin.yield_g, 36.5);
+  assert.strictEqual(thin.source, 'taste');
   assert.ok(suggestRatio([b(2)], 17).ratio > 2.29);
-  assert.strictEqual(suggestRatio([b(0), b(1), b(-1)], 17), null);
+  assert.strictEqual(suggestRatio([b(0)], 17).ratio, 2.29);   // en su punto: el que usas
   assert.strictEqual(suggestRatio([b(null)], 17), null);
   assert.strictEqual(suggestRatio([b(-2, 17, 20)], 17).ratio, 1.2);   // tope
+  const withRecipe = suggestRatio([b(-1)], 17, 2.0);
+  assert.strictEqual(withRecipe.source, 'taste_recipe');
+  assert.strictEqual(withRecipe.ratio, +((2 * 2.0 + 39 / 17 - 0.15) / 3).toFixed(2));
+});
+
+test('bolsa nueva de la misma familia: parte de la anterior, días con sus fechas', () => {
+  const m = fitGrindModel(rows, 'open');
+  const bag1 = rows.filter(r => r.coffee_id === 1);
+  // bolsa nueva sin shots, abierta hoy: α de la familia, días = 0
+  const s = suggestGrind(m, bag1, {date: '2026-10-01', target: 1.8, bag: {opened_date: '2026-10-01'}});
+  assert.strictEqual(s.days, 0);
+  assert.strictEqual(s.grind, Math.round(5 + 4 * 1.8));
+  // sin fecha de apertura en la bolsa nueva no se inventan los días
+  assert.strictEqual(suggestGrind(m, bag1, {date: '2026-10-01', target: 1.8, bag: {opened_date: null}}), null);
 });

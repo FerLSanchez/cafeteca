@@ -59,15 +59,30 @@ const daysAgo = n => ymd(new Date(Date.now() - n * 86400000));
   assert.match(await use.getAttribute('aria-label'), /13\.5/);
   const box = await use.boundingBox();
   assert.ok(box.height >= 40 && box.width >= 40, 'botón Usar ≥ 40 px');
-  await use.tap();
+  // la sugerida (aprendida) ya viene puesta; la receta es solo una recomendación
   assert.strictEqual(await page.inputValue('#b-grind'), '13.5');
-  assert.ok(await use.isDisabled(), 'tras usarla, ✓ deshabilitado');
+  assert.ok(await use.isDisabled(), 'aplicada: ✓ deshabilitado');
   await page.evaluate(() => brewStep('b-grind', 1));
   assert.ok(await use.isEnabled(), 'al moverla, vuelve a ofrecer Usar');
+  await use.tap();
+  assert.strictEqual(await page.inputValue('#b-grind'), '13.5');
+  await page.evaluate(() => brewStep('b-grind', 1));
   // Registrar un shot de hace 7 días: la sugerida retrocede ~0.7 pasos (más gruesa)
   await page.fill('#b-date', daysAgo(7));
   await page.dispatchEvent('#b-date', 'change');
   assert.match(await hint.textContent(), /14\.5/);
+  await page.evaluate(() => closeModal('modal-brew'));
+
+  // 1b) Bolsa nueva del mismo café (abierta hoy, sin shots): parte de la anterior de la familia
+  //     α ≈ 8, día 0 → 8 + 4·1.75 ≈ 15; el "Último" es el de la bolsa anterior
+  const fresh = await call('POST', '/api/coffees', {name: `GP nueva ${stamp}`, quantity_g: 250, source_id: bag.id,
+    opened_date: daysAgo(0), roast_date: daysAgo(7)});
+  assert.strictEqual(fresh.family_id, bag.id);
+  await page.evaluate(id => openBrewModal(id), fresh.id);
+  await hint.waitFor({state: 'visible'});
+  assert.match(await hint.textContent(), /\b15\b/, await hint.textContent());
+  assert.strictEqual(await page.inputValue('#b-grind'), '15');
+  assert.match(await page.textContent('#b-last'), new RegExp(`GP abierto ${stamp}`));
   await page.evaluate(() => closeModal('modal-brew'));
 
   // 2) Ficha: sección con gráfica y línea de hoy

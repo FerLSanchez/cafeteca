@@ -4,7 +4,7 @@ import pytest
 import schema as schema_mod
 from schema import (
     init_settings, migrate_v3, migrate_v4, migrate_v5, migrate_v6, migrate_v7,
-    migrate_v8, migrate_v9, migrate_v10, migrate_v11,
+    migrate_v8, migrate_v9, migrate_v10, migrate_v11, migrate_v12,
 )
 from lookup_config import create_lookup_tables
 
@@ -244,6 +244,25 @@ def test_migrate_v10_adds_shot_curve():
     cols = [r[1] for r in conn.execute("PRAGMA table_info(brews)").fetchall()]
     assert 'shot_curve' in cols
     conn.close()
+
+
+def test_migrate_v12_unshares_brews_and_links_families(db):
+    """Old "new bag" shared the source's brews and recipe: each brew goes back to one bag, both become a family."""
+    db.execute('ALTER TABLE coffees DROP COLUMN family_id')
+    ins = lambda sql, *a: db.execute(sql, a).lastrowid
+    old = ins("INSERT INTO coffees (name, opened_date) VALUES ('Old', '2026-08-01')")
+    new = ins("INSERT INTO coffees (name, opened_date) VALUES ('New', '2026-09-01')")
+    other = ins("INSERT INTO coffees (name) VALUES ('Other')")
+    b_old = ins("INSERT INTO brews (brew_date) VALUES ('2026-08-10')")
+    b_new = ins("INSERT INTO brews (brew_date) VALUES ('2026-09-05')")
+    for c, b in ((old, b_old), (new, b_old), (new, b_new)):
+        db.execute('INSERT INTO coffee_brews (coffee_id, brew_id) VALUES (?,?)', (c, b))
+    migrate_v12(db)
+    migrate_v12(db)  # idempotent
+    links = db.execute('SELECT brew_id, coffee_id FROM coffee_brews ORDER BY brew_id').fetchall()
+    assert [tuple(r) for r in links] == [(b_old, old), (b_new, new)]
+    fam = {r['id']: r['family_id'] for r in db.execute('SELECT id, family_id FROM coffees')}
+    assert fam == {old: None, new: old, other: None}
 
 
 def test_migrate_v11_adds_taste_scales_to_brews():
