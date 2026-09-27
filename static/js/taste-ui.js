@@ -11,13 +11,15 @@ const tasteLabel = (field, v) => t(`brew.taste.${TASTE_SCALES[field]}_${_tasteSu
 
 // Escala como una barra de 5 paradas (un toque, sin arrastrar). `onPick` recibe (field, value)
 // como texto JS: p. ej. "setBrewTaste" o "quickTasteBrew.bind(null,12)".
+// Teclado como un grupo de radios: una sola parada de Tab (la marcada o el centro) y ← → para moverse.
+const _tabStop = (v, value) => (value == null ? v === 0 : v === value);
 function tasteScaleHtml(field, value, onPick, {compact = false} = {}) {
   const name = TASTE_SCALES[field];
   return `<div class="taste-scale${compact ? ' compact' : ''}" data-field="${field}">
     <div class="taste-scale-name">${esc(t('brew.taste.' + name))}</div>
-    <div class="taste-track" role="radiogroup" aria-label="${esc(t('brew.taste.' + name))}">${TASTE_VALUES.map(v =>
+    <div class="taste-track" role="radiogroup" aria-label="${esc(t('brew.taste.' + name))}" onkeydown="tasteKey(event)">${TASTE_VALUES.map(v =>
       `<button type="button" class="taste-seg${v === value ? ' active' : ''}" data-val="${v}" role="radio"
-        aria-checked="${v === value}" aria-label="${esc(tasteLabel(field, v))}"
+        aria-checked="${v === value}" aria-label="${esc(tasteLabel(field, v))}" tabindex="${_tabStop(v, value) ? 0 : -1}"
         onclick="${onPick}('${field}',${v},this)"><span class="taste-dot"></span></button>`).join('')}</div>
     <div class="taste-ends" aria-hidden="true"><span>${esc(t(`brew.taste.${name}_lo`))}</span>`
       + `<span>${esc(t(`brew.taste.${name}_mid`))}</span><span>${esc(t(`brew.taste.${name}_hi`))}</span></div>
@@ -26,10 +28,24 @@ function tasteScaleHtml(field, value, onPick, {compact = false} = {}) {
 
 function markTasteScale(scaleEl, value) {
   scaleEl?.querySelectorAll('.taste-seg').forEach(s => {
-    const on = +s.dataset.val === value;
-    s.classList.toggle('active', on);
-    s.setAttribute('aria-checked', String(on));
+    const v = +s.dataset.val;
+    s.classList.toggle('active', v === value);
+    s.setAttribute('aria-checked', String(v === value));
+    s.tabIndex = _tabStop(v, value) ? 0 : -1;
   });
+}
+
+// ← → (y ↑ ↓) mueven y marcan, como en un grupo de radios
+function tasteKey(e) {
+  const d = {ArrowLeft: -1, ArrowDown: -1, ArrowRight: 1, ArrowUp: 1}[e.key];
+  if (!d) return;
+  e.preventDefault();
+  const segs = [...e.currentTarget.querySelectorAll('.taste-seg')];
+  const i = Math.max(0, segs.indexOf(document.activeElement));
+  const next = segs[Math.min(segs.length - 1, Math.max(0, i + d))];
+  if (next === segs[i] && next.classList.contains('active')) return;
+  next.focus();
+  if (!next.classList.contains('active')) next.click();
 }
 
 // "Algo ácido · Cuerpo justo" (vacío si no hay cata)
@@ -71,6 +87,14 @@ function renderBrewRatioHint() {
   syncYieldUse();
 }
 
+// La báscula escribe la dosis ~10 veces/s: la pista se recalcula cuando la dosis se queda quieta
+let _ratioHintTimer = null;
+function scheduleBrewRatioHint() {
+  clearTimeout(_ratioHintTimer);
+  _ratioHintTimer = setTimeout(renderBrewRatioHint, 400);
+  syncYieldUse();
+}
+
 function useSuggestedYield() {
   const y = document.getElementById('b-ratio-hint').dataset.yield;
   if (!y) return;
@@ -88,6 +112,17 @@ function syncYieldUse() {
 }
 
 // --- Valorar después (Prepas y ficha) ----------------------------------------------------
+// Primero las estrellas; las escalas aparecen al tocar una (o ya están si el brew tiene estrellas)
+function quickTasteHtml(b) {
+  return `<div class="quick-taste">${Object.keys(TASTE_SCALES).map(f =>
+    tasteScaleHtml(f, b[f] ?? null, `quickTasteBrew.bind(null,${b.id})`, {compact: true})).join('')}</div>`;
+}
+
+function showQuickTaste(id, starBtn) {
+  const block = starBtn?.closest('.quick-block');
+  if (block && !block.querySelector('.quick-taste')) block.insertAdjacentHTML('beforeend', quickTasteHtml(_brewCache[id] || {id}));
+}
+
 async function quickTasteBrew(id, field, val, btn) {
   const b = _brewCache[id] || {};
   const next = b[field] === val ? null : val;

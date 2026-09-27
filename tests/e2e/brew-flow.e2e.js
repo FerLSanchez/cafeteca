@@ -59,7 +59,10 @@ const BASE = process.env.BASE_URL || 'http://localhost:5323';
   await page.evaluate(() => showPage('brews'));
   const quick = `.brew-card:has(.brew-coffee-tag:text-is("${coffee.name}")) .quick-star`;
   await page.waitForSelector(quick);
+  const rateCard = `.brew-card:has(.brew-coffee-tag:text-is("${coffee.name}"))`;
+  assert.strictEqual(await page.locator(`${rateCard} .taste-scale`).count(), 0, 'las escalas salen tras la estrella');
   await page.tap(`${quick} >> nth=4`);
+  assert.strictEqual(await page.locator(`${rateCard} .taste-scale`).count(), 2);
   await page.waitForTimeout(600);
   assert.strictEqual((await brewsOf(coffee.id))[0].rating, 5);
   // con estrellas pero sin equilibrio la fila sigue a la vista para la cata
@@ -95,6 +98,14 @@ const BASE = process.env.BASE_URL || 'http://localhost:5323';
   await page.tap('#b-ratio-hint .brew-grind-use');
   assert.strictEqual(await page.inputValue('#b-yield'), '33.5');
   await page.fill('#b-yield', '');
+  // teclado: una parada de Tab por escala (el centro) y ← marca "algo ácido"
+  const balSeg = v => `#b-taste .taste-scale[data-field="taste_balance"] .taste-seg[data-val="${v}"]`;
+  assert.deepStrictEqual(await page.$$eval('#b-taste .taste-scale[data-field="taste_balance"] .taste-seg', els => els.map(e => e.tabIndex)), [-1, -1, 0, -1, -1]);
+  await page.focus(balSeg(0));
+  await page.keyboard.press('ArrowLeft');
+  assert.ok(await page.$(`${balSeg(-1)}.active`));
+  assert.strictEqual(await page.evaluate(() => document.activeElement.dataset.val), '-1');
+  await page.tap(balSeg(-1));   // quitarla
   // cata en el modal: un toque marca, otro lo quita
   await page.tap('#b-taste .taste-scale[data-field="taste_balance"] .taste-seg[data-val="0"]');
   assert.ok(await page.$('#b-step-taste.done'));

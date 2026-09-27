@@ -1797,7 +1797,7 @@ body.modal-open { overflow: hidden; touch-action: none; }
 
 /* Cata: escalas de 5 paradas con el centro "en su punto" (taste-ui.js) */
 .brew-taste { display: flex; flex-direction: column; gap: 10px; margin: 0 0 14px; }
-.taste-scale-name { font-size: 12px; color: var(--text2); font-weight: 600; margin-bottom: 2px; }
+.taste-scale-name { font-size: 11px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 2px; }
 .taste-track { position: relative; display: flex; }
 .taste-track::before {   /* la barra: ácido/aguado ← justo → amargo/pesado */
   content: ''; position: absolute; left: 10%; right: 10%; top: 50%; height: 4px; margin-top: -2px;
@@ -1823,8 +1823,30 @@ body.modal-open { overflow: hidden; touch-action: none; }
 .taste-ends { display: grid; grid-template-columns: 1fr 1fr 1fr; font-size: 11px; color: var(--text3); margin-top: -4px; }
 .taste-ends span:nth-child(2) { text-align: center; }
 .taste-ends span:last-child { text-align: right; }
+/* Compacta (valorar después): nombre a la izquierda, barra y extremos a la derecha */
+.taste-scale.compact { display: grid; grid-template-columns: 76px 1fr; column-gap: 8px; align-items: center; }
+.taste-scale.compact .taste-scale-name { grid-row: 1 / span 2; margin: 0; text-transform: none; letter-spacing: 0; font-weight: 600; font-size: 12px; }
 .taste-scale.compact .taste-seg { height: 40px; }
-.taste-scale.compact .taste-scale-name { font-size: 11px; color: var(--text3); font-weight: 500; }
-.quick-taste { display: grid; gap: 6px 16px; margin-top: 4px; max-width: 460px; min-width: 0; }
-@media (min-width: 600px) { .quick-taste { grid-template-columns: 1fr 1fr; } }
+.taste-scale.compact .taste-ends { font-size: 10px; margin-top: -6px; }
+.quick-taste { display: grid; gap: 4px 32px; margin-top: 2px; max-width: 760px; min-width: 0; }
+/* Dos columnas según el ancho de la tarjeta, no de la pantalla (en la rejilla de Prepas son estrechas) */
+.quick-block { min-width: 0; container-type: inline-size; }
+@container (min-width: 560px) { .quick-taste { grid-template-columns: 1fr 1fr; } }
+
+/* Otras bolsas del mismo café en la ficha */
+.detail-family { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+.detail-family-bag {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 1px; min-height: 44px; padding: 5px 12px;
+  background: var(--surface2); border: 1px solid var(--border2); border-radius: var(--r-sm);
+  color: var(--text); font-size: 13px; cursor: pointer; font-family: inherit;
+}
+.detail-family-bag:active { border-color: var(--accent); }
+.detail-family-state { font-size: 11px; color: var(--text3); }
+
+/* Filas de preparaciones en la ficha, móvil: fecha, estrellas y acciones arriba; el resumen, entero, debajo */
+@media (max-width: 599px) {
+  .detail-brew-row .detail-brew-summary { order: 5; flex-basis: 100%; white-space: normal; margin-top: -4px; }
+  .detail-brew-row .detail-brew-rating { margin-right: auto; }
+  .detail-brew-row .detail-brew-metrics, .detail-brew-row .detail-brew-quick { order: 6; }
+}
 .brew-taste-line { font-size: 12px; color: var(--text2); margin-top: 3px; }

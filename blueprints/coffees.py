@@ -2,7 +2,8 @@ from datetime import datetime
 from flask import Blueprint, request, jsonify
 from db import db_conn
 from models import (COFFEE_SELECT, row_to_coffee, set_m2m, resolve_ids,
-                    validate_coffee, SCALAR_FIELDS, get_coffee_by_id, DATE_RE, set_family, family_recipe)
+                    validate_coffee, SCALAR_FIELDS, get_coffee_by_id, DATE_RE, set_family, family_recipe,
+                    family_ids)
 import schema
 
 bp = Blueprint('coffees', __name__)
@@ -13,6 +14,14 @@ def _validation_error(err):
     if err.get('params'):
         body['error_key_params'] = err['params']
     return jsonify(body), 400
+
+
+def _family_error(conn, data):
+    """400 si family_id apunta a un café que no existe."""
+    fam = (data or {}).get('family_id')
+    if fam is not None and not conn.execute('SELECT 1 FROM coffees WHERE id=?', (fam,)).fetchone():
+        return _validation_error({'key': 'error.model.family_invalid', 'msg': 'Café de la familia inválido'})
+    return None
 
 
 def _client_date(data):
@@ -102,6 +111,9 @@ def add_coffee():
     if err:
         return _validation_error(err)
     with db_conn() as conn:
+        ferr = _family_error(conn, data)
+        if ferr:
+            return ferr
         ids = resolve_ids(conn, data)
         remaining_g = data.get('remaining_g') if data.get('remaining_g') is not None else data.get('quantity_g')
         fields = list(ids.keys()) + SCALAR_FIELDS + ['remaining_g']
@@ -145,6 +157,9 @@ def update_coffee(cid):
     with db_conn() as conn:
         if not conn.execute('SELECT 1 FROM coffees WHERE id=?', (cid,)).fetchone():
             return jsonify({'error': 'Café no encontrado', 'error_key': 'error.coffee.not_found'}), 404
+        ferr = _family_error(conn, data)
+        if ferr:
+            return ferr
         ids = resolve_ids(conn, data)
         updates = {LOOKUP_KEYS[k]: ids[LOOKUP_KEYS[k]] for k in LOOKUP_KEYS if k in data}
         updates.update({f: data[f] for f in SCALAR_FIELDS if f in data})
@@ -248,9 +263,27 @@ def consume_coffee(cid):
                     'previous_g': coffee_row['remaining_g'], 'brew_id': brew_id})
 
 
+@bp.route('/api/coffees/<int:cid>/family')
+def coffee_family(cid):
+    """Las otras bolsas del mismo café (la más reciente primero)."""
+    with db_conn() as conn:
+        if not conn.execute('SELECT 1 FROM coffees WHERE id=?', (cid,)).fetchone():
+            return jsonify({'error': 'Café no encontrado', 'error_key': 'error.coffee.not_found'}), 404
+        ids = [i for i in family_ids(conn, cid) if i != cid]
+        rows = [get_coffee_by_id(conn, i) for i in ids]
+    rows.sort(key=lambda c: (c['roast_date'] or c['purchase_date'] or '', c['id']), reverse=True)
+    return jsonify(rows)
+
+
 @bp.route('/api/coffees/<int:cid>', methods=['DELETE'])
 def delete_coffee(cid):
     with db_conn() as conn:
+        # La receta es de la familia: si solo esta bolsa la tenía enlazada, pasa a otra bolsa del café
+        others = [i for i in family_ids(conn, cid) if i != cid]
+        if others:
+            conn.execute(
+                'INSERT OR IGNORE INTO coffee_recipes (coffee_id, recipe_id) '
+                'SELECT ?, recipe_id FROM coffee_recipes WHERE coffee_id=?', (others[-1], cid))
         cur = conn.execute('DELETE FROM coffees WHERE id=?', (cid,))
         if cur.rowcount == 0:
             return jsonify({'error': 'Café no encontrado', 'error_key': 'error.coffee.not_found'}), 404

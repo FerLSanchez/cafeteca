@@ -26,16 +26,19 @@ function resetForm() {
 
 // "Mismo café que…": bolsas del mismo café (familia). El valor es cualquier otra bolsa de la familia.
 let _familyInitial = '';
+let _familyToken = 0;   // si se abre otro formulario antes de que llegue la lista, la vieja se descarta
 async function fillFamilySelect(self = null, preselect = null) {
   const sel = document.getElementById('f-family');
+  const token = ++_familyToken;
   sel.length = 1;
   _familyInitial = '';
   const all = await fetch('/api/coffees').then(r => (r.ok ? r.json() : [])).catch(() => []);
+  if (token !== _familyToken) return;
   const key = c => c.family_id ?? c.id;
   const others = all.filter(c => c.id !== self?.id)
     .sort((a, b) => a.name.localeCompare(b.name) || (b.roast_date || '').localeCompare(a.roast_date || ''));
   others.forEach(c => {
-    const label = [c.name, c.roaster, c.roast_date ? '🔥 ' + fmtDate(c.roast_date) : null].filter(Boolean).join(' · ');
+    const label = c.name + (c.roast_date ? ' · 🔥 ' + fmtDate(c.roast_date) : '');
     sel.add(new Option(label, c.id));
   });
   const pick = preselect ?? (self && self.family_size > 1 ? others.find(c => key(c) === key(self))?.id : null);

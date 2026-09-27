@@ -101,7 +101,7 @@
   "detail.label.milk": "With milk",
   "detail.label.altitude": "Altitude",
   "detail.label.family": "Same coffee",
-  "detail.family_bags": "{n} bags of this coffee",
+  "detail.family_finished": "Finished {date}",
   "detail.label.shop": "Shop",
   "detail.label.purchase": "Purchase",
   "detail.label.roast": "Roast",

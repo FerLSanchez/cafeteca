@@ -184,6 +184,25 @@ class TestFamily:
         resp = client.put(f'/api/coffees/{a["id"]}', json={'family_id': 'x'})
         assert resp.status_code == 400
         assert resp.get_json()['error_key'] == 'error.model.family_invalid'
+        for resp in (client.put(f'/api/coffees/{a["id"]}', json={'family_id': 99999}),
+                     client.post('/api/coffees', json={'name': 'X', 'family_id': 99999})):
+            assert resp.status_code == 400
+            assert resp.get_json()['error_key'] == 'error.model.family_invalid'
+
+    def test_deleting_the_bag_that_holds_the_recipe_keeps_it(self, client):
+        a = make_coffee(client, {'name': 'A'})
+        client.put(f'/api/coffees/{a["id"]}/recipe', json={'dose_g': 17, 'yield_g': 39})
+        b = client.post('/api/coffees', json={'name': 'B', 'source_id': a['id']}).get_json()
+        client.delete(f'/api/coffees/{a["id"]}')
+        assert client.get(f'/api/coffees/{b["id"]}/recipe').get_json()['yield_g'] == 39
+
+    def test_family_endpoint_lists_the_other_bags(self, client):
+        a = make_coffee(client, {'name': 'A', 'roast_date': '2026-08-01'})
+        b = make_coffee(client, {'name': 'B', 'roast_date': '2026-09-01', 'family_id': a['id']})
+        make_coffee(client, {'name': 'Other'})
+        assert [c['name'] for c in client.get(f'/api/coffees/{a["id"]}/family').get_json()] == ['B']
+        assert [c['name'] for c in client.get(f'/api/coffees/{b["id"]}/family').get_json()] == ['A']
+        assert client.get('/api/coffees/9999/family').status_code == 404
 
     def test_recipe_is_shared_by_the_family(self, client):
         a, b = make_coffee(client, {'name': 'A'}), make_coffee(client, {'name': 'B'})

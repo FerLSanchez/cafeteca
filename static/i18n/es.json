@@ -101,7 +101,7 @@
   "detail.label.milk": "Con leche",
   "detail.label.altitude": "Altitud",
   "detail.label.family": "Mismo café",
-  "detail.family_bags": "{n} bolsas de este café",
+  "detail.family_finished": "Terminada el {date}",
   "detail.label.shop": "Tienda",
   "detail.label.purchase": "Compra",
   "detail.label.roast": "Tueste",

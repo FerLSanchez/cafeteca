@@ -375,6 +375,7 @@ async function openBrewModal(coffeeId = null, brewId = null, coffeeName = null) 
   }
   renderBrewRating();
   updateBrewRatioDisplay();
+  renderBrewRatioHint();   // ya, sin esperar: nada se mueve al abrir
   openModal('modal-brew');
   _bv('modal-brew').scrollTop = 0;
   wakeSessionStart('brew');
@@ -397,7 +398,7 @@ function updateBrewRatioDisplay() {
   if (metrics?.main_flow != null) parts.push(t('scale.summary_flow', {main: metrics.main_flow.toFixed(2)}));
   else if (flow) parts.push(t('brew.flow', {flow}));
   el.textContent = parts.join('  ·  ');
-  renderBrewRatioHint();
+  scheduleBrewRatioHint();
   updateBrewSteps();
 }
 
@@ -482,16 +483,15 @@ function canQuickRate(b) {
 }
 
 function quickRateHtml(b) {
-  return `<span class="quick-rate" role="group" aria-label="${esc(t('brew.quick_rate'))}">
+  return `<div class="quick-block"><span class="quick-rate" role="group" aria-label="${esc(t('brew.quick_rate'))}">
     <span class="quick-rate-label">${esc(t('brew.quick_rate'))}</span>${[1, 2, 3, 4, 5].map(v =>
       `<button type="button" class="quick-star${v <= (b.rating || 0) ? ' active' : ''}" aria-label="${v}" onclick="quickRateBrew(${b.id},${v},this)">★</button>`).join('')}
-  </span>
-  <div class="quick-taste">${Object.keys(TASTE_SCALES).map(f =>
-    tasteScaleHtml(f, b[f] ?? null, `quickTasteBrew.bind(null,${b.id})`, {compact: true})).join('')}</div>`;
+  </span>${b.rating ? quickTasteHtml(b) : ''}</div>`;
 }
 
 async function quickRateBrew(id, rating, btn) {
   btn?.parentElement?.querySelectorAll('.quick-star').forEach((s, i) => s.classList.toggle('active', i < rating));
+  showQuickTaste(id, btn);   // las escalas aparecen al momento, sin esperar a la red
   await api('/brews/' + id, { method: 'PUT', body: JSON.stringify({ rating }) });
   if (_brewCache[id]) _brewCache[id].rating = rating;
   showToast(t('toast.brew_rated', {stars: '★'.repeat(rating)}));

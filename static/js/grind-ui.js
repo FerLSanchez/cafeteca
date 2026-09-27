@@ -93,7 +93,7 @@ async function renderGrindSection(coffeeId) {
   } catch (_) {}
   const ctx = grindContext(await fetchGrindData(), coffeeId, recipeTarget, todayLocal(), bagOf(currentDetail));
   if (currentDetail?.id !== coffeeId) return;
-  const {model, coffeeRows, target, suggestion} = ctx;
+  const {model, coffeeRows, familyRows, target, suggestion} = ctx;
   const basis = model?.basis ?? (coffeeRows.some(r => r.days_open != null) ? 'open' : 'roast');
   const key = basis === 'roast' ? 'days_roast' : 'days_open';
   const pts = coffeeRows.filter(r => r[key] != null);
@@ -121,12 +121,13 @@ async function renderGrindSection(coffeeId) {
       <span class="grind-key fast">▲</span> ${esc(t('grind.key_fast'))}</div>
     ${lines.map(l => `<div class="dialin-line">${esc(l)}</div>`).join('')}`;
   const canvas = el.querySelector('canvas');
-  const opts = {pts, key, model, target: target?.flow ?? null, suggestion: currentDetail.finished_date ? null : suggestion};
+  const opts = {pts, lineRows: familyRows, key, model, target: target?.flow ?? null, suggestion: currentDetail.finished_date ? null : suggestion};
   drawCanvasFitted(canvas, () => drawGrindChart(canvas, opts));
 }
 
 // Dispersión x = días, y = molienda (más fino abajo). Línea discontinua = previsión para el objetivo.
-function drawGrindChart(canvas, {pts, key, model, target, suggestion}) {
+// La línea usa las filas de toda la familia, igual que la sugerida de hoy (el ○ cae sobre ella)
+function drawGrindChart(canvas, {pts, lineRows = pts, key, model, target, suggestion}) {
   const dpr = window.devicePixelRatio || 1;
   const w = canvas.clientWidth, h = canvas.clientHeight;
   if (!w || !h) return;
@@ -138,7 +139,7 @@ function drawGrindChart(canvas, {pts, key, model, target, suggestion}) {
 
   const days = pts.map(r => r[key]).concat(suggestion ? [suggestion.days] : []);
   const dMax = Math.max(1, ...days);
-  const line = model && target ? grindLine(model, pts, target, [0, dMax]) : [];
+  const line = model && target ? grindLine(model, lineRows, target, [0, dMax]) : [];
   const grinds = pts.map(r => r.grind).concat(line.map(p => p[1]), suggestion ? [suggestion.grind] : []);
   const gMin = Math.floor(Math.min(...grinds) - 0.5), gMax = Math.ceil(Math.max(...grinds) + 0.5);
   const pad = {l: 26, r: 8, t: 8, b: 18};

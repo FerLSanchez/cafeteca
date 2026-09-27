@@ -84,6 +84,14 @@ const daysAgo = n => ymd(new Date(Date.now() - n * 86400000));
   assert.strictEqual(await page.inputValue('#b-grind'), '15');
   assert.match(await page.textContent('#b-last'), new RegExp(`GP abierto ${stamp}`));
   await page.evaluate(() => closeModal('modal-brew'));
+  // La ficha lista las otras bolsas del café; tocar una abre la suya
+  await page.evaluate(c => showDetail(c.id, c), fresh);
+  const other = page.locator('#detail-family .detail-family-bag');
+  await other.first().waitFor();
+  assert.strictEqual(await other.count(), 1);
+  await other.first().tap();
+  await page.waitForFunction(name => document.getElementById('detail-title').textContent === name, `GP abierto ${stamp}`);
+  await page.evaluate(() => closeModal('modal-detail'));
 
   // 2) Ficha: sección con gráfica y línea de hoy
   await page.evaluate(async id => { await fetchAndRender(); showDetail(id); }, bag.id);
