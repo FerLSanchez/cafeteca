@@ -732,6 +732,12 @@
             <input class="form-input" id="st-target" type="number" step="0.1" min="0.1" max="10" placeholder="1.5" onchange="scaleTestAutoStart()">
           </div>
         </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" data-i18n="brew.field.yield">Salida (g)</label>
+            <input class="form-input" id="st-yield" type="number" step="0.1" min="0" placeholder="36" onchange="scaleTestAutoStart()">
+          </div>
+        </div>
         <div id="st-shot-view" class="shot-view"></div>
         <button class="btn-secondary" style="width:100%" onclick="scaleTestAutoStart()" data-i18n="scale.test.restart">Reiniciar</button>
       </div>

@@ -205,6 +205,14 @@ The owner decided to **store the curve** after all, so the metrics can be recomp
 
 The screen stays on for the **whole scale session**, not only during the shot: while the scale is connected and the brew modal or the test page is open. The lock is requested again when the app returns to the foreground (Chrome drops it in the background), and released after **10 min without scale activity** (weight change ≥ 0.3 g or the timer moving), or on closing/disconnecting. Tested in `tests/e2e/wake-lock.e2e.js` with a fake clock. Continuous mode was discarded by the owner.
 
+## 8.6 Stop countdown (2026-10-20)
+
+The app can't stop the Lelit, but it can set the beat: when, at the current flow, the cup is **3 beats (1 s each)** away from the cue point, a full-screen **3 · 2 · 1 · STOP** starts (one colour and one flash per beat; optional ticks + long tone, 🔊/🔇 per device in `localStorage('stopSound')`). **Once started, the beat never changes**: you stop on the beat, not by reflex. Tap to dismiss.
+- Cue point = target yield (the "Salida" field: learned or recipe) − **offset**. The offset is what still lands after STOP (drips + scale/BLE latency + your timing on the Victoria). It is **learned globally** (one machine) as the median of `yield − stop_cue_g` over the last 5 shots with a countdown (|error| > 3 g = countdown ignored, discarded); default 0.7 g. `StopCountdown` / `stopOffset()` in `scale-analysis.js`.
+- Prediction: flow = mean of the last 2 s; armed from 5 s and ≥ 0.3 g/s. If it arms already closer than 3 beats it starts at 2 or 1; past the cue, STOP directly.
+- Chosen on the 31 curves of 2026-09-26…10-20: post-stop mass ≈ 0.4 g (sd 0.24); prediction error at 3 s ahead ≈ 0.15 g sd with a 2 s window (0.31 g with 1 s), ~0.2 g early on average (absorbed by the learned offset). The real yield spread then was 33.7–41.8 g: the timing, not the drips, was the error.
+- `shot_metrics` gains `stop_target_g`, `stop_cue_g`, `stop_at_g` (weight when STOP showed); "Recalcular métricas" keeps them. The summary shows "Corte: <at STOP> → <final> g (± vs target)". The scale test page has a target yield field to try it with water.
+
 ## 9. Risks and open points
 
 - ✅ **Sign bytes:** ASCII, see §8.
