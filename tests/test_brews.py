@@ -322,6 +322,11 @@ class TestShotMetrics:
         assert listed['shot_metrics'] == METRICS
         assert client.get('/api/brews').get_json()['brews'][0]['shot_metrics'] == METRICS
 
+    def test_brew_stores_stop_countdown(self, client):
+        coffee = make_coffee(client)
+        m = {**METRICS, 'stop_target_g': 36, 'stop_cue_g': 35.3, 'stop_at_g': 35.1}
+        assert make_brew(client, coffee['id'], {'shot_metrics': m})['shot_metrics'] == m
+
     def test_brew_without_metrics_returns_null(self, client):
         coffee = make_coffee(client)
         assert make_brew(client, coffee['id'])['shot_metrics'] is None

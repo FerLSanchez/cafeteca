@@ -267,6 +267,7 @@ def validate_brew(data, recipe=False):
 SHOT_METRIC_KEYS = {
     'main_flow', 'avg_flow', 'peak_flow', 't_peak_s', 't_ramp_s', 'overshoot_s',
     'in_band_pct', 'flow_cv', 'tail_s', 'tail_g', 'irregular', 'target_flow',
+    'stop_target_g', 'stop_cue_g', 'stop_at_g',   # cuenta atrás de corte (STOP_KEYS en scale-analysis.js)
 }
 
 

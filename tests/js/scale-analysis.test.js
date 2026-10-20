@@ -98,3 +98,64 @@ test('curva guardada: ~3 KB y reproduce las métricas del shot en vivo', () => {
   assert.strictEqual(again.irregular, live.irregular);
   assert.ok(Math.abs(again.t_ramp_s - live.t_ramp_s) <= 0.3);
 });
+
+// ---------------------------------------------------------------------------
+// Cuenta atrás para cortar el shot
+// ---------------------------------------------------------------------------
+const {StopCountdown, stopOffset, STOP_BEAT_S, STOP_OFFSET_G} = require('../../static/js/scale-analysis.js');
+
+// Shot sintético: preinfusión 0–4 s, luego flujo constante
+const steady = (flow, until = 40) => {
+  const out = [];
+  for (let t = 0; t <= until; t += 0.1) out.push({t: +t.toFixed(1), weight: t < 4 ? 0.2 * t : 0.8 + flow * (t - 4)});
+  return out;
+};
+const runCd = (samples, opts) => {
+  const cd = new StopCountdown(opts);
+  for (const s of samples) { const r = cd.push(s); if (r) return {cd, r}; }
+  return {cd, r: null};
+};
+
+test('cuenta atrás: arranca con 3 tiempos y el STOP cae cuando el peso llega al punto de corte', () => {
+  const {cd, r} = runCd(steady(1.8), {targetYield: 36, offset: 0.6});
+  assert.strictEqual(cd.cue, 35.4);
+  assert.strictEqual(r.beats, 3);
+  assert.ok(Math.abs(r.stopAt - r.startAt - 3 * STOP_BEAT_S) < 1e-9);
+  const tCue = 4 + (35.4 - 0.8) / 1.8;
+  assert.ok(Math.abs(r.stopAt - tCue) < 0.15, `stop ${r.stopAt} vs ${tCue}`);
+  // el ritmo es fijo: 3, 2, 1 y STOP (0) cada STOP_BEAT_S
+  assert.deepStrictEqual([0, 0.99, 1, 2, 3, 4].map(d => cd.beatAt(r.startAt + d)), [3, 3, 2, 1, 0, 0]);
+  assert.strictEqual(cd.push({t: r.startAt + 0.5, weight: 40}), null, 'una vez lanzada no se recalcula');
+});
+
+test('cuenta atrás: nada durante la preinfusión ni sin objetivo', () => {
+  const cd = new StopCountdown({targetYield: 3});
+  for (const s of steady(1.8, 4.9)) assert.strictEqual(cd.push(s), null);
+  assert.strictEqual(new StopCountdown({targetYield: null}).push({t: 10, weight: 50}), null);
+});
+
+test('cuenta atrás: si al armarse ya falta poco arranca con menos tiempos; pasado el corte, STOP directo', () => {
+  const {r} = runCd(steady(1.8), {targetYield: 4, offset: 0});
+  assert.strictEqual(r.startAt, 5);
+  assert.ok(r.beats >= 1 && r.beats < 3, `beats ${r.beats}`);
+  const late = runCd([{t: 5, weight: 20}, {t: 6, weight: 22}, {t: 7, weight: 24}], {targetYield: 20, offset: 0});
+  assert.strictEqual(late.r.beats, 0);
+});
+
+test('cuenta atrás: shot real F0 — el STOP llega cerca de cuando la taza alcanza el corte', () => {
+  const st = runShot();
+  const yld = st.result.yield_g;
+  const {cd, r} = runCd(st.samples, {targetYield: yld - 3, offset: 0.7});
+  assert.ok(r && r.beats === 3);
+  const reach = st.samples.find(s => s.weight >= cd.cue).t;
+  assert.ok(Math.abs(r.stopAt - reach) < 0.8, `stop ${r.stopAt.toFixed(2)} vs ${reach.toFixed(2)}`);
+});
+
+test('offset aprendido: mediana de (salida − corte) de los 5 últimos shots con cuenta atrás', () => {
+  const b = (y, cue) => ({yield_g: y, shot_metrics: {stop_cue_g: cue}});
+  assert.strictEqual(stopOffset([]), STOP_OFFSET_G);
+  assert.strictEqual(stopOffset([{yield_g: 36, shot_metrics: {main_flow: 1.8}}, {yield_g: 36}]), STOP_OFFSET_G);
+  assert.strictEqual(stopOffset([b(36, 35.5), b(36.2, 35.4), b(35.9, 35.6)]), 0.5);
+  // solo cuentan los 5 más recientes y se descartan los disparates (> 3 g: no hizo caso)
+  assert.strictEqual(stopOffset([b(36, 35), b(40, 35), b(36, 35), b(36, 35), b(36, 35.2), b(36, 35.2), b(9, 1)]), 1);
+});

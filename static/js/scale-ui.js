@@ -148,7 +148,7 @@ function brewScaleDoseStop(keepMsg = false) {
 // Vista de shot en vivo (modo auto) — reutilizada por el brew y la página de prueba (§5.2, §5.4)
 // ---------------------------------------------------------------------------
 function createShotView(root, opts) {
-  // opts: {dose, target, tol, targetYield, compare, onDone(r, metrics, curve), onCancel, onRetry}
+  // opts: {dose, target, tol, targetYield, stopOffset, compare, onDone(r, metrics, curve), onCancel, onRetry}
   root.innerHTML = `
     <div class="shot-status"></div>
     <div class="shot-stats">
@@ -158,6 +158,7 @@ function createShotView(root, opts) {
     </div>
     <div class="shot-sub"><span data-k="ratio"></span><span data-k="target"></span></div>
     <div class="shot-progress" hidden><div class="shot-progress-bar"></div></div>
+    <div class="shot-cue" hidden><span></span>${stopSoundButtonHtml()}</div>
     <canvas class="shot-chart"></canvas>
     <div class="shot-summary" hidden></div>
     <div class="shot-actions"></div>`;
@@ -171,7 +172,13 @@ function createShotView(root, opts) {
   }
   const tracker = new ShotTracker();
   let metrics = null;
-
+  // Cuenta atrás de corte: solo con salida objetivo
+  const cd = opts.targetYield ? new StopCountdown({targetYield: opts.targetYield, offset: opts.stopOffset}) : null;
+  const cdRun = {timers: [], el: null, stopAtG: null};
+  if (cd) {
+    q('.shot-cue').hidden = false;
+    q('.shot-cue span').textContent = t('scale.stop.cue', {cue: cd.cue.toFixed(1), target: fmtG(cd.target)});
+  }
 
   const setStatus = key => { q('.shot-status').textContent = t(key); };
   setStatus('scale.shot.waiting');
@@ -203,6 +210,12 @@ function createShotView(root, opts) {
     const before = tracker.state;
     tracker.push(s);
     if (before === 'waiting' && tracker.state === 'running') setStatus('scale.shot.running');
+    const last = tracker.samples[tracker.samples.length - 1];
+    if (cd && tracker.state === 'running' && last) {
+      const go = cd.push(last);
+      if (go) stopCountdownRun(cdRun, go.beats, cd.cue, () => tracker.samples[tracker.samples.length - 1]?.weight);
+      if (cdRun.el) cdRun.el.querySelector('.stop-cd-sub').textContent = `${fmtG(last.weight)} → ${fmtG(cd.cue)} g`;
+    }
     const series = tracker.samples.length >= 3 ? flowSeries(tracker.samples.slice(-15)) : [];
     const flow = series.length ? series[series.length - 1].flow : null;
     renderLive(s, flow);
@@ -216,6 +229,9 @@ function createShotView(root, opts) {
     const r = tracker.result;
     if (!r) { setAction(t('scale.shot.retry'), opts.onRetry); return; }
     metrics = analyzeShot(tracker.samples, {target: opts.target, tol: opts.tol, ...r});
+    if (metrics && cd?.startAt != null) {
+      Object.assign(metrics, {stop_target_g: cd.target, stop_cue_g: cd.cue, stop_at_g: cdRun.stopAtG});
+    }
     q('[data-k=time]').textContent = (r.time_ms / 1000).toFixed(1);
     q('[data-k=weight]').textContent = fmtG(r.yield_g);
     q('[data-k=flow]').textContent = metrics?.main_flow?.toFixed(2) ?? '—';
@@ -232,6 +248,7 @@ function createShotView(root, opts) {
   return {
     destroy() {
       unsub();
+      stopCountdownClear(cdRun);
       window.removeEventListener('resize', onResize);
       root.innerHTML = '';
     },
@@ -254,6 +271,11 @@ function shotSummaryHtml(m, r, opts) {
   }
   rows.push([t('scale.metric.stability'), m.flow_cv == null ? '—' : `${Math.round(m.flow_cv * 100)} %`]);
   rows.push([t('scale.metric.tail'), `${m.tail_s} s · ${m.tail_g} g`]);
+  const yld = r?.yield_g ?? opts.yield_g;
+  if (m.stop_cue_g != null && yld != null) {
+    const d = yld - m.stop_target_g;
+    rows.push([t('scale.metric.stop'), `${fmtG(m.stop_at_g)} → ${fmtG(yld)} g (${d >= 0 ? '+' : ''}${d.toFixed(1)})`]);
+  }
   let html = `<div class="shot-metrics">${rows.map(([k, v]) =>
     `<div class="shot-metric"><span>${esc(k)}</span><b>${esc(v)}</b></div>`).join('')}</div>`;
   if (m.irregular) html += `<div class="shot-warn">⚠️ ${esc(t('scale.metric.irregular'))}</div>`;
@@ -334,6 +356,107 @@ function drawShotChart(canvas, samples, opts) {
 }
 
 // ---------------------------------------------------------------------------
+// Cuenta atrás de corte (3 · 2 · 1 · STOP) a pantalla completa
+// El ritmo lo marca el reloj, no las tramas de la báscula: una vez lanzada no cambia.
+// ---------------------------------------------------------------------------
+const STOP_HOLD_MS = 2000;   // el STOP sigue a la vista tras el último tiempo
+
+// Offset global (una sola cafetera): de los últimos brews de cualquier café.
+async function loadStopOffset() {
+  try {
+    const r = await fetch('/api/brews?limit=30');
+    if (r.ok) return stopOffset((await r.json()).brews);
+  } catch (_) {}
+  return STOP_OFFSET_G;
+}
+
+function stopCountdownRun(run, beats, cue, weightNow) {
+  stopCountdownClear(run);
+  const el = document.createElement('div');
+  el.className = 'stop-cd';
+  el.setAttribute('role', 'alert');
+  el.innerHTML = `<div class="stop-cd-num"></div>
+    <div class="stop-cd-dots" aria-hidden="true">${'<i></i>'.repeat(beats)}</div>
+    <div class="stop-cd-sub"></div>`;
+  el.onclick = () => stopCountdownClear(run);
+  document.body.appendChild(el);
+  run.el = el;
+  const show = n => {
+    el.dataset.n = n;
+    el.querySelector('.stop-cd-num').textContent = n ? String(n) : t('scale.stop.stop');
+    el.querySelectorAll('.stop-cd-dots i').forEach((d, i) => d.classList.toggle('on', i < beats - n));
+    el.classList.remove('pulse');
+    void el.offsetWidth;   // reinicia la animación del tiempo
+    el.classList.add('pulse');
+    if (!n) run.stopAtG = weightNow() ?? null;
+  };
+  const t0 = performance.now();
+  for (let i = 0; i <= beats; i++) {
+    const n = beats - i;
+    run.timers.push(setTimeout(() => show(n), Math.max(0, t0 + i * STOP_BEAT_S * 1000 - performance.now())));
+  }
+  run.timers.push(setTimeout(() => stopCountdownClear(run), beats * STOP_BEAT_S * 1000 + STOP_HOLD_MS));
+  stopBeeps(beats);
+}
+
+// Quita la pantalla (al acabar, al tocarla o al cerrar el shot); stopAtG se conserva.
+function stopCountdownClear(run) {
+  run.timers.forEach(clearTimeout);
+  run.timers = [];
+  run.el?.remove();
+  run.el = null;
+}
+
+// Sonido opcional (preferencia de este dispositivo): tic en cada número, tono largo en STOP.
+let _stopAudio = null;
+
+function stopSoundOn() {
+  try { return localStorage.getItem('stopSound') === '1'; } catch (_) { return false; }
+}
+
+function stopSoundButtonHtml() {
+  const on = stopSoundOn();
+  return `<button type="button" class="shot-sound" onclick="stopSoundToggle()" aria-pressed="${on}"
+    title="${esc(t('scale.stop.sound'))}" aria-label="${esc(t('scale.stop.sound'))}">${on ? '🔊' : '🔇'}</button>`;
+}
+
+function stopSoundToggle() {
+  const on = !stopSoundOn();
+  try { localStorage.setItem('stopSound', on ? '1' : '0'); } catch (_) {}
+  stopAudioUnlock();
+  document.querySelectorAll('.shot-sound').forEach(b => {
+    b.textContent = on ? '🔊' : '🔇';
+    b.setAttribute('aria-pressed', String(on));
+  });
+}
+
+// El AudioContext solo arranca dentro de un gesto del usuario
+function stopAudioUnlock() {
+  if (!stopSoundOn()) return;
+  try {
+    _stopAudio ??= new AudioContext();
+    _stopAudio.resume();
+  } catch (_) { _stopAudio = null; }
+}
+
+function stopBeeps(beats) {
+  const ctx = _stopAudio;
+  if (!stopSoundOn() || !ctx || ctx.state !== 'running') return;
+  for (let i = 0; i <= beats; i++) {
+    const at = ctx.currentTime + 0.02 + i * STOP_BEAT_S;
+    const last = i === beats;
+    const osc = ctx.createOscillator(), gain = ctx.createGain();
+    osc.frequency.value = last ? 1320 : 880;
+    gain.gain.setValueAtTime(0.0001, at);
+    gain.gain.exponentialRampToValueAtTime(0.5, at + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, at + (last ? 0.5 : 0.09));
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(at);
+    osc.stop(at + (last ? 0.55 : 0.12));
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Shot desde el modal de brew
 // ---------------------------------------------------------------------------
 let _shotView = null;
@@ -342,6 +465,7 @@ let _brewShotCurve = null;
 
 // Shot en vivo dentro del paso 3 del modal: al terminar rellena salida, tiempo y métricas.
 async function brewScaleShot() {
+  stopAudioUnlock();   // antes de cualquier await: necesita el gesto del usuario
   if (!await scaleEnsure()) return;
   brewScaleDoseLock();   // si la dosis seguía en vivo, se fija con el último valor
   const dose = parseFloat(document.getElementById('b-dose').value) || null;
@@ -351,13 +475,14 @@ async function brewScaleShot() {
   const compare = (_brewHistory || []).filter(b => b.rating && b.shot_metrics?.main_flow != null && b.id !== _editBrewId)
     .sort((a, b) => b.rating - a.rating || !!b.shot_curve - !!a.shot_curve
       || (b.brew_date > a.brew_date ? 1 : -1))[0] || null;
+  const stopOffset = targetYield ? await loadStopOffset() : null;
   const root = document.getElementById('b-shot-live');
   root.hidden = false;
   document.querySelector('#modal-brew .btn-shot').hidden = true;
   document.getElementById('b-shot-summary').hidden = true;
   _shotView?.destroy();
   _shotView = createShotView(root, {
-    dose, target, tol: flowTolerance, targetYield, compare,
+    dose, target, tol: flowTolerance, targetYield, stopOffset, compare,
     onCancel: brewShotClose,
     onRetry: brewScaleShot,
     onDone: (r, metrics, curve) => {
@@ -440,11 +565,14 @@ function scaleTestLock() {
   if (v != null) document.getElementById('st-dose-msg').textContent = t('scale.dose.locked', {g: fmtG(v)});
 }
 
-function scaleTestAutoStart() {
+async function scaleTestAutoStart() {
+  stopAudioUnlock();
   const target = parseFloat(document.getElementById('st-target').value) || null;
   const dose = parseFloat(document.getElementById('st-dose').value) || null;
+  const targetYield = parseFloat(document.getElementById('st-yield').value) || null;
+  const stopOffset = targetYield ? await loadStopOffset() : null;
   _testShotView?.destroy();
-  _testShotView = createShotView(document.getElementById('st-shot-view'), {dose, target, tol: flowTolerance});
+  _testShotView = createShotView(document.getElementById('st-shot-view'), {dose, target, tol: flowTolerance, targetYield, stopOffset});
 }
 
 
@@ -455,7 +583,8 @@ function brewShowShotSummary(metrics, curve) {
   const el = document.getElementById('b-shot-summary');
   if (!el) return;
   el.hidden = !metrics;
-  el.innerHTML = metrics ? (curve ? '<canvas class="shot-chart"></canvas>' : '') + shotSummaryHtml(metrics, null, {}) : '';
+  const yield_g = parseFloat(document.getElementById('b-yield')?.value) || null;
+  el.innerHTML = metrics ? (curve ? '<canvas class="shot-chart"></canvas>' : '') + shotSummaryHtml(metrics, null, {yield_g}) : '';
   if (metrics && curve) {
     // tras abrir el modal, para que el canvas ya tenga tamaño
     requestAnimationFrame(() => drawShotChart(el.querySelector('canvas'), samplesFromCurve(curve),
@@ -486,6 +615,7 @@ async function recomputeShotMetrics() {
     for (const b of page.brews) {
       if (!b.shot_curve) continue;
       const m = reanalyzeCurve(b.shot_curve, {target: b.shot_metrics?.target_flow ?? null, tol: flowTolerance, yield_g: b.yield_g});
+      if (m) STOP_KEYS.forEach(k => { if (b.shot_metrics?.[k] != null) m[k] = b.shot_metrics[k]; });
       if (m && JSON.stringify(m) !== JSON.stringify(b.shot_metrics)) {
         await api('/brews/' + b.id, {method: 'PUT', body: JSON.stringify({shot_metrics: m})});
         updated++;

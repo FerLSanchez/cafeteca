@@ -239,6 +239,77 @@ function reanalyzeCurve(curve, {target = null, tol = 0.2, yield_g = null} = {}) 
   return analyzeShot(samples, {target, tol, time_ms: curve?.time_ms ?? null, yield_g});
 }
 
+// ---------------------------------------------------------------------------
+// Cuenta atrás para cortar el shot: 3 · 2 · 1 · STOP a ritmo fijo. Se lanza
+// cuando, al flujo actual, faltan 3 tiempos para llegar al punto de corte
+// (salida objetivo − lo que aún cae tras cortar); una vez lanzada no cambia
+// de ritmo: se corta al compás, no por reflejo.
+// Ventana y tiempo elegidos con los 31 shots reales de 2026-09/10 (error ≈ 0.15 g).
+// ---------------------------------------------------------------------------
+const STOP_BEAT_S     = 1.0;
+const STOP_BEATS      = 3;
+const STOP_FLOW_WIN_S = 2.0;   // flujo para predecir: media de los últimos 2 s
+const STOP_ARM_S      = 5;     // antes la preinfusión y la rampa no predicen
+const STOP_MIN_FLOW   = 0.3;   // g/s
+const STOP_OFFSET_G   = 0.7;   // gotas tras cortar + latencias, hasta aprenderlo
+const STOP_OFFSET_N   = 5;     // shots con cuenta atrás para aprender el offset
+const STOP_OFFSET_MAX = 3;     // |salida − corte| mayor: no se siguió la cuenta
+const STOP_KEYS = ['stop_target_g', 'stop_cue_g', 'stop_at_g'];   // en shot_metrics
+
+class StopCountdown {
+  constructor({targetYield, offset = STOP_OFFSET_G}) {
+    this.target = targetYield || null;
+    this.cue = this.target ? r1(this.target - offset) : null;
+    this.win = [];
+    this.startAt = null;   // t (s del shot) en que se muestra el primer número
+    this.beats = null;     // números de la cuenta (3, o menos si el flujo se disparó)
+    this.stopAt = null;
+  }
+  // Muestras {t (s desde el inicio del shot), weight}. Devuelve {startAt, beats, stopAt} al lanzarse.
+  push({t, weight}) {
+    if (this.startAt !== null || this.cue === null) return null;
+    this.win.push({t, weight});
+    while (t - this.win[0].t > STOP_FLOW_WIN_S) this.win.shift();
+    if (t < STOP_ARM_S) return null;
+    const first = this.win[0];
+    if (t - first.t < STOP_FLOW_WIN_S * 0.8) return null;
+    const flow = (weight - first.weight) / (t - first.t);
+    let beats;
+    if (weight >= this.cue) beats = 0;
+    else {
+      if (flow < STOP_MIN_FLOW) return null;
+      const eta = (this.cue - weight) / flow;
+      if (eta > STOP_BEATS * STOP_BEAT_S) return null;
+      beats = Math.round(eta / STOP_BEAT_S);
+    }
+    this.beats = beats;
+    this.startAt = t;
+    this.stopAt = t + beats * STOP_BEAT_S;
+    return {startAt: this.startAt, beats, stopAt: this.stopAt};
+  }
+  // Número a mostrar en t: beats … 1, y 0 = STOP. null si no se ha lanzado.
+  beatAt(t) {
+    if (this.startAt === null) return null;
+    return Math.max(0, this.beats - Math.floor((t - this.startAt) / STOP_BEAT_S + 1e-9));
+  }
+}
+
+// Offset aprendido de los brews (del más reciente al más antiguo, de cualquier café):
+// mediana de (salida − punto de corte) de los últimos shots con cuenta atrás.
+function stopOffset(brews) {
+  const errs = [];
+  for (const b of brews || []) {
+    const cue = b.shot_metrics?.stop_cue_g;
+    if (cue == null || b.yield_g == null) continue;
+    const e = b.yield_g - cue;
+    if (Math.abs(e) > STOP_OFFSET_MAX) continue;
+    errs.push(e);
+    if (errs.length === STOP_OFFSET_N) break;
+  }
+  return errs.length ? r2(median(errs)) : STOP_OFFSET_G;
+}
+
 if (typeof module !== 'undefined') {
-  module.exports = {DoseTracker, ShotTracker, flowSeries, analyzeShot, curveFromShot, samplesFromCurve, reanalyzeCurve};
+  module.exports = {DoseTracker, ShotTracker, flowSeries, analyzeShot, curveFromShot, samplesFromCurve, reanalyzeCurve,
+    StopCountdown, stopOffset, STOP_BEAT_S, STOP_OFFSET_G, STOP_KEYS};
 }
