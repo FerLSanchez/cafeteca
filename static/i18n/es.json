@@ -454,5 +454,6 @@
   "grind.stats_unclear": "Con estos datos aún no se ve una deriva clara (mejor ajuste: días {basis}).",
   "grind.stats_help": "Cambio de molienda por semana que mantiene el mismo flujo (negativo = más fino). Resaltada, la base que mejor explica tus shots.",
   "scale.row.irregular_short": "irregular",
-  "nav.add": "Añadir café"
+  "nav.add": "Añadir café",
+  "list.summary": "{active} abierto{s}, {grams} en uso, {pending} sin abrir"
 }

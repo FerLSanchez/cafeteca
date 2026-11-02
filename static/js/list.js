@@ -55,9 +55,9 @@ function renderCompactCard(c) {
   const lowStock = shots !== null && shots <= lowStockThreshold;
   const actions = !finished ? `
     <div class="cc-actions" onclick="event.stopPropagation()">
-      ${!c.opened_date ? `<button class="btn-cc open" onclick="showOpenDatePicker(event,${c.id})" title="${t('list.btn.open_today')}">+</button>` : ''}
-      ${c.opened_date  ? `<button class="btn-cc finish" onclick="quickFinish(event,${c.id})" title="${t('list.btn.finish_today')}">${icon('check')}</button>` : ''}
-      ${opened && c.remaining_g != null ? `<button class="btn-cc consume" onclick="consumeShot(${c.id})" title="${t('list.consume_shot')}">−</button>` : ''}
+      ${!c.opened_date ? `<button class="btn-cc open" onclick="showOpenDatePicker(event,${c.id})" title="${esc(t('list.btn.open_today'))}" aria-label="${esc(t('list.btn.open_today'))}">${icon('plus')}</button>` : ''}
+      ${c.opened_date  ? `<button class="btn-cc finish" onclick="quickFinish(event,${c.id})" title="${esc(t('list.btn.finish_today'))}" aria-label="${esc(t('list.btn.finish_today'))}">${icon('check')}</button>` : ''}
+      ${opened && c.remaining_g != null ? `<button class="btn-cc consume" onclick="consumeShot(${c.id})" title="${esc(t('list.consume_shot'))}" aria-label="${esc(t('list.consume_shot'))}">${icon('minus')}</button>` : ''}
     </div>` : '';
   return `<div class="coffee-card coffee-card-compact ${finished?'finished-coffee':opened?'active-coffee':''}" onclick="showDetail(${c.id})">
     <div class="cc-row1">
@@ -85,6 +85,7 @@ function renderList() {
     btn.querySelector('use')?.setAttribute('href', compactList ? '#ic-view-full' : '#ic-view-compact');
   }
 
+  scheduleListSummary();
   const el = document.getElementById('coffee-list');
   const info = document.getElementById('results-info');
   const total = displayedCoffees.length;
@@ -100,66 +101,17 @@ function renderList() {
     : t('list.total', {total, s: total !== 1 ? 's' : ''});
 
   const visible = sorted.slice(0, showing);
-  el.innerHTML = visible.map(c => {
-    if (compactList) return renderCompactCard(c);
-    const status = getStatus(c);
-    const finished = !!c.finished_date, opened = !!c.opened_date && !finished;
-    const origin = [c.origin, c.region].filter(Boolean).map(esc).join(' · ');
-    const sub = [c.roaster, c.producer].filter(Boolean).map(esc).join(' / ');
-    const roastDays = daysFromRoast(c.roast_date);
-    const freshTag = !finished && roastDays !== null && roastDays < 14
-      ? `<span class="tag fresh-warning">${t('list.fresh_tag', {days: 14 - roastDays})}</span>` : '';
-    const daysOpen = opened ? Math.floor((new Date() - new Date(c.opened_date)) / 86400000) : null;
-    const daysOpenTag = daysOpen !== null ? `<span class="tag">${t('list.days_open_tag', {days: daysOpen, s: daysOpen!==1?'s':''})}</span>` : '';
-    const price = fmtPrice(c);
-    const actions = !finished ? `<div class="card-actions" id="actions-${c.id}">
-      ${c.opened_date?`<button class="btn-quick brew" onclick="event.stopPropagation();openBrewModal(${c.id})">${t('detail.btn.brew')}</button>`:''}
-      ${!c.opened_date?`<button class="btn-quick open" onclick="showOpenDatePicker(event,${c.id})">${t('list.btn.open_today')}</button>`:''}
-      ${c.opened_date?`<button class="btn-quick finish" onclick="quickFinish(event,${c.id})">${t('list.btn.finish_today')}</button>`:''}
-    </div>` : '';
-    return `<div class="coffee-card ${finished?'finished-coffee':opened?'active-coffee':''}" onclick="showDetail(${c.id})">
-      <div class="card-header">
-        <div style="min-width:0">
-          <div class="coffee-name">${esc(c.name)}</div>
-          ${sub?`<div class="coffee-sub">${sub}</div>`:''}
-        </div>
-        <div class="coffee-rating">${stars(c.rating)}</div>
-      </div>
-      <div class="coffee-meta">
-        <span class="tag ${status.cls}">${status.label}</span>
-        ${freshTag}
-        ${daysOpenTag}
-        ${origin?`<span class="tag">${icon('mappin')} ${origin}</span>`:''}
-        ${c.varieties&&c.varieties.length?`<span class="tag">${icon('leaf')} ${c.varieties.map(esc).join(', ')}</span>`:''}
-        ${c.processes&&c.processes.length?`<span class="tag">${icon('activity')} ${c.processes.map(esc).join(', ')}</span>`:''}
-        ${c.milk_types&&c.milk_types.length?`<span class="tag milk">${icon('droplet')} ${c.milk_types.map(esc).join(', ')}</span>`:''}
-        ${c.quantity_g?`<span class="tag">${icon('package')} ${fmtGrams(c.quantity_g)}</span>`:''}
-        ${price?`<span class="tag price">${icon('tag')} ${price}</span>`:''}
-      </div>
-      ${c.notes?`<div class="coffee-notes">${esc(c.notes)}</div>`:''}
-      ${opened && c.remaining_g != null ? (() => {
-          const shots = shotsLeft(c);
-          const lowStock = shots !== null && shots <= lowStockThreshold;
-          const shotsLabel = shots !== null
-            ? ` <span class="shots-remaining${lowStock?' low-stock':''}">(${t('list.shots_count', {shots, s: shots !== 1 ? 's' : ''})}${lowStock ? ' <span class="low-stock-icon" title="'+t('list.low_stock_alert')+'">'+icon('alert','ic-sm')+'</span>' : ''})</span>`
-            : '';
-          return `
-        <div class="consume-block" onclick="event.stopPropagation()">
-          <div class="consume-block-head">
-            <span class="consume-block-label">${t('list.remaining')}</span>
-            <span class="consume-block-value">${fmtGrams(c.remaining_g)}${c.quantity_g ? ` <small>/ ${fmtGrams(c.quantity_g)}</small>` : ''}${shotsLabel}</span>
-          </div>
-          ${c.quantity_g ? `<div class="consume-block-track">
-            <div class="consume-block-fill" style="width:${Math.min(100, Math.max(0, (c.remaining_g / c.quantity_g) * 100)).toFixed(1)}%"></div>
-          </div>` : ''}
-          <button class="btn-consume" onclick="event.stopPropagation(); consumeShot(${c.id})">
-            − ${t('list.consume_shot')} (${fmtGrams(gramsPerShot)})
-          </button>
-        </div>`;
-        })() : ''}
-      ${actions}
-    </div>`;
-  }).join('');
+  const render = compactList ? renderCompactCard : renderCoffeeRow;
+  const rows = list => list.map(render).join('');
+  // Con otro orden los grupos romperían el que has elegido: lista plana
+  const groups = currentSort === 'smart' ? [
+    ['filter.active', visible.filter(c => c.opened_date && !c.finished_date)],
+    ['filter.pending', visible.filter(c => !c.opened_date && !c.finished_date)],
+    ['filter.finished', visible.filter(c => c.finished_date)],
+  ].filter(([, list]) => list.length) : [];
+  el.innerHTML = groups.length > 1
+    ? groups.map(([key, list]) => `<h2 class="list-group-head">${t(key)}</h2><div class="coffee-group${compactList ? ' compact' : ''}">${rows(list)}</div>`).join('')
+    : `<div class="coffee-group${compactList ? ' compact' : ''}">${rows(visible)}</div>`;
 
   if (showing < total) {
     const remaining = total - showing;
@@ -168,6 +120,69 @@ function renderList() {
       ${t('list.show_more', {next})} <span>(${t('list.show_more_remaining', {remaining})})</span>
     </button>`;
   }
+}
+
+// Una bolsa como fila: "Tostador · Café", origen y datos en una línea, lo que queda y sus acciones
+function renderCoffeeRow(c) {
+  const status = getStatus(c);
+  const finished = !!c.finished_date, opened = !!c.opened_date && !finished;
+  const roasters = [c.roaster, c.producer].filter(Boolean).map(esc).join(' / ');
+  const origin = [c.origin, c.region].filter(Boolean).map(esc).join(', ');
+  const roastDays = daysFromRoast(c.roast_date);
+  const daysOpen = opened ? Math.floor((new Date() - new Date(c.opened_date)) / 86400000) : null;
+  const price = fmtPrice(c);
+  const meta = [
+    origin,
+    c.varieties?.length ? c.varieties.map(esc).join(', ') : '',
+    c.processes?.length ? c.processes.map(esc).join(', ') : '',
+    c.milk_types?.length ? c.milk_types.map(esc).join(', ') : '',
+    daysOpen !== null ? t('list.days_open_tag', {days: daysOpen, s: daysOpen !== 1 ? 's' : ''}) : '',
+  ].filter(Boolean).join(' · ');
+  const shots = opened ? shotsLeft(c) : null;
+  const lowStock = shots !== null && shots <= lowStockThreshold;
+  const qty = opened && c.remaining_g != null ? `
+      <div class="row-qty">
+        <div class="row-qty-line">
+          <span class="row-qty-value${lowStock ? ' low-stock' : ''}">${fmtGrams(c.remaining_g)}${c.quantity_g ? ` <small>/ ${fmtGrams(c.quantity_g)}</small>` : ''}</span>
+          ${shots !== null ? `<span class="row-shots${lowStock ? ' low-stock' : ''}">${lowStock ? `<span class="low-stock-icon" title="${esc(t('list.low_stock_alert'))}">${icon('alert', 'ic-sm')}</span> ` : ''}${t('list.shots_count', {shots, s: shots !== 1 ? 's' : ''})}</span>` : ''}
+        </div>
+        ${c.quantity_g ? `<div class="consume-block-track"><div class="consume-block-fill" style="width:${Math.min(100, Math.max(0, (c.remaining_g / c.quantity_g) * 100)).toFixed(1)}%"></div></div>` : ''}
+      </div>` : c.quantity_g ? `<div class="row-qty"><span class="row-qty-value">${fmtGrams(c.quantity_g)}</span></div>` : '<div class="row-qty"></div>';
+  const finishLabel = esc(t('list.btn.finish_today'));
+  const actions = finished ? '<div class="card-actions"></div>' : `<div class="card-actions" id="actions-${c.id}" onclick="event.stopPropagation()">
+      ${c.opened_date ? `<button class="btn-quick brew" type="button" onclick="openBrewModal(${c.id})">${t('detail.btn.brew')}</button>` : ''}
+      ${opened && c.remaining_g != null ? `<button class="btn-quick btn-consume" type="button" onclick="consumeShot(${c.id})">${icon('minus', 'ic-sm')} ${t('list.consume_shot')} (${fmtGrams(gramsPerShot)})</button>` : ''}
+      ${!c.opened_date ? `<button class="btn-quick open" type="button" onclick="showOpenDatePicker(event,${c.id})">${t('list.btn.open_today')}</button>` : ''}
+      ${c.opened_date ? `<button class="btn-quick finish" type="button" onclick="quickFinish(event,${c.id})" title="${finishLabel}" aria-label="${finishLabel}">${icon('check')}</button>` : ''}
+    </div>`;
+  return `<div class="coffee-card coffee-row ${finished ? 'finished-coffee' : opened ? 'active-coffee' : ''}" onclick="showDetail(${c.id})">
+      <div class="row-main">
+        <div class="row-name">${roasters ? `<span class="coffee-sub">${roasters} ·</span> ` : ''}<span class="coffee-name">${esc(c.name)}</span>${c.rating ? ` <span class="coffee-rating">${stars(c.rating)}</span>` : ''}</div>
+        <div class="row-meta">${meta}</div>
+        ${price ? `<div class="row-meta row-price">${price}</div>` : ''}
+        ${!finished && roastDays !== null && roastDays < 14 ? `<div class="row-meta fresh-warning">${t('list.fresh_tag', {days: 14 - roastDays})}</div>` : ''}
+        ${c.notes ? `<div class="coffee-notes">${esc(c.notes)}</div>` : ''}
+        <span class="tag row-status ${status.cls}">${status.label}</span>
+      </div>
+      ${qty}
+      ${actions}
+    </div>`;
+}
+
+// Resumen bajo el título: lo que hay en uso, sea cual sea el filtro de la lista
+let _summaryTimer = null;
+function scheduleListSummary() {
+  clearTimeout(_summaryTimer);
+  _summaryTimer = setTimeout(async () => {
+    try {
+      const r = await fetch('/api/stats');
+      if (!r.ok) return;
+      const st = await r.json();
+      const pending = st.total - st.finished - st.active;
+      setPageSummary('list', t('list.summary', {active: `<b>${st.active}</b>`, s: st.active !== 1 ? 's' : '',
+        grams: `<b>${fmtGrams(st.active_weight_g)}</b>`, pending: `<b>${pending}</b>`}));
+    } catch (_) {}
+  }, 150);
 }
 
 function loadMore() {

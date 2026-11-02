@@ -454,5 +454,6 @@
   "grind.stats_unclear": "No clear drift in the data yet (best fit: days {basis}).",
   "grind.stats_help": "Grind change per week that keeps the same flow (negative = finer). Highlighted: the basis that best explains your shots.",
   "scale.row.irregular_short": "irregular",
-  "nav.add": "Add coffee"
+  "nav.add": "Add coffee",
+  "list.summary": "{active} open, {grams} in use, {pending} unopened"
 }
