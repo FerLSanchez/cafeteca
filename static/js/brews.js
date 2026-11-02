@@ -479,6 +479,7 @@ async function _submitBrew() {
     fetchAndRender();
   }
   refreshBrewViews();
+  refreshPendingCount();
 }
 
 function refreshBrewViews() {
@@ -511,8 +512,28 @@ async function quickRateBrew(id, rating, btn) {
   afterQuickRate(id);
 }
 
+// Shots de báscula por valorar: aviso en Prepas para que no se olviden. Si falla, sin aviso ni error.
+async function refreshPendingCount() {
+  const el = document.getElementById('nav-count-brews');
+  let count = 0;
+  try {
+    const d = new Date();
+    d.setDate(d.getDate() - QUICK_RATE_DAYS);
+    const since = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const r = await fetch('/api/brews/pending?since=' + since);
+    if (r.ok) count = (await r.json()).count;
+  } catch (_) {}
+  el.textContent = count || '';
+  el.hidden = !count;
+  const label = count ? t('brew.pending', {count, s: count !== 1 ? 's' : ''}) : '';
+  const item = el.closest('.bnav-item');
+  item.setAttribute('aria-label', [t('nav.tab.brews'), label].filter(Boolean).join(', '));
+  setPageSummary('brews', esc(label));
+}
+
 // Repinta cuando ya no queda nada por valorar (estrellas + equilibrio); mientras, se queda a la vista
 function afterQuickRate(id) {
+  refreshPendingCount();
   if (_brewCache[id] && canQuickRate(_brewCache[id])) return;
   setTimeout(() => {
     const coffeeId = currentDetail?.id;
@@ -529,6 +550,7 @@ async function deleteBrew(id, coffeeId) {
     onConfirm: async () => {
       await api('/brews/' + id, { method: 'DELETE' });
       showToast(t('toast.brew_deleted'));
+      refreshPendingCount();
       if (coffeeId) renderBrewsSection(coffeeId);
       if (document.getElementById('page-brews')?.classList.contains('active')) loadBrews();
     }

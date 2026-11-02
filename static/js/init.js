@@ -9,6 +9,7 @@ async function init() {
   grindStep = settings.grind_step ?? 1;
   restoreListPrefs();
   await fetchAndRender();
+  refreshPendingCount();
 }
 
 // Close modals on overlay click (not the ones with data being entered, e.g. mid-shot)

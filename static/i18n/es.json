@@ -461,5 +461,6 @@
   "scale.shot.of_target": "de {g} g",
   "scale.flow.in_band": "En banda",
   "scale.flow.slow": "Lento",
-  "scale.flow.fast": "Rápido"
+  "scale.flow.fast": "Rápido",
+  "brew.pending": "{count} shot{s} por valorar"
 }

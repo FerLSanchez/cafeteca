@@ -461,5 +461,6 @@
   "scale.shot.of_target": "of {g} g",
   "scale.flow.in_band": "In band",
   "scale.flow.slow": "Slow",
-  "scale.flow.fast": "Fast"
+  "scale.flow.fast": "Fast",
+  "brew.pending": "{count} shot{s} to rate"
 }

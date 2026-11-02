@@ -120,6 +120,23 @@ const end = (page, t, weight) => page.evaluate(([t, weight]) => {
     assert.strictEqual(brews[0].rating, null);
     assert.ok(await page.locator('.toast.show').isVisible(), 'con su aviso');
     assert.strictEqual(await page.locator('.shot-stage').count(), 0, 'el shot se cierra');
+
+    // Aviso en Prepas hasta tener estrellas y equilibrio
+    await page.waitForFunction(() => !document.getElementById('nav-count-brews').hidden);
+    assert.strictEqual(await page.textContent('#nav-count-brews'), '1');
+    await page.evaluate(() => showPage('brews'));
+    assert.match(await page.textContent('#page-summary'), /1 shot por valorar/);
+    const brewId = brews[0].id;
+    await page.click(`.brew-card:has(.quick-star) .quick-star >> nth=4`);
+    await page.waitForSelector('.taste-scale[data-field="taste_balance"]');
+    assert.strictEqual(await page.textContent('#nav-count-brews'), '1', 'con estrellas sin equilibrio sigue pendiente');
+    await page.click('.taste-scale[data-field="taste_balance"] .taste-seg[data-val="1"]');
+    await page.waitForFunction(() => document.getElementById('nav-count-brews').hidden);
+    assert.strictEqual((await api(page, 'GET', `/api/brews/pending?since=2000-01-01`)).count, 0, `brew ${brewId} valorado`);
+    // Un brew manual no avisa
+    await api(page, 'POST', `/api/coffees/${coffee.id}/brews`, {dose_g: 17, yield_g: 36, brew_date: new Date().toISOString().slice(0, 10)});
+    await page.evaluate(() => refreshPendingCount());
+    assert.ok(await page.$eval('#nav-count-brews', el => el.hidden));
     await ctx.close();
   }
 

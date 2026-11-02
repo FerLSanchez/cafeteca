@@ -72,6 +72,24 @@ def list_brews():
     return jsonify({'brews': result, 'total': total, 'has_more': offset + len(result) < total})
 
 
+@bp.route('/api/brews/pending')
+def pending_brews():
+    """Shots de báscula por valorar desde `since` (la fecha la pone el cliente: el servidor va en UTC)."""
+    since = request.args.get('since', '')
+    try:
+        datetime.strptime(since, '%Y-%m-%d')
+    except ValueError:
+        return jsonify({'error': 'Formato de fecha inválido (esperado YYYY-MM-DD)',
+                        'error_key': 'error.coffee.invalid_date'}), 400
+    with db_conn() as conn:
+        count = conn.execute('''
+            SELECT COUNT(*) FROM brews
+            WHERE shot_metrics IS NOT NULL AND brew_date >= ?
+              AND (rating IS NULL OR taste_balance IS NULL)
+        ''', (since,)).fetchone()[0]
+    return jsonify({'count': count})
+
+
 @bp.route('/api/brews/purge', methods=['DELETE'])
 def purge_old_brews():
     data = request.get_json(silent=True) or {}
