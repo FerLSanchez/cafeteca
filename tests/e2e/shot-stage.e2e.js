@@ -135,6 +135,21 @@ const end = (page, t, weight) => page.evaluate(([t, weight]) => {
     await page.click('.taste-scale[data-field="taste_balance"] .taste-seg[data-val="1"]');
     await page.waitForFunction(() => document.getElementById('nav-count-brews').hidden);
     assert.strictEqual((await api(page, 'GET', `/api/brews/pending?since=2000-01-01`)).count, 0, `brew ${brewId} valorado`);
+    // El aviso se pone al día al volver a la app y al borrar un café
+    const stale = await api(page, 'POST', `/api/coffees/${coffee.id}/brews`, {dose_g: 17, brew_date: new Date().toLocaleDateString('sv'), shot_metrics: {main_flow: 1.5}});
+    await page.evaluate(() => refreshPendingCount());
+    await page.waitForFunction(() => !document.getElementById('nav-count-brews').hidden);
+    await api(page, 'DELETE', `/api/brews/${stale.id}`);
+    await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+    await page.waitForFunction(() => document.getElementById('nav-count-brews').hidden, null, {timeout: 3000});
+    await api(page, 'POST', `/api/coffees/${coffee.id}/brews`, {dose_g: 17, brew_date: new Date().toLocaleDateString('sv'), shot_metrics: {main_flow: 1.5}});
+    await page.evaluate(() => refreshPendingCount());
+    await page.waitForFunction(() => !document.getElementById('nav-count-brews').hidden);
+    await page.evaluate(c => { showPage('list'); openEditModal(c); deleteCoffee(); }, coffee);
+    await page.click('#confirm-action-btn');
+    await page.waitForFunction(() => document.getElementById('nav-count-brews').hidden, null, {timeout: 3000});
+    const other = await api(page, 'POST', '/api/coffees', {name: 'Otro ' + Math.random(), opened_date: '2026-10-01', quantity_g: 250, remaining_g: 200});
+    coffee.id = other.id;
     // Un brew manual no avisa
     await api(page, 'POST', `/api/coffees/${coffee.id}/brews`, {dose_g: 17, yield_g: 36, brew_date: new Date().toISOString().slice(0, 10)});
     await page.evaluate(() => refreshPendingCount());
@@ -183,10 +198,25 @@ const end = (page, t, weight) => page.evaluate(([t, weight]) => {
     await ctx.close();
   }
 
+  // Pantalla final: el resumen no pisa los botones, y la palabra del flujo es la del shot, no la de la última lectura
+  {
+    const {ctx, page} = await open({viewport: {width: 412, height: 640}});
+    await feed(page, ramp(0.25, 14, 1.6));
+    await feed(page, ramp(14.25, 17, 0.3, 22.4));
+    assert.strictEqual(await page.textContent('[data-k=flow-state]'), 'Lento', 'en la cola, lento');
+    await end(page, 17.25, 23.2);
+    await page.waitForSelector('#b-shot-live .shot-summary:not([hidden])');
+    assert.strictEqual(await page.textContent('[data-k=flow-state]'), 'En banda', 'al terminar manda el flujo principal');
+    const sum = await page.locator('#b-shot-live .shot-summary').boundingBox();
+    const act = await page.locator('#b-shot-live .shot-actions').boundingBox();
+    assert.ok(sum.y + sum.height <= act.y, `resumen ${sum.y + sum.height} sobre botones ${act.y}`);
+    await ctx.close();
+  }
+
   // Móvil apaisado sobre la encimera: peso, flujo y cancelar a la vista
   {
     const {ctx, page} = await open({viewport: {width: 844, height: 390}});
-    for (const sel of ['[data-k=weight]', '[data-k=flow]', '.shot-actions button']) {
+    for (const sel of ['[data-k=weight]', '[data-k=flow]', '.shot-actions button', '.shot-sound']) {
       const b = await page.locator(`#b-shot-live ${sel}`).first().boundingBox();
       assert.ok(b && b.y >= 0 && b.y + b.height <= 390 && b.x + b.width <= 844, `${sel} visible: ${JSON.stringify(b)}`);
     }

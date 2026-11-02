@@ -48,6 +48,20 @@ const LONG = 'Café con un nombre de cuarenta caracteres';
     await page.selectOption('#sort-select', 'smart');
     await page.close();
   }
+  // Lista plana larga: con "Mostrar más" debajo, cada fila sigue diciendo su estado
+  {
+    const page = await browser.newPage({viewport: {width: 390, height: 900}, serviceWorkers: 'block'});
+    await page.goto(BASE + '/');
+    await page.waitForFunction(() => typeof fetchAndRender === 'function' && document.querySelector('#page-title')?.textContent);
+    await page.evaluate(async () => {
+      for (let i = 0; i < 18; i++) await fetch('/api/coffees', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({name: 'Lote ' + i})});
+    });
+    await page.evaluate(() => { setStatus('', document.querySelector('.fb[onclick*="setStatus(\'\'"]')); });
+    await page.waitForSelector('.btn-load-more');
+    await page.selectOption('#sort-select', 'name_asc');
+    assert.ok(await page.locator('.coffee-row .row-status').first().isVisible(), 'estado visible en lista plana con "Mostrar más"');
+    await page.close();
+  }
   await browser.close();
   console.log('ok — list rows');
 })().catch(e => { console.error(e.message || e); process.exit(1); });

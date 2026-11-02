@@ -71,6 +71,16 @@ const WIDTHS = [390, 640, 768, 820, 1024, 1280, 1440];
     await check('catalogo', () => showPage('catalog'));
     await page.close();
   }
+  // Móvil apaisado con la báscula: el raíl entero cabe y Ajustes se alcanza
+  {
+    const page = await browser.newPage({viewport: {width: 844, height: 390}, serviceWorkers: 'block'});
+    await page.goto(BASE + '/');
+    await page.waitForFunction(() => typeof fetchAndRender === 'function' && document.querySelector('[data-i18n]')?.textContent);
+    await page.evaluate(() => { document.getElementById('scale-chip').hidden = false; });
+    const b = await page.locator('#settings-btn').boundingBox();
+    assert.ok(b.y + b.height <= 390, `Ajustes dentro a 844×390: ${JSON.stringify(b)}`);
+    await page.close();
+  }
   await browser.close();
   assert.deepStrictEqual(errors, []);
   assert.deepStrictEqual(failures, [], `\n${failures.join('\n')}`);

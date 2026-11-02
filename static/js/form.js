@@ -146,6 +146,7 @@ function deleteCoffee() {
       closeModal('modal-form');
       showToast(t('toast.coffee_deleted'));
       await fetchAndRender();
+      refreshPendingCount();
     }
   });
 }

@@ -111,7 +111,7 @@ function renderList() {
   ].filter(([, list]) => list.length) : [];
   el.innerHTML = groups.length > 1
     ? groups.map(([key, list]) => `<h2 class="list-group-head">${t(key)}</h2><div class="coffee-group${compactList ? ' compact' : ''}">${rows(list)}</div>`).join('')
-    : `<div class="coffee-group${compactList ? ' compact' : ''}">${rows(visible)}</div>`;
+    : `<div class="coffee-group flat${compactList ? ' compact' : ''}">${rows(visible)}</div>`;
 
   if (showing < total) {
     const remaining = total - showing;

@@ -10,6 +10,8 @@ async function init() {
   restoreListPrefs();
   await fetchAndRender();
   refreshPendingCount();
+  // Una app abierta días: el aviso caduca con la ventana de valorar
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshPendingCount(); });
 }
 
 // Close modals on overlay click (not the ones with data being entered, e.g. mid-shot)

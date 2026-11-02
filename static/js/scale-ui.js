@@ -228,18 +228,23 @@ function createShotView(root, opts) {
     if (!document.querySelector('.shot-stage')) document.body.classList.remove('shot-open');
   };
 
-  const renderLive = (s, flow) => {
-    const running = tracker.state !== 'waiting';
-    const last = tracker.samples[tracker.samples.length - 1];
-    q('[data-k=time]').textContent = running && last ? fmtNum(last.t, 1) : fmtNum(0, 1);
-    q('[data-k=weight]').textContent = fmtG(running && last ? last.weight : Math.max(0, s.weight));
-    q('[data-k=flow]').textContent = flow == null ? '—' : fmtNum(Math.max(0, flow), 1);
+  // Número y palabra del flujo van juntos: la lectura en vivo y, al terminar, el flujo principal
+  const setFlowState = flow => {
     const flowEl = q('[data-k=flow]');
     flowEl.classList.toggle('in-band', !!opts.target && flow != null && Math.abs(flow - opts.target) <= opts.tol);
     flowEl.classList.toggle('over', !!opts.target && flow != null && flow > opts.target + opts.tol);
     flowEl.classList.toggle('under', !!opts.target && flow != null && flow < opts.target - opts.tol);
     q('[data-k=flow-state]').textContent = !opts.target || flow == null ? ''
       : t(flowEl.classList.contains('in-band') ? 'scale.flow.in_band' : flowEl.classList.contains('over') ? 'scale.flow.fast' : 'scale.flow.slow');
+  };
+
+  const renderLive = (s, flow) => {
+    const running = tracker.state !== 'waiting';
+    const last = tracker.samples[tracker.samples.length - 1];
+    q('[data-k=time]').textContent = running && last ? fmtNum(last.t, 1) : fmtNum(0, 1);
+    q('[data-k=weight]').textContent = fmtG(running && last ? last.weight : Math.max(0, s.weight));
+    q('[data-k=flow]').textContent = flow == null ? '—' : fmtNum(Math.max(0, flow), 1);
+    setFlowState(flow);
     const w = running && last ? last.weight : 0;
     q('[data-k=ratio]').textContent = opts.dose && w > 0 ? `1:${fmtNum((w / opts.dose), 2)}` : '';
     if (opts.targetYield) {
@@ -282,6 +287,7 @@ function createShotView(root, opts) {
     q('[data-k=time]').textContent = fmtNum((r.time_ms / 1000), 1);
     q('[data-k=weight]').textContent = fmtG(r.yield_g);
     q('[data-k=flow]').textContent = metrics?.main_flow != null ? fmtNum(metrics.main_flow, 2) : '—';
+    setFlowState(metrics?.main_flow ?? null);
     q('.shot-summary').hidden = false;
     q('.shot-summary').innerHTML = shotSummaryHtml(metrics, r, opts);
     opts.onDone?.(r, metrics, curveFromShot(tracker.samples, r));
