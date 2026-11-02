@@ -32,10 +32,10 @@ async function loadCatalog() {
           <span class="catalog-title">${getCatalogLabels()[table]}</span>
           ${badge}
         </div>
-        <span id="cat-arrow-${table}" style="color:var(--text3)">${icon('chevron-right', 'ic-sm')}</span>
+        <span id="cat-arrow-${table}" style="color:var(--ink-muted)">${icon('chevron-right', 'ic-sm')}</span>
       </div>
       <div class="catalog-body" id="catbody-${table}">
-        ${rows || `<div style="padding:14px 16px;color:var(--text3);font-size:13px">${t('catalog.no_entries')}</div>`}
+        ${rows || `<div style="padding:14px 16px;color:var(--ink-muted);font-size:13px">${t('catalog.no_entries')}</div>`}
         ${purgeBtn}
       </div>
     </div>`;

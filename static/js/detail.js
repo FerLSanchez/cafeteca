@@ -122,7 +122,7 @@ function showDetail(id, coffee = null) {
         <span class="remaining-edit-row">
           <input class="remaining-input" type="number" id="remaining-input" value="${c.remaining_g ?? ''}" min="0"
             onkeydown="if(event.key==='Enter')saveRemaining(${c.id});if(event.key==='Escape'){event.stopPropagation();cancelEditRemaining()}">
-          <span style="color:var(--text3);font-size:13px">g</span>
+          <span style="color:var(--ink-muted);font-size:13px">g</span>
           <button class="btn-quick open" onclick="saveRemaining(${c.id})" aria-label="${t('form.btn.save_coffee')}">${icon('check')}</button>
           <button class="btn-quick" onclick="cancelEditRemaining()" aria-label="${t('form.btn.cancel')}">${icon('x')}</button>
         </span>

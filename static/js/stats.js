@@ -7,7 +7,7 @@ async function loadStats() {
 
   const pending = s.total - s.active - s.finished;
   document.getElementById('stats-grid').innerHTML = `
-    <div class="stat-card stat-card-stock" style="grid-column:1/-1">
+    <div class="stat-card" style="grid-column:1/-1">
       <div class="stat-inline-row">
         <div class="stat-inline-item">
           <div class="stat-val">${s.active_weight_g ? fmtWeight(s.active_weight_g) : '–'}</div>
@@ -22,7 +22,7 @@ async function loadStats() {
         </div>
         <div class="stat-inline-sep"></div>
         <div class="stat-inline-item">
-          <div class="stat-val">${s.avg_cost_kg ? s.avg_cost_kg + '€' : '–'}</div>
+          <div class="stat-val">${s.avg_cost_kg ? fmtNum(s.avg_cost_kg, 2) + ' €' : '–'}</div>
           <div class="stat-label">${t('stats.avg_cost')}</div>
         </div>
       </div>
@@ -49,11 +49,11 @@ function renderStatsHero(s) {
     <div class="stats-hero">
       <div class="stats-hero-label">${t('stats.this_month')}</div>
       <div class="stats-hero-sublabel">${t('stats.based_on_brews')}</div>
-      <div class="stats-hero-big">${m.consumed_g ?? 0}<span class="stats-hero-big-unit">g ${t('stats.consumed')}</span></div>
+      <div class="stats-hero-big">${fmtNum(m.consumed_g ?? 0, Number.isInteger(+(m.consumed_g ?? 0)) ? 0 : 1)}<span class="stats-hero-big-unit">g ${t('stats.consumed')}</span></div>
       <div class="stats-hero-row">
         <div><div class="v">${m.brews_count ?? 0}</div><div class="k">${t('stats.preparations')}</div></div>
         <div><div class="v">★ ${m.avg_rating != null ? fmtNum(m.avg_rating, 1) : '—'}</div><div class="k">${t('stats.avg_rating')}</div></div>
-        <div><div class="v">${s.days_per_kg != null ? s.days_per_kg + 'd' : '—'}</div><div class="k">${t('stats.per_kg')}</div></div>
+        <div><div class="v">${s.days_per_kg != null ? fmtNum(s.days_per_kg, 1) + ' d' : '—'}</div><div class="k">${t('stats.per_kg')}</div></div>
       </div>
     </div>
   `;
@@ -110,7 +110,7 @@ function renderStatsGantt() {
         <div class="stats-gantt-scale">
           ${ticks.map(d => `<span class="stats-gantt-scale-tick" style="left:${((d - 0.5) / dim * 100).toFixed(1)}%">${d}</span>`).join('')}
         </div>
-        ${rows || `<div style="grid-column:1/-1;font-size:12px;color:var(--text3);padding:8px 0">${t('stats.no_consumption', {month: getMonthNames()[calMonth].toLowerCase(), year: calYear})}</div>`}
+        ${rows || `<div style="grid-column:1/-1;font-size:12px;color:var(--ink-muted);padding:8px 0">${t('stats.no_consumption', {month: getMonthNames()[calMonth].toLowerCase(), year: calYear})}</div>`}
       </div>
     </div>
   `;

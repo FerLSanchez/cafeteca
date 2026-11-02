@@ -40,7 +40,7 @@ async function loadBrews(reset = true) {
 
   const el = document.getElementById('brews-list');
   if (reset && !brews.length) {
-    el.innerHTML = `<div style="text-align:center;padding:40px;color:var(--text3)">${t('brew.empty')}</div>`;
+    el.innerHTML = `<div style="text-align:center;padding:40px;color:var(--ink-muted)">${t('brew.empty')}</div>`;
     return;
   }
   if (reset) el.innerHTML = '';
@@ -174,7 +174,7 @@ async function renderRecipeSection(coffeeId) {
         <div class="recipe-header">
           <span class="recipe-label">${t('recipe.label')}</span>
           <button class="btn-inline-edit" onclick="openRecipeModal(${coffeeId})" title="${esc(t('recipe.btn.edit'))}" aria-label="${esc(t('recipe.btn.edit'))}">${icon('edit')}</button>
-          <button class="btn-inline-edit" onclick="confirmDeleteRecipe(${coffeeId})" title="${esc(t('recipe.btn.delete'))}" aria-label="${esc(t('recipe.btn.delete'))}" style="color:var(--text3)">${icon('trash')}</button>
+          <button class="btn-inline-edit" onclick="confirmDeleteRecipe(${coffeeId})" title="${esc(t('recipe.btn.delete'))}" aria-label="${esc(t('recipe.btn.delete'))}" style="color:var(--ink-muted)">${icon('trash')}</button>
         </div>
         <div class="recipe-summary">${esc(recipeSummaryLine(recipe))}</div>
         <div class="form-hint">${esc(t('recipe.hint'))}</div>
@@ -182,7 +182,7 @@ async function renderRecipeSection(coffeeId) {
   } else {
     el.innerHTML = `
       <div class="recipe-section recipe-empty">
-        <span style="color:var(--text3);font-size:13px">${t('recipe.no_recipe')}</span>
+        <span style="color:var(--ink-muted);font-size:13px">${t('recipe.no_recipe')}</span>
         <button class="btn-add-recipe" onclick="openRecipeModal(${coffeeId})">${t('recipe.add_btn')}</button>
       </div>`;
   }
@@ -211,7 +211,7 @@ async function renderBrewsSection(coffeeId) {
         <span class="detail-brew-rating">${canQuickRate(b) ? '' : b.rating ? stars(b.rating) : '—'}</span>
         ${b.rating >= 4 ? `<button class="btn-inline-edit" onclick="saveBrewAsRecipe(${b.id},${coffeeId})" title="${esc(t('brew.btn.save_recipe'))}" aria-label="${esc(t('brew.btn.save_recipe'))}">${icon('clipboard')}</button>` : ''}
         <button class="btn-inline-edit" onclick="openBrewModal(${coffeeId},${b.id})" title="${esc(t('brew.btn.edit'))}" aria-label="${esc(t('brew.btn.edit'))}">${icon('edit')}</button>
-        <button class="btn-inline-edit" onclick="deleteBrew(${b.id}, ${coffeeId})" title="${esc(t('brew.btn.delete'))}" aria-label="${esc(t('brew.btn.delete'))}" style="color:var(--text3)">${icon('trash')}</button>
+        <button class="btn-inline-edit" onclick="deleteBrew(${b.id}, ${coffeeId})" title="${esc(t('brew.btn.delete'))}" aria-label="${esc(t('brew.btn.delete'))}" style="color:var(--ink-muted)">${icon('trash')}</button>
         ${tasteLine(b) && !canQuickRate(b) ? `<div class="brew-taste-line detail-brew-metrics">${esc(tasteLine(b))}</div>` : ''}
         ${b.shot_metrics ? `<div class="brew-metrics detail-brew-metrics">${b.shot_curve ? curveSparkline(b.shot_curve) : ''}${esc(brewMetricsLine(b))}</div>` : ''}
         ${canQuickRate(b) ? `<div class="detail-brew-quick">${quickRateHtml(b)}</div>` : ''}

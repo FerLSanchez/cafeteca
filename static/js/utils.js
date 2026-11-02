@@ -11,7 +11,7 @@ function icon(name, extraClass) {
 // ---------------------------------------------------------------------------
 function stars(rating) {
   const r = parseInt(rating, 10);
-  if (!r||r<1||r>5) return `<span style="color:var(--text3);font-size:13px">${t('status.unrated')}</span>`;
+  if (!r||r<1||r>5) return `<span style="color:var(--ink-muted);font-size:13px">${t('status.unrated')}</span>`;
   return [1,2,3,4,5].map(i=>`<span class="star ${i<=r?'filled':''}">★</span>`).join('');
 }
 
