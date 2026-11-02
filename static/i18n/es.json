@@ -455,5 +455,11 @@
   "grind.stats_help": "Cambio de molienda por semana que mantiene el mismo flujo (negativo = más fino). Resaltada, la base que mejor explica tus shots.",
   "scale.row.irregular_short": "irregular",
   "nav.add": "Añadir café",
-  "list.summary": "{active} abierto{s}, {grams} en uso, {pending} sin abrir"
+  "list.summary": "{active} abierto{s}, {grams} en uso, {pending} sin abrir",
+  "scale.shot.back": "Volver a la preparación",
+  "scale.shot.time": "Tiempo",
+  "scale.shot.of_target": "de {g} g",
+  "scale.flow.in_band": "En banda",
+  "scale.flow.slow": "Lento",
+  "scale.flow.fast": "Rápido"
 }

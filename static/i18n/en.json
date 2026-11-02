@@ -455,5 +455,11 @@
   "grind.stats_help": "Grind change per week that keeps the same flow (negative = finer). Highlighted: the basis that best explains your shots.",
   "scale.row.irregular_short": "irregular",
   "nav.add": "Add coffee",
-  "list.summary": "{active} open, {grams} in use, {pending} unopened"
+  "list.summary": "{active} open, {grams} in use, {pending} unopened",
+  "scale.shot.back": "Back to the brew",
+  "scale.shot.time": "Time",
+  "scale.shot.of_target": "of {g} g",
+  "scale.flow.in_band": "In band",
+  "scale.flow.slow": "Slow",
+  "scale.flow.fast": "Fast"
 }

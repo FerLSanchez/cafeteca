@@ -148,20 +148,26 @@ function brewScaleDoseStop(keepMsg = false) {
 // Vista de shot en vivo (modo auto) — reutilizada por el brew y la página de prueba (§5.2, §5.4)
 // ---------------------------------------------------------------------------
 function createShotView(root, opts) {
-  // opts: {dose, target, tol, targetYield, stopDelay, compare, onDone(r, metrics, curve), onCancel, onRetry}
+  // opts: {dose, target, tol, targetYield, stopDelay, compare, onDone(r, metrics, curve), onCancel, onRetry,
+  //        onSave, saveLabel(), onBack, stageOnRun}
+  // Pantalla completa desde que se abre, o desde que arranca el shot con stageOnRun (página de prueba)
   root.innerHTML = `
-    <div class="shot-status"></div>
-    <div class="shot-stats">
-      <div><span class="shot-num" data-k="time">0.0</span><span class="shot-unit">s</span></div>
-      <div><span class="shot-num" data-k="weight">0.0</span><span class="shot-unit">g</span></div>
-      <div><span class="shot-num shot-flow" data-k="flow">—</span><span class="shot-unit">g/s</span></div>
+    <div class="shot-panel">
+      <div class="shot-top"><div class="shot-status"></div><div class="shot-conn"></div></div>
+      <div class="shot-weight"><span class="shot-num" data-k="weight">0.0</span><span class="shot-unit">g</span></div>
+      <div class="shot-sub"><span data-k="yield-target"></span><span data-k="ratio"></span></div>
+      <div class="shot-progress" hidden><div class="shot-progress-bar"></div></div>
+      <div class="shot-stats">
+        <div><div><span class="shot-num" data-k="time">0.0</span><span class="shot-unit">s</span></div><div class="shot-label">${esc(t('scale.shot.time'))}</div></div>
+        <div><div><span class="shot-num shot-flow" data-k="flow">—</span><span class="shot-unit">g/s</span></div><div class="shot-label"><span class="shot-flow-state" data-k="flow-state"></span> <span data-k="target"></span></div></div>
+      </div>
+      <div class="shot-cue" hidden><span></span>${stopSoundButtonHtml()}</div>
+      <div class="shot-actions"></div>
     </div>
-    <div class="shot-sub"><span data-k="ratio"></span><span data-k="target"></span></div>
-    <div class="shot-progress" hidden><div class="shot-progress-bar"></div></div>
-    <div class="shot-cue" hidden><span></span>${stopSoundButtonHtml()}</div>
-    <canvas class="shot-chart"></canvas>
-    <div class="shot-summary" hidden></div>
-    <div class="shot-actions"></div>`;
+    <div class="shot-graph">
+      <canvas class="shot-chart"></canvas>
+      <div class="shot-summary" hidden></div>
+    </div>`;
   const q = sel => root.querySelector(sel);
   const canvas = q('.shot-chart');
   // Curva fantasma: el mejor shot valorado del mismo café (si guardó curva)
@@ -182,12 +188,45 @@ function createShotView(root, opts) {
 
   const setStatus = key => { q('.shot-status').textContent = t(key); };
   setStatus('scale.shot.waiting');
-  const setAction = (label, fn) => {
-    q('.shot-actions').innerHTML = fn ? `<button type="button" class="btn-secondary">${esc(label)}</button>` : '';
-    if (fn) q('.shot-actions button').onclick = fn;
+  // [{label, fn, cls}]: las que no tienen acción no se pintan
+  const setActions = list => {
+    const el = q('.shot-actions');
+    el.innerHTML = '';
+    for (const {label, fn, cls = 'btn-secondary'} of list) {
+      if (!fn) continue;
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = cls;
+      b.textContent = label;
+      b.onclick = fn;
+      el.append(b);
+    }
   };
-  setAction(t('scale.shot.cancel'), opts.onCancel);
+  setActions([{label: t('scale.shot.cancel'), fn: opts.onCancel}]);
   if (opts.target) q('[data-k=target]').textContent = t('scale.shot.target', {target: fmtNum(opts.target, 1), tol: fmtNum(opts.tol, 1)});
+  if (opts.targetYield) q('[data-k=yield-target]').textContent = t('scale.shot.of_target', {g: fmtG(opts.targetYield)});
+
+  const onConn = () => {
+    const on = scaleConnected();
+    q('.shot-conn').textContent = t(on ? 'scale.chip.title' : 'scale.disconnected');
+    q('.shot-conn').classList.toggle('off', !on);
+  };
+  onConn();
+  scale.bus.addEventListener('scale:connected', onConn);
+  scale.bus.addEventListener('scale:disconnected', onConn);
+
+  const enterStage = () => {
+    if (root.classList.contains('shot-stage')) return;
+    root.classList.add('shot-stage', 'theme-dark');
+    document.body.classList.add('shot-open');
+    root.tabIndex = -1;
+    root.focus({preventScroll: true});
+    drawShotChart(canvas, tracker.samples, opts);
+  };
+  const leaveStage = () => {
+    root.classList.remove('shot-stage', 'theme-dark');
+    if (!document.querySelector('.shot-stage')) document.body.classList.remove('shot-open');
+  };
 
   const renderLive = (s, flow) => {
     const running = tracker.state !== 'waiting';
@@ -198,6 +237,9 @@ function createShotView(root, opts) {
     const flowEl = q('[data-k=flow]');
     flowEl.classList.toggle('in-band', !!opts.target && flow != null && Math.abs(flow - opts.target) <= opts.tol);
     flowEl.classList.toggle('over', !!opts.target && flow != null && flow > opts.target + opts.tol);
+    flowEl.classList.toggle('under', !!opts.target && flow != null && flow < opts.target - opts.tol);
+    q('[data-k=flow-state]').textContent = !opts.target || flow == null ? ''
+      : t(flowEl.classList.contains('in-band') ? 'scale.flow.in_band' : flowEl.classList.contains('over') ? 'scale.flow.fast' : 'scale.flow.slow');
     const w = running && last ? last.weight : 0;
     q('[data-k=ratio]').textContent = opts.dose && w > 0 ? `1:${fmtNum((w / opts.dose), 2)}` : '';
     if (opts.targetYield) {
@@ -209,7 +251,10 @@ function createShotView(root, opts) {
   const unsub = scaleSubscribe(s => {
     const before = tracker.state;
     tracker.push(s);
-    if (before === 'waiting' && tracker.state === 'running') setStatus('scale.shot.running');
+    if (before === 'waiting' && tracker.state === 'running') {
+      setStatus('scale.shot.running');
+      if (opts.stageOnRun) enterStage();
+    }
     const last = tracker.samples[tracker.samples.length - 1];
     if (cd && tracker.state === 'running' && last) {
       const go = cd.push(last);
@@ -227,7 +272,9 @@ function createShotView(root, opts) {
     unsub();
     setStatus('scale.shot.done');
     const r = tracker.result;
-    if (!r) { setAction(t('scale.shot.retry'), opts.onRetry); return; }
+    const retry = {label: t('scale.shot.retry'), fn: opts.onRetry};
+    const back = {label: t('scale.shot.back'), fn: opts.onBack, cls: 'btn-secondary shot-back'};
+    if (!r) { setActions([retry, back]); return; }
     metrics = analyzeShot(tracker.samples, {target: opts.target, tol: opts.tol, ...r});
     if (metrics && cd?.startAt != null) {
       Object.assign(metrics, {stop_target_g: cd.target, stop_cue_g: cd.cue, stop_at_g: cdRun.stopAtG, stop_flow: cd.flow});
@@ -237,19 +284,26 @@ function createShotView(root, opts) {
     q('[data-k=flow]').textContent = metrics?.main_flow != null ? fmtNum(metrics.main_flow, 2) : '—';
     q('.shot-summary').hidden = false;
     q('.shot-summary').innerHTML = shotSummaryHtml(metrics, r, opts);
-    setAction(t('scale.shot.retry'), opts.onRetry);
     opts.onDone?.(r, metrics, curveFromShot(tracker.samples, r));
+    // Guardar en un toque, con la etiqueta del botón del modal; se queda abierto: nada lo cierra solo
+    setActions([{label: opts.saveLabel?.(), fn: opts.onSave, cls: 'btn-primary shot-save'}, back, retry]);
+    drawShotChart(canvas, tracker.samples, opts);
   }
 
-  const onResize = () => drawShotChart(canvas, tracker.samples, opts);
-  window.addEventListener('resize', onResize);
+  // El tamaño cambia al entrar en pantalla completa, al girar el móvil y al salir el resumen
+  const ro = new ResizeObserver(() => drawShotChart(canvas, tracker.samples, opts));
+  ro.observe(canvas);
+  if (!opts.stageOnRun) enterStage();
   drawShotChart(canvas, [], opts);
 
   return {
     destroy() {
       unsub();
       stopCountdownClear(cdRun);
-      window.removeEventListener('resize', onResize);
+      ro.disconnect();
+      scale.bus.removeEventListener('scale:connected', onConn);
+      scale.bus.removeEventListener('scale:disconnected', onConn);
+      leaveStage();
       root.innerHTML = '';
     },
     get metrics() { return metrics; },
@@ -298,7 +352,7 @@ function drawShotChart(canvas, samples, opts) {
   const dpr = window.devicePixelRatio || 1;
   const w = canvas.clientWidth, h = canvas.clientHeight;
   if (!w || !h) return;
-  if (canvas.width !== w * dpr) { canvas.width = w * dpr; canvas.height = h * dpr; }
+  if (canvas.width !== w * dpr || canvas.height !== h * dpr) { canvas.width = w * dpr; canvas.height = h * dpr; }
   const ctx = canvas.getContext('2d');
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, w, h);
@@ -313,7 +367,7 @@ function drawShotChart(canvas, samples, opts) {
   const Yf = f => h - pad.b - Math.max(0, f) / fMax * (h - pad.t - pad.b);
   const Yw = g => h - pad.b - Math.max(0, g) / wMax * (h - pad.t - pad.b);
 
-  ctx.font = '10px system-ui, sans-serif';
+  ctx.font = "11px 'Geist Mono', monospace";
   ctx.fillStyle = col('--ink-muted');
   ctx.strokeStyle = col('--line');
   ctx.lineWidth = 1;
@@ -349,7 +403,7 @@ function drawShotChart(canvas, samples, opts) {
   }
   if (series.length > 1) {
     ctx.strokeStyle = col('--accent');
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 2.5;
     ctx.beginPath();
     series.forEach((p, i) => (i ? ctx.lineTo(X(p.t), Yf(p.flow)) : ctx.moveTo(X(p.t), Yf(p.flow))));
     ctx.stroke();
@@ -374,7 +428,7 @@ async function loadStopDelay() {
 function stopCountdownRun(run, beats, cue, weightNow) {
   stopCountdownClear(run);
   const el = document.createElement('div');
-  el.className = 'stop-cd';
+  el.className = 'stop-cd theme-dark';
   el.setAttribute('role', 'alert');
   el.innerHTML = `<div class="stop-cd-num"></div>
     <div class="stop-cd-dots" aria-hidden="true">${'<i></i>'.repeat(beats)}</div>
@@ -486,6 +540,9 @@ async function brewScaleShot() {
     dose, target, tol: flowTolerance, targetYield, stopDelay: delay, compare,
     onCancel: brewShotClose,
     onRetry: brewScaleShot,
+    onBack: brewShotClose,
+    onSave: submitBrew,
+    saveLabel: () => document.getElementById('b-submit').textContent,
     onDone: (r, metrics, curve) => {
       document.getElementById('b-yield').value = r.yield_g;
       document.getElementById('b-time').value = r.time_s;
@@ -494,7 +551,6 @@ async function brewScaleShot() {
       updateBrewRatioDisplay();
     },
   });
-  root.scrollIntoView({behavior: 'smooth', block: 'start'});
 }
 
 // Quita la vista en vivo; si ya hay un shot aplicado vuelve a su resumen compacto.
@@ -508,6 +564,7 @@ function brewShotClose() {
   const b = _editBrewId ? _brewCache[_editBrewId] : null;
   if (_brewShotMetrics) brewShowShotSummary(_brewShotMetrics, _brewShotCurve);
   else if (b?.shot_metrics) brewShowShotSummary(b.shot_metrics, b.shot_curve);
+  updateBrewSteps();
 }
 
 MODAL_ON_CLOSE['modal-brew'] = () => { brewScaleDoseStop(); brewShotClose(); wakeSessionEnd('brew'); };
@@ -573,7 +630,8 @@ async function scaleTestAutoStart() {
   const targetYield = parseFloat(document.getElementById('st-yield').value) || null;
   const delay = targetYield ? await loadStopDelay() : null;
   _testShotView?.destroy();
-  _testShotView = createShotView(document.getElementById('st-shot-view'), {dose, target, tol: flowTolerance, targetYield, stopDelay: delay});
+  _testShotView = createShotView(document.getElementById('st-shot-view'), {dose, target, tol: flowTolerance, targetYield, stopDelay: delay,
+    stageOnRun: true, onCancel: scaleTestAutoStart, onBack: scaleTestAutoStart, onRetry: scaleTestAutoStart});
 }
 
 

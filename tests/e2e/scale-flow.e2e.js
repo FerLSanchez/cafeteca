@@ -107,6 +107,7 @@ async function apiCall(page, method, url, body) {
   assert.doesNotMatch(await page.textContent('#b-ratio-display'), /1,38/);
 
   // 3) Guardar con valoración: el brew lleva métricas y curva
+  await page.click('.shot-back');
   await page.click('#modal-brew .brew-star[data-val="5"]');
   await page.click('#b-submit');
   await page.waitForSelector('#modal-brew:not(.open)', {state: 'attached'});

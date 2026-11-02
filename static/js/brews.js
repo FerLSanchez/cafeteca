@@ -416,6 +416,7 @@ function updateBrewSteps() {
   const shotBtn = document.querySelector('#modal-brew .btn-shot');
   const shotFirst = !_editBrewId && !_brewShotMetrics && !!shotBtn && !shotBtn.hidden && scaleSupported();
   _bv('b-submit').className = shotFirst ? 'btn-secondary' : 'btn-primary';
+  if (shotBtn) shotBtn.classList.toggle('secondary', !shotFirst);
   syncGrindUse();
 }
 
@@ -445,7 +446,15 @@ function renderBrewRating() {
   updateBrewSteps();
 }
 
+let _brewSaving = false;
+
 async function submitBrew() {
+  if (_brewSaving) return;   // doble toque: un solo brew
+  _brewSaving = true;
+  try { await _submitBrew(); } finally { _brewSaving = false; }
+}
+
+async function _submitBrew() {
   const num = (id, parse) => { const v = parse(_bv(id).value); return Number.isNaN(v) ? null : v; };
   const dose_g    = num('b-dose', parseFloat) || null;
   const yield_g   = num('b-yield', parseFloat) || null;
