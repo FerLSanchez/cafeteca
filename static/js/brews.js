@@ -57,7 +57,7 @@ function _appendBrewCards(brews, el) {
     <div class="brew-card">
       <div class="brew-card-header">
         <span class="brew-date">${fmtDate(b.brew_date)}</span>
-        <span class="brew-rating">${canQuickRate(b) ? '' : b.rating ? stars(b.rating) : `<span style="color:var(--text3)">${t('brew.unrated')}</span>`}</span>
+        <span class="brew-rating">${canQuickRate(b) ? '' : b.rating ? stars(b.rating) : `<span class="row-muted">${t('brew.unrated')}</span>`}</span>
         <div class="brew-card-actions">
           <button class="btn-brew-edit" onclick="openBrewModal(null,${b.id})" title="${esc(t('brew.btn.edit'))}" aria-label="${esc(t('brew.btn.edit'))}">${icon('edit')}</button>
           <button class="btn-brew-delete" onclick="deleteBrew(${b.id})" title="${esc(t('brew.btn.delete'))}" aria-label="${esc(t('brew.btn.delete'))}">${icon('trash')}</button>

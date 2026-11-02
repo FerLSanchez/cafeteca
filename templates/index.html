@@ -212,7 +212,9 @@
     <h1 class="page-title" id="page-title"></h1>
     <div class="page-summary" id="page-summary" hidden></div>
   </div>
-  <div class="page-actions" id="page-actions"></div>
+  <div class="page-actions" id="page-actions">
+    <button class="btn-new-brew page-action" data-for-page="brews" type="button" hidden onclick="newBrewFromBrews()" data-i18n="brew.btn.new">Nueva preparación</button>
+  </div>
   <div class="app-tools">
     <button class="btn-icon-nav search-toggle" type="button" onclick="toggleSearch()" data-i18n-aria-label="nav.search_placeholder" data-i18n-title="nav.search_placeholder">
       <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-search"/></svg>
@@ -319,7 +321,6 @@
 
 <!-- PÁGINA: PREPAS -->
 <div class="page" id="page-brews">
-  <button class="btn-new-brew" type="button" onclick="newBrewFromBrews()" data-i18n="brew.btn.new">Nueva preparación</button>
   <div id="brews-list"><div class="loading" data-i18n="loading">Cargando...</div></div>
 </div>
 

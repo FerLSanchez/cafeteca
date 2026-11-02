@@ -103,7 +103,7 @@ function showDetail(id, coffee = null) {
   const gridHTML = [
     gridRow(t('detail.label.shop'),      c.shop,                                  t('detail.label.purchase'),   fmtDate(c.purchase_date)),
     gridRow(t('detail.label.roast'),     fmtDate(c.roast_date),                   t('detail.label.opened'),     fmtDate(c.opened_date)),
-    gridRow(t('detail.label.finished'),  fmtDate(c.finished_date),                t('detail.label.quantity'),   c.quantity_g ? c.quantity_g + 'g' : null),
+    gridRow(t('detail.label.finished'),  fmtDate(c.finished_date),                t('detail.label.quantity'),   c.quantity_g ? fmtGrams(c.quantity_g) : null),
     gridRow(t('detail.label.price_kg'),  c.price_kg ? fmtNum(c.price_kg, 2) + ' €/kg' : null, t('detail.label.total_cost'), coste),
   ].join('');
 
@@ -112,7 +112,7 @@ function showDetail(id, coffee = null) {
     <div class="detail-cell span2" id="remaining-display-row">
       <div class="detail-cell-label">${t('detail.label.remaining')}</div>
       <div class="detail-cell-val" style="display:flex;align-items:center;gap:8px">
-        <span id="remaining-display">${c.remaining_g != null ? c.remaining_g + 'g' : '—'}</span>
+        <span id="remaining-display">${c.remaining_g != null ? fmtGrams(c.remaining_g) : '—'}</span>
         <button class="btn-inline-edit" onclick="editRemainingInline(${c.id})" title="${esc(t('detail.btn.edit_remaining'))}" aria-label="${esc(t('detail.btn.edit_remaining'))}">${icon('edit')}</button>
       </div>
     </div>

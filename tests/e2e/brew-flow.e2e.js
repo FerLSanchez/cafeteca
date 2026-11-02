@@ -63,6 +63,11 @@ const BASE = process.env.BASE_URL || 'http://localhost:5399';
 
   // 3) Valorar después desde Prepas
   await page.evaluate(() => showPage('brews'));
+  // Prepas: acción en la cabecera y una sola lista con filetes, sin sombras
+  assert.ok(await page.locator('.page-actions .btn-new-brew').isVisible());
+  assert.strictEqual(await page.$eval('#brews-list', el => getComputedStyle(el).borderTopStyle), 'solid');
+  await page.waitForSelector('.brew-card');
+  assert.strictEqual(await page.$eval('.brew-card', el => getComputedStyle(el).boxShadow), 'none');
   const quick = `.brew-card:has(.brew-coffee-tag:text-is("${coffee.name}")) .quick-star`;
   await page.waitForSelector(quick);
   const rateCard = `.brew-card:has(.brew-coffee-tag:text-is("${coffee.name}"))`;
