@@ -15,13 +15,23 @@ function stars(rating) {
   return [1,2,3,4,5].map(i=>`<span class="star ${i<=r?'filled':''}">★</span>`).join('');
 }
 
-// Dibuja un canvas ahora y cada vez que cambie de tamaño (girar el móvil, redimensionar);
-// deja de observar cuando el canvas sale del DOM.
+// Colores de los tokens tal como los ve este canvas: dentro del shot en vivo (.theme-dark)
+// son los del tema oscuro aunque el resto de la app esté en claro.
+function canvasColors(canvas) {
+  const css = getComputedStyle(canvas);
+  return name => css.getPropertyValue(name).trim();
+}
+
+// Dibuja un canvas ahora y cada vez que cambie de tamaño (girar el móvil, redimensionar) o de
+// tema (claro/oscuro del sistema); deja de observar cuando el canvas sale del DOM.
 function drawCanvasFitted(canvas, draw) {
   if (typeof ResizeObserver === 'undefined') { draw(); return; }
   let lastW = -1;
+  const scheme = window.matchMedia('(prefers-color-scheme: dark)');
+  const onScheme = () => { if (canvas.isConnected) draw(); else scheme.removeEventListener('change', onScheme); };
+  scheme.addEventListener('change', onScheme);
   const ro = new ResizeObserver(() => {
-    if (!canvas.isConnected) { ro.disconnect(); return; }
+    if (!canvas.isConnected) { ro.disconnect(); scheme.removeEventListener('change', onScheme); return; }
     if (canvas.clientWidth === lastW) return;
     lastW = canvas.clientWidth;
     draw();

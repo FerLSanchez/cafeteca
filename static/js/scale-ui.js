@@ -300,8 +300,7 @@ function drawShotChart(canvas, samples, opts) {
   const ctx = canvas.getContext('2d');
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, w, h);
-  const css = getComputedStyle(document.documentElement);
-  const col = name => css.getPropertyValue(name).trim();
+  const col = canvasColors(canvas);
   const series = samples.length >= 3 ? flowSeries(samples).filter(p => p.flow !== null) : [];
   const ghost = opts.ghostSeries || [];
   const tMax = Math.max(30, ...samples.map(s => s.t), ...ghost.map(p => p.t));
@@ -313,8 +312,8 @@ function drawShotChart(canvas, samples, opts) {
   const Yw = g => h - pad.b - Math.max(0, g) / wMax * (h - pad.t - pad.b);
 
   ctx.font = '10px system-ui, sans-serif';
-  ctx.fillStyle = col('--text3');
-  ctx.strokeStyle = col('--border');
+  ctx.fillStyle = col('--ink-muted');
+  ctx.strokeStyle = col('--line');
   ctx.lineWidth = 1;
   for (let f = 0; f <= fMax; f += 1) {
     ctx.beginPath(); ctx.moveTo(pad.l, Yf(f)); ctx.lineTo(w - pad.r, Yf(f)); ctx.stroke();
@@ -323,15 +322,15 @@ function drawShotChart(canvas, samples, opts) {
   for (let s = 0; s <= tMax; s += 10) ctx.fillText(`${s}s`, X(s) - 6, h - 3);
 
   if (opts.target) {
-    ctx.fillStyle = col('--green-dim');
+    ctx.fillStyle = col('--success-soft');
     ctx.fillRect(pad.l, Yf(opts.target + opts.tol), w - pad.l - pad.r, Yf(opts.target - opts.tol) - Yf(opts.target + opts.tol));
-    ctx.strokeStyle = col('--green-border');
+    ctx.strokeStyle = col('--success');
     ctx.setLineDash([4, 4]);
     ctx.beginPath(); ctx.moveTo(pad.l, Yf(opts.target)); ctx.lineTo(w - pad.r, Yf(opts.target)); ctx.stroke();
     ctx.setLineDash([]);
   }
   if (ghost.length > 1) {
-    ctx.strokeStyle = col('--text2');
+    ctx.strokeStyle = col('--ink-2');
     ctx.lineWidth = 1.5;
     ctx.setLineDash([3, 3]);
     ctx.beginPath();
@@ -340,7 +339,7 @@ function drawShotChart(canvas, samples, opts) {
     ctx.setLineDash([]);
   }
   if (samples.length > 1) {
-    ctx.strokeStyle = col('--text3');
+    ctx.strokeStyle = col('--ink-muted');
     ctx.lineWidth = 1;
     ctx.beginPath();
     samples.forEach((s, i) => (i ? ctx.lineTo(X(s.t), Yw(s.weight)) : ctx.moveTo(X(s.t), Yw(s.weight))));
@@ -678,8 +677,7 @@ function drawDialIn(canvas, shots, target) {
   canvas.width = w * dpr; canvas.height = h * dpr;
   const ctx = canvas.getContext('2d');
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  const css = getComputedStyle(document.documentElement);
-  const col = name => css.getPropertyValue(name).trim();
+  const col = canvasColors(canvas);
   const flows = shots.map(b => b.shot_metrics.main_flow);
   if (target) flows.push(target - flowTolerance, target + flowTolerance);
   const xMin = Math.max(0, Math.floor((Math.min(...flows) - 0.2) * 10) / 10);
@@ -689,8 +687,8 @@ function drawDialIn(canvas, shots, target) {
   const Y = r => pad.t + (5 - r) / 5 * (h - pad.t - pad.b);   // r=0 → sin valorar
 
   ctx.font = '10px system-ui, sans-serif';
-  ctx.fillStyle = col('--text3');
-  ctx.strokeStyle = col('--border');
+  ctx.fillStyle = col('--ink-muted');
+  ctx.strokeStyle = col('--line');
   for (let r = 0; r <= 5; r++) {
     ctx.beginPath(); ctx.moveTo(pad.l, Y(r)); ctx.lineTo(w - pad.r, Y(r)); ctx.stroke();
     ctx.fillText(r ? `${r}★` : '—', 2, Y(r) + 3);
@@ -698,7 +696,7 @@ function drawDialIn(canvas, shots, target) {
   const step = xMax - xMin > 1.5 ? 0.5 : 0.2;
   for (let f = Math.ceil(xMin / step) * step; f <= xMax + 1e-9; f += step) ctx.fillText(f.toFixed(1), X(f) - 8, h - 4);
   if (target) {
-    ctx.fillStyle = col('--green-dim');
+    ctx.fillStyle = col('--success-soft');
     ctx.fillRect(X(target - flowTolerance), pad.t, X(target + flowTolerance) - X(target - flowTolerance), h - pad.t - pad.b);
   }
   // brews llega ordenado del más reciente al más antiguo
@@ -706,11 +704,11 @@ function drawDialIn(canvas, shots, target) {
     const last = i === arr.length - 1;
     ctx.beginPath();
     ctx.arc(X(b.shot_metrics.main_flow), Y(b.rating || 0), last ? 5 : 4, 0, Math.PI * 2);
-    ctx.fillStyle = last ? col('--accent2') : col('--accent');
+    ctx.fillStyle = last ? col('--accent') : col('--accent');
     ctx.globalAlpha = last ? 1 : 0.7;
     ctx.fill();
     ctx.globalAlpha = 1;
-    if (b.shot_metrics.irregular) { ctx.strokeStyle = col('--red'); ctx.lineWidth = 1.5; ctx.stroke(); ctx.lineWidth = 1; }
+    if (b.shot_metrics.irregular) { ctx.strokeStyle = col('--danger'); ctx.lineWidth = 1.5; ctx.stroke(); ctx.lineWidth = 1; }
   });
 }
 

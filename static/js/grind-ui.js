@@ -134,8 +134,7 @@ function drawGrindChart(canvas, {pts, lineRows = pts, key, model, target, sugges
   canvas.width = w * dpr; canvas.height = h * dpr;
   const ctx = canvas.getContext('2d');
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  const css = getComputedStyle(document.documentElement);
-  const col = name => css.getPropertyValue(name).trim();
+  const col = canvasColors(canvas);
 
   const days = pts.map(r => r[key]).concat(suggestion ? [suggestion.days] : []);
   const dMax = Math.max(1, ...days);
@@ -147,8 +146,8 @@ function drawGrindChart(canvas, {pts, lineRows = pts, key, model, target, sugges
   const Y = g => pad.t + (gMax - g) / (gMax - gMin) * (h - pad.t - pad.b);
 
   ctx.font = '10px system-ui, sans-serif';
-  ctx.fillStyle = col('--text3');
-  ctx.strokeStyle = col('--border');
+  ctx.fillStyle = col('--ink-muted');
+  ctx.strokeStyle = col('--line');
   const gStep = Math.max(1, Math.ceil((gMax - gMin) / 4));
   for (let g = gMin; g <= gMax; g += gStep) {
     ctx.beginPath(); ctx.moveTo(pad.l, Y(g)); ctx.lineTo(w - pad.r, Y(g)); ctx.stroke();
@@ -160,7 +159,7 @@ function drawGrindChart(canvas, {pts, lineRows = pts, key, model, target, sugges
   if (line.length) {
     ctx.save();
     ctx.setLineDash([4, 4]);
-    ctx.strokeStyle = col('--text2');
+    ctx.strokeStyle = col('--ink-2');
     ctx.beginPath(); ctx.moveTo(X(line[0][0]), Y(line[0][1])); ctx.lineTo(X(line[1][0]), Y(line[1][1])); ctx.stroke();
     ctx.restore();
   }
@@ -175,7 +174,7 @@ function drawGrindChart(canvas, {pts, lineRows = pts, key, model, target, sugges
     } else {
       ctx.arc(x, y, 4, 0, Math.PI * 2);
     }
-    ctx.fillStyle = !target ? col('--accent2') : kind < 0 ? col('--amber') : kind > 0 ? col('--red') : col('--green');
+    ctx.fillStyle = !target ? col('--accent') : kind < 0 ? col('--warning') : kind > 0 ? col('--danger') : col('--success');
     ctx.globalAlpha = 0.85;
     ctx.fill();
     ctx.globalAlpha = 1;
@@ -183,7 +182,7 @@ function drawGrindChart(canvas, {pts, lineRows = pts, key, model, target, sugges
   if (suggestion) {
     ctx.beginPath();
     ctx.arc(X(suggestion.days), Y(suggestion.grind), 5.5, 0, Math.PI * 2);
-    ctx.strokeStyle = col('--text');
+    ctx.strokeStyle = col('--ink');
     ctx.lineWidth = 2; ctx.stroke(); ctx.lineWidth = 1;
   }
 }

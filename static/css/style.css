@@ -1,39 +1,140 @@
 /* ================================================================
-   CAFETECA — STYLE.CSS — Redesign v2
-   Fuentes: Playfair Display (display) + Figtree (cuerpo/números)
+   CAFETECA — STYLE.CSS
+   Sistema de diseño de Bodega con identidad propia: porcelana y tueste.
+   Geist (UI), Geist Mono (números), Bricolage Grotesque (títulos).
    ================================================================ */
 
+@font-face { font-family: 'Geist'; src: url('/static/fonts/geist.woff2') format('woff2'); font-weight: 100 900; font-display: swap; }
+@font-face { font-family: 'Geist Mono'; src: url('/static/fonts/geist-mono.woff2') format('woff2'); font-weight: 100 900; font-display: swap; }
+@font-face { font-family: 'Bricolage Grotesque'; src: url('/static/fonts/bricolage-grotesque.woff2') format('woff2'); font-weight: 200 800; font-display: swap; }
+
 :root {
-  /* Fondos */
-  --bg:      #070504;
-  --surface: #0f0c0a;
-  --surface2:#181310;
-  --surface3:#201a14;
-  /* Bordes */
-  --border:  #2a1d0d;
-  --border2: #382615;
-  /* Acento — terracota espresso */
-  --accent:  #bf5b26;
-  --accent2: #dba055;
-  --accent-dim:  rgba(191,91,38,0.13);
-  --accent-glow: rgba(191,91,38,0.32);
-  /* Texto */
-  --text:  #f2ebe0;
-  --text2: #a89585;
-  --text3: #614f3f;
-  /* Estados */
-  --green:        #5da86e;
-  --green-dim:    rgba(93,168,110,0.1);
-  --green-border: rgba(93,168,110,0.28);
-  --red:          #bf6060;
-  --amber:        #d2a030;
-  --amber-dim:    rgba(210,160,48,0.1);
-  --amber-border: rgba(210,160,48,0.28);
-  /* Radios */
-  --r:    14px;
-  --r-sm:  8px;
-  --r-lg: 18px;
-  --r-xl: 22px;
+  --font-display: 'Bricolage Grotesque', 'Geist', system-ui, sans-serif;
+  --font-sans: 'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'Geist Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
+  --space-5: 20px; --space-6: 24px; --space-8: 32px; --space-12: 48px;
+  --radius-xs: 4px; --radius-sm: 8px; --radius-md: 12px; --radius-lg: 20px; --radius-pill: 999px;
+  --control-md: 40px; --control-lg: 48px;
+  --nav-sidebar: 232px; --nav-rail: 72px; --nav-tabbar: 64px;
+  --z-sticky: 10; --z-nav: 20; --z-overlay: 40; --z-toast: 50;
+
+  /* Tema claro (porcelana) */
+  --bg: #f6f5f2;
+  --surface: #ffffff;
+  --surface-sunken: #edece8;
+  --surface-raised: #ffffff;
+  --scrim: rgba(17,17,16,0.40);
+  --line: #e2e1db;
+  --line-strong: #8d8c84;
+  --ink: #1b1a18;
+  --ink-2: #4a4843;
+  --ink-muted: #66645d;
+  --accent: #a64b14;        /* Tueste */
+  --accent-hover: #8a3c0e;
+  --on-accent: #ffffff;
+  --accent-soft: #f7e8dd;
+  --focus: #2b5fd9;
+  --success: #2a7348; --success-soft: #e3f1e8;
+  --warning: #9a5b00; --warning-soft: #fbf0dc;
+  --danger: #bf3326;  --danger-soft: #fbe6e3;
+  --info: #2c64a8;    --info-soft: #e4edf8;
+  --chart-1: #a64b14; --chart-2: #2c64a8; --chart-3: #2f8a55; --chart-4: #b48a12;
+  --chart-muted: #c9cbc2; --chart-grid: #edece8;
+  --shadow-1: 0 1px 2px rgba(27,26,24,0.06), 0 1px 1px rgba(27,26,24,0.04);
+  --shadow-2: 0 6px 20px rgba(27,26,24,0.10), 0 2px 6px rgba(27,26,24,0.06);
+  --shadow-3: 0 24px 64px rgba(27,26,24,0.18), 0 6px 16px rgba(27,26,24,0.08);
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #121211;
+    --surface: #1b1a19;
+    --surface-sunken: #0d0d0c;
+    --surface-raised: #242321;
+    --scrim: rgba(0,0,0,0.60);
+    --line: #2e2d2b;
+    --line-strong: #6f6d68;
+    --ink: #eeede9;
+    --ink-2: #c2c0ba;
+    --ink-muted: #9a9892;
+    --accent: #ee9a63;
+    --accent-hover: #f3b288;
+    --on-accent: #2a1205;
+    --accent-soft: #38220f;
+    --focus: #7da6ff;
+    --success: #6cc48e; --success-soft: #15281d;
+    --warning: #eeb357; --warning-soft: #2e2410;
+    --danger: #ff7c6c;  --danger-soft: #341714;
+    --info: #82b2f2;    --info-soft: #14213a;
+    --chart-1: #ee9a63; --chart-2: #82b2f2; --chart-3: #62c48a; --chart-4: #e2bf4a;
+    --chart-muted: #3d423e; --chart-grid: #232724;
+    --shadow-1: 0 1px 2px rgba(0,0,0,0.5);
+    --shadow-2: 0 6px 20px rgba(0,0,0,0.55);
+    --shadow-3: 0 24px 64px rgba(0,0,0,0.7);
+    color-scheme: dark;
+  }
+}
+/* El shot en vivo es oscuro en cualquier tema */
+.theme-dark {
+  --bg: #121211;
+  --surface: #1b1a19;
+  --surface-sunken: #0d0d0c;
+  --surface-raised: #242321;
+  --scrim: rgba(0,0,0,0.60);
+  --line: #2e2d2b;
+  --line-strong: #6f6d68;
+  --ink: #eeede9;
+  --ink-2: #c2c0ba;
+  --ink-muted: #9a9892;
+  --accent: #ee9a63;
+  --accent-hover: #f3b288;
+  --on-accent: #2a1205;
+  --accent-soft: #38220f;
+  --focus: #7da6ff;
+  --success: #6cc48e; --success-soft: #15281d;
+  --warning: #eeb357; --warning-soft: #2e2410;
+  --danger: #ff7c6c;  --danger-soft: #341714;
+  --info: #82b2f2;  --info-soft: #14213a;
+  --chart-1: #ee9a63; --chart-2: #82b2f2; --chart-3: #62c48a; --chart-4: #e2bf4a;
+  --chart-muted: #3d423e; --chart-grid: #232724;
+  --shadow-1: 0 1px 2px rgba(0,0,0,0.5);
+  --shadow-2: 0 6px 20px rgba(0,0,0,0.55);
+  --shadow-3: 0 24px 64px rgba(0,0,0,0.7);
+  color-scheme: dark;
+  color: var(--ink);
+}
+
+/* Alias de los nombres anteriores: se eliminan cuando la última pantalla pasa a los tokens nuevos */
+:root, .theme-dark {
+  --surface2: var(--surface-sunken);
+  --surface3: var(--surface-sunken);
+  --border: var(--line);
+  --border2: var(--line-strong);
+  --accent2: var(--accent);
+  --accent-dim: var(--accent-soft);
+  --accent-glow: transparent;
+  --text: var(--ink);
+  --text2: var(--ink-2);
+  --text3: var(--ink-muted);
+  --green: var(--success);
+  --green-dim: var(--success-soft);
+  --green-border: var(--success);
+  --red: var(--danger);
+  --amber: var(--warning);
+  --amber-dim: var(--warning-soft);
+  --amber-border: var(--warning);
+  --r: var(--radius-md);
+  --r-sm: var(--radius-sm);
+  --r-lg: var(--radius-md);
+  --r-xl: var(--radius-lg);
+}
+
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
 }
 
 /* ── Reset ── */
@@ -47,9 +148,9 @@
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: 'Figtree', 'DM Sans', sans-serif;
-  font-size: 16px;
-  line-height: 1.5;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 22px;
   min-height: 100vh;
 }
 
@@ -96,7 +197,7 @@ body {
   text-decoration: none;
 }
 .nav-logo-name {
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-display);
   font-weight: 600;
   font-size: 21px;
   color: var(--accent2);
@@ -124,7 +225,7 @@ body {
   border-radius: 20px;
   padding: 9px 13px 9px 34px;
   font-size: 14px;
-  font-family: 'Figtree', 'DM Sans', sans-serif;
+  font-family: var(--font-sans);
   outline: none;
   width: 100%;
   max-width: 190px;
@@ -197,7 +298,7 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  font-family: 'Figtree', 'DM Sans', sans-serif;
+  font-family: var(--font-sans);
   transition: color 0.15s;
   position: relative;
   -webkit-tap-highlight-color: transparent;
@@ -259,7 +360,7 @@ body {
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
-  font-family: 'Figtree', 'DM Sans', sans-serif;
+  font-family: var(--font-sans);
   transition: all 0.15s;
   flex-shrink: 0;
   letter-spacing: 0.2px;
@@ -274,7 +375,7 @@ body {
   border-radius: var(--r-sm);
   padding: 8px 12px;
   font-size: 13px;
-  font-family: 'Figtree', 'DM Sans', sans-serif;
+  font-family: var(--font-sans);
   outline: none;
   cursor: pointer;
 }
@@ -297,7 +398,7 @@ body {
   flex-shrink: 0;
   font-size: 12px;
   font-weight: 600;
-  font-family: 'Figtree', 'DM Sans', sans-serif;
+  font-family: var(--font-sans);
   letter-spacing: 0.2px;
 }
 .filter-toggle-btn.active {
@@ -313,7 +414,7 @@ body {
   font-weight: 700;
   padding: 1px 5px;
   display: none;
-  font-family: 'Figtree', sans-serif;
+  font-family: var(--font-sans);
 }
 .ftb-badge.show { display: inline; }
 
@@ -346,7 +447,7 @@ body {
   padding: 7px 10px;
   min-height: 40px;
   font-size: 13px;
-  font-family: 'Figtree', 'DM Sans', sans-serif;
+  font-family: var(--font-sans);
   outline: none;
 }
 .filter-select:focus { border-color: var(--accent); }
@@ -358,7 +459,7 @@ body {
   padding: 6px 14px;
   min-height: 40px;
   font-size: 13px;
-  font-family: 'Figtree', 'DM Sans', sans-serif;
+  font-family: var(--font-sans);
   cursor: pointer;
   margin-top: 10px;
   display: inline-flex;
@@ -411,7 +512,7 @@ body {
   gap: 10px;
 }
 .coffee-name {
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-display);
   font-weight: 600;
   font-size: 19px;
   line-height: 1.15;
@@ -471,7 +572,7 @@ body {
   color: var(--text2);
   font-size: 15px;
   font-weight: 700;
-  font-family: 'Figtree', 'DM Sans', sans-serif;
+  font-family: var(--font-sans);
   cursor: pointer;
   display: flex; align-items: center; justify-content: center;
   transition: all 0.15s;
@@ -505,7 +606,7 @@ body {
   min-width: 44px;
   font-size: 13px;
   font-weight: 600;
-  font-family: 'Figtree', 'DM Sans', sans-serif;
+  font-family: var(--font-sans);
   cursor: pointer;
   transition: all 0.15s;
 }
@@ -521,7 +622,7 @@ body {
   min-height: 44px;
   font-size: 14px;
   font-weight: 600;
-  font-family: 'Figtree', 'DM Sans', sans-serif;
+  font-family: var(--font-sans);
   cursor: pointer;
   width: 100%;
   margin-top: 10px;
@@ -614,7 +715,7 @@ body {
   padding: 4px 8px;
   min-height: 40px;
   font-size: 14px;
-  font-family: 'Figtree', 'DM Sans', sans-serif;
+  font-family: var(--font-sans);
   outline: none;
 }
 .remaining-input:focus { border-color: var(--accent); }
@@ -629,7 +730,7 @@ body {
 .empty-icon .ic { width: 48px; height: 48px; stroke-width: 1.2; }
 .empty-state h3 {
   color: var(--text2);
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-display);
   font-size: 20px;
   font-weight: 600;
   margin-bottom: 6px;
@@ -646,7 +747,7 @@ body {
   padding: 12px;
   font-size: 13px;
   font-weight: 600;
-  font-family: 'Figtree', 'DM Sans', sans-serif;
+  font-family: var(--font-sans);
   cursor: pointer;
   margin-top: 4px;
   text-align: center;
@@ -664,7 +765,7 @@ body {
   padding: 16px;
 }
 .stat-val {
-  font-family: 'Figtree', sans-serif;
+  font-family: var(--font-sans);
   font-weight: 700;
   font-size: 30px;
   color: var(--accent2);
@@ -768,7 +869,7 @@ body {
   font-style: italic;
 }
 .stats-hero-big {
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-display);
   font-size: 40px;
   font-weight: 600;
   color: var(--text);
@@ -782,7 +883,7 @@ body {
   color: var(--accent2);
   margin-left: 6px;
   font-weight: 600;
-  font-family: 'Figtree', sans-serif;
+  font-family: var(--font-sans);
 }
 .stats-hero-row {
   display: flex;
@@ -792,7 +893,7 @@ body {
   flex-wrap: wrap;
 }
 .stats-hero-row > div > .v {
-  font-family: 'Figtree', sans-serif;
+  font-family: var(--font-sans);
   font-weight: 700;
   font-size: 22px;
   color: var(--accent2);
@@ -822,7 +923,7 @@ body {
   margin-bottom: 12px;
 }
 .stats-gantt-title {
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-display);
   font-size: 16px;
   font-weight: 600;
   color: var(--text);
@@ -904,7 +1005,7 @@ body.modal-open { overflow: hidden; touch-action: none; }
   margin-bottom: 20px;
 }
 .modal-title {
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-display);
   font-weight: 600;
   font-size: 24px;
   color: var(--accent2);
@@ -956,7 +1057,7 @@ body.modal-open { overflow: hidden; touch-action: none; }
   border-radius: var(--r-sm);
   padding: 10px 13px;
   font-size: 15px;
-  font-family: 'Figtree', 'DM Sans', sans-serif;
+  font-family: var(--font-sans);
   outline: none;
   transition: border-color 0.15s;
 }
@@ -964,7 +1065,7 @@ body.modal-open { overflow: hidden; touch-action: none; }
 .form-input::placeholder { color: var(--text3); }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .form-row > * { min-width: 0; }   /* sin esto, un input con ancho intrínseco desborda la columna */
-.form-textarea { resize: vertical; min-height: 76px; font-family: 'Figtree', 'DM Sans', sans-serif; }
+.form-textarea { resize: vertical; min-height: 76px; font-family: var(--font-sans); }
 
 /* ── Autocompletado ── */
 .ac-wrapper { position: relative; }
@@ -1003,7 +1104,7 @@ body.modal-open { overflow: hidden; touch-action: none; }
   border-radius: var(--r);
   padding: 13px;
   font-size: 15px;
-  font-family: 'Figtree', 'DM Sans', sans-serif;
+  font-family: var(--font-sans);
   font-weight: 600;
   cursor: pointer;
   margin-top: 8px;
@@ -1021,7 +1122,7 @@ body.modal-open { overflow: hidden; touch-action: none; }
   padding: 10px;
   min-height: 40px;
   font-size: 14px;
-  font-family: 'Figtree', 'DM Sans', sans-serif;
+  font-family: var(--font-sans);
   cursor: pointer;
   flex: 1;
   font-weight: 500;
@@ -1033,7 +1134,7 @@ body.modal-open { overflow: hidden; touch-action: none; }
   border-radius: var(--r);
   padding: 10px;
   font-size: 14px;
-  font-family: 'Figtree', 'DM Sans', sans-serif;
+  font-family: var(--font-sans);
   cursor: pointer;
   font-weight: 500;
 }
@@ -1120,7 +1221,7 @@ body.modal-open { overflow: hidden; touch-action: none; }
   padding: 10px 18px;
   font-size: 14px;
   font-weight: 600;
-  font-family: 'Figtree', 'DM Sans', sans-serif;
+  font-family: var(--font-sans);
   cursor: pointer;
   transition: all 0.15s;
 }
@@ -1148,7 +1249,7 @@ body.modal-open { overflow: hidden; touch-action: none; }
   padding: 6px 12px;
   min-height: 40px;
   font-size: 13px;
-  font-family: 'Figtree', 'DM Sans', sans-serif;
+  font-family: var(--font-sans);
   cursor: pointer;
   white-space: nowrap;
 }
@@ -1283,7 +1384,7 @@ body.modal-open { overflow: hidden; touch-action: none; }
   border-radius: var(--r-sm);
   padding: 6px 10px;
   font-size: 14px;
-  font-family: 'Figtree', 'DM Sans', sans-serif;
+  font-family: var(--font-sans);
   outline: none;
   display: none;
 }
@@ -1316,7 +1417,7 @@ body.modal-open { overflow: hidden; touch-action: none; }
   padding: 8px 14px;
   min-height: 40px;
   font-size: 13px;
-  font-family: 'Figtree', 'DM Sans', sans-serif;
+  font-family: var(--font-sans);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -1332,7 +1433,7 @@ body.modal-open { overflow: hidden; touch-action: none; }
   padding: 6px 14px;
   min-height: 40px;
   font-size: 13px;
-  font-family: 'Figtree', 'DM Sans', sans-serif;
+  font-family: var(--font-sans);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -1391,7 +1492,7 @@ body.modal-open { overflow: hidden; touch-action: none; }
   margin-bottom: 14px;
 }
 .cal-title-text {
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-display);
   font-size: 17px;
   font-weight: 600;
   color: var(--accent2);
@@ -1471,7 +1572,7 @@ body.modal-open { overflow: hidden; touch-action: none; }
   border: none;
   color: var(--text);
   font-size: 14px;
-  font-family: 'Figtree', 'DM Sans', sans-serif;
+  font-family: var(--font-sans);
   outline: none;
   width: 0;
   min-width: 70px;
@@ -1645,7 +1746,7 @@ body.modal-open { overflow: hidden; touch-action: none; }
   width: 100%; min-height: 48px; margin-bottom: 12px;
   background: var(--accent-dim); border: 1.5px solid var(--accent); color: var(--accent2);
   border-radius: var(--r); font-size: 15px; font-weight: 600; cursor: pointer;
-  font-family: 'Figtree', 'DM Sans', sans-serif;
+  font-family: var(--font-sans);
 }
 .btn-shot:active { background: var(--accent-glow); }
 
@@ -1701,7 +1802,7 @@ body.modal-open { overflow: hidden; touch-action: none; }
 .btn-new-brew {
   width: 100%; min-height: 48px; margin-bottom: 12px;
   background: var(--accent); color: #fff; border: none; border-radius: var(--r);
-  font-size: 15px; font-weight: 600; font-family: 'Figtree', 'DM Sans', sans-serif; cursor: pointer;
+  font-size: 15px; font-weight: 600; font-family: var(--font-sans); cursor: pointer;
 }
 .btn-new-brew:active { opacity: .88; }
 .pick-coffee-list { display: flex; flex-direction: column; gap: 10px; }
@@ -1709,7 +1810,7 @@ body.modal-open { overflow: hidden; touch-action: none; }
   display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left;
   min-height: 56px; padding: 10px 14px; border-radius: var(--r);
   background: var(--surface2); border: 1px solid var(--border2); color: var(--text); cursor: pointer;
-  font-family: 'Figtree', 'DM Sans', sans-serif;
+  font-family: var(--font-sans);
 }
 .pick-coffee:active { border-color: var(--accent); }
 .pick-coffee-name { font-size: 15px; font-weight: 600; }
