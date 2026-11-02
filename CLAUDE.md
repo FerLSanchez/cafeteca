@@ -251,16 +251,18 @@ docker compose up -d
 pip install -r requirements-test.txt
 pytest                         # suite completa
 pytest tests/test_brews.py     # un módulo específico
-node --test tests/js/*.test.js # tests JS (parser, detectores y análisis de la báscula)
-# E2E báscula (manual, necesita playwright y la app corriendo):
-# BASE_URL=http://localhost:5323 node tests/e2e/scale-flow.e2e.js
-# BASE_URL=http://localhost:5323 node tests/e2e/wake-lock.e2e.js
-# BASE_URL=http://localhost:5323 node tests/e2e/brew-flow.e2e.js      # brew manual, valorar después, deshacer
-# BASE_URL=http://localhost:5323 node tests/e2e/modals.e2e.js          # Esc, foco y Tab en los modales
-# BASE_URL=http://localhost:5323 node tests/e2e/list-prefs.e2e.js      # filtros recordados, localStorage bloqueado
-# BASE_URL=http://localhost:5323 node tests/e2e/grind-prediction.e2e.js # molienda sugerida, ficha y Stats
-# BASE_URL=http://localhost:5323 node tests/e2e/layout-widths.e2e.js   # sin scroll horizontal a 390/768/820/1024/1280 px
-# BASE_URL=http://localhost:5323 node tests/e2e/touch-targets.e2e.js [carpeta-capturas]
+node --test tests/js/*.test.js # tests JS (báscula, i18n, inventario de acciones de la UI)
+# E2E (manuales, necesitan playwright). En este servidor 127.0.0.1:5323 es PRODUCCIÓN y los E2E escriben:
+# usa siempre el servidor de prueba, con BD propia, en el 5399:
+# python tests/e2e/serve.py [ruta.db]
+# BASE_URL=http://localhost:5399 node tests/e2e/scale-flow.e2e.js
+# BASE_URL=http://localhost:5399 node tests/e2e/wake-lock.e2e.js
+# BASE_URL=http://localhost:5399 node tests/e2e/brew-flow.e2e.js      # brew manual, valorar después, deshacer
+# BASE_URL=http://localhost:5399 node tests/e2e/modals.e2e.js          # Esc, foco y Tab en los modales
+# BASE_URL=http://localhost:5399 node tests/e2e/list-prefs.e2e.js      # filtros recordados, localStorage bloqueado
+# BASE_URL=http://localhost:5399 node tests/e2e/grind-prediction.e2e.js # molienda sugerida, ficha y Stats
+# BASE_URL=http://localhost:5399 node tests/e2e/layout-widths.e2e.js   # sin scroll horizontal a 390/768/820/1024/1280 px
+# BASE_URL=http://localhost:5399 node tests/e2e/touch-targets.e2e.js [carpeta-capturas]
 #   ↑ recorre todas las pantallas a 390 px: falla con controles < 36 px, pegados (< 8 px) o fuera de pantalla
 ```
 

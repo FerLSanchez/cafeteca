@@ -3,11 +3,11 @@
 // ("Usar" rellena la molienda), la gráfica de la ficha y la tarjeta de Stats.
 //
 //   python app.py  (o cualquier servidor en BASE_URL, con BD de prueba vacía)
-//   BASE_URL=http://localhost:5323 node tests/e2e/grind-prediction.e2e.js [carpeta-capturas]
+//   BASE_URL=http://localhost:5399 node tests/e2e/grind-prediction.e2e.js [carpeta-capturas]
 const assert = require('node:assert');
 const {chromium} = require('playwright');
 
-const BASE = process.env.BASE_URL || 'http://localhost:5323';
+const BASE = process.env.BASE_URL || 'http://localhost:5399';
 const SHOTS = process.argv[2];
 
 const ymd = d => d.toISOString().slice(0, 10);

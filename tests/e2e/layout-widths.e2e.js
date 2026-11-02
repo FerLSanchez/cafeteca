@@ -1,10 +1,10 @@
 // E2E: ninguna pantalla tiene scroll horizontal en móvil, tablet ni escritorio
 // (con el chip de la báscula visible, que es cuando la cabecera va más llena).
-//   BASE_URL=http://localhost:5323 node tests/e2e/layout-widths.e2e.js
+//   BASE_URL=http://localhost:5399 node tests/e2e/layout-widths.e2e.js
 const assert = require('node:assert');
 const {chromium} = require('playwright');
 
-const BASE = process.env.BASE_URL || 'http://localhost:5323';
+const BASE = process.env.BASE_URL || 'http://localhost:5399';
 const WIDTHS = [390, 768, 820, 1024, 1280];
 
 (async () => {

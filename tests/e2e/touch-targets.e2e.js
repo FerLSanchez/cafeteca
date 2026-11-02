@@ -3,12 +3,12 @@
 // está a menos de GAP_PX de otro control pequeño (el fallo de "Tara" / "✓").
 //
 //   python app.py  (o cualquier servidor en BASE_URL, con BD de prueba)
-//   BASE_URL=http://localhost:5323 node tests/e2e/touch-targets.e2e.js [carpeta-capturas]
+//   BASE_URL=http://localhost:5399 node tests/e2e/touch-targets.e2e.js [carpeta-capturas]
 const assert = require('node:assert');
 const path = require('node:path');
 const {chromium} = require('playwright');
 
-const BASE = process.env.BASE_URL || 'http://localhost:5323';
+const BASE = process.env.BASE_URL || 'http://localhost:5399';
 const SHOTS = process.argv[2] || null;
 const MIN_PX = 36;   // lado corto mínimo de cualquier control
 const GAP_PX = 8;    // separación mínima entre controles si alguno es < 40 px

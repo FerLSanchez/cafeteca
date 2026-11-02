@@ -2,14 +2,14 @@
 // captura real (tests/js/fixtures/f0-real-2026-09-26.json) a velocidad real.
 //
 //   python app.py  (o cualquier servidor en BASE_URL, con BD de prueba)
-//   BASE_URL=http://localhost:5323 node tests/e2e/scale-flow.e2e.js [captura.png]
+//   BASE_URL=http://localhost:5399 node tests/e2e/scale-flow.e2e.js [captura.png]
 //
 // Requiere el paquete `playwright` (no está en CI: tarda ~50 s y necesita Chromium).
 const assert = require('node:assert');
 const path = require('node:path');
 const {chromium} = require('playwright');
 
-const BASE = process.env.BASE_URL || 'http://localhost:5323';
+const BASE = process.env.BASE_URL || 'http://localhost:5399';
 const fixture = require(path.join(__dirname, '../js/fixtures/f0-real-2026-09-26.json'));
 
 async function apiCall(page, method, url, body) {

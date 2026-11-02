@@ -1,9 +1,9 @@
 // E2E del wake lock de la sesión de báscula (Web Bluetooth y Wake Lock falsos, reloj falso).
-//   BASE_URL=http://localhost:5323 node tests/e2e/wake-lock.e2e.js
+//   BASE_URL=http://localhost:5399 node tests/e2e/wake-lock.e2e.js
 const assert = require('node:assert');
 const {chromium} = require('playwright');
 
-const BASE = process.env.BASE_URL || 'http://localhost:5323';
+const BASE = process.env.BASE_URL || 'http://localhost:5399';
 
 (async () => {
   const browser = await chromium.launch({executablePath: process.env.CHROMIUM || undefined});

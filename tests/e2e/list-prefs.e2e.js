@@ -1,10 +1,10 @@
 // E2E: la lista recuerda estado, orden y filtros entre visitas, ignora valores que ya
 // no existen y funciona aunque localStorage falle (modo privado).
-//   BASE_URL=http://localhost:5323 node tests/e2e/list-prefs.e2e.js
+//   BASE_URL=http://localhost:5399 node tests/e2e/list-prefs.e2e.js
 const assert = require('node:assert');
 const {chromium} = require('playwright');
 
-const BASE = process.env.BASE_URL || 'http://localhost:5323';
+const BASE = process.env.BASE_URL || 'http://localhost:5399';
 
 (async () => {
   const browser = await chromium.launch({executablePath: process.env.CHROMIUM || undefined});
