@@ -377,7 +377,7 @@ async function openBrewModal(coffeeId = null, brewId = null, coffeeName = null) 
   updateBrewRatioDisplay();
   renderBrewRatioHint();   // ya, sin esperar: nada se mueve al abrir
   openModal('modal-brew');
-  _bv('modal-brew').scrollTop = 0;
+  document.querySelector('#modal-brew .modal').scrollTop = 0;
   wakeSessionStart('brew');
   // Con la báscula ya conectada, el paso 1 empieza leyendo la dosis sin más toques
   if (!editing && scaleSupported() && scaleConnected()) brewScaleDoseStart();
@@ -412,6 +412,10 @@ function updateBrewSteps() {
     'b-step-taste': _brewRating >= 1 || _brewTaste.taste_balance != null || _brewTaste.taste_body != null,
   };
   Object.entries(done).forEach(([id, ok]) => _bv(id)?.classList.toggle('done', ok));
+  // Una sola acción principal: sacar el shot mientras se pueda y no haya uno; después, guardar
+  const shotBtn = document.querySelector('#modal-brew .btn-shot');
+  const shotFirst = !_editBrewId && !_brewShotMetrics && !!shotBtn && !shotBtn.hidden && scaleSupported();
+  _bv('b-submit').className = shotFirst ? 'btn-secondary' : 'btn-primary';
   syncGrindUse();
 }
 

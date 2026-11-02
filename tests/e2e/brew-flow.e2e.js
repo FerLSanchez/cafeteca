@@ -31,6 +31,12 @@ const BASE = process.env.BASE_URL || 'http://localhost:5399';
   await page.tap(`#actions-${coffee.id} .btn-quick.brew`);
   await page.waitForSelector('#modal-brew.open');
   assert.strictEqual(await page.textContent('#b-coffee-name'), coffee.name);
+  // Hoja inferior en móvil, sin transform (el shot en vivo es position: fixed dentro)
+  await page.waitForTimeout(300);   // termina la animación de entrada
+  const sheet = await page.locator('#modal-brew .modal').boundingBox();
+  const vh = page.viewportSize().height;
+  assert.strictEqual(Math.round(sheet.y + sheet.height), vh, 'la hoja llega al borde inferior');
+  assert.strictEqual(await page.evaluate(() => { const m = getComputedStyle(document.querySelector('#modal-brew .modal')); return m.transform + m.translate; }), 'nonenone');
 
   // 2) Entrada manual por pasos, con los −/+ y sin valorar
   await page.fill('#b-dose', '18');
