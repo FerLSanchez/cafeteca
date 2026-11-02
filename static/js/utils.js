@@ -28,10 +28,12 @@ function drawCanvasFitted(canvas, draw) {
   if (typeof ResizeObserver === 'undefined') { draw(); return; }
   let lastW = -1;
   const scheme = window.matchMedia('(prefers-color-scheme: dark)');
-  const onScheme = () => { if (canvas.isConnected) draw(); else scheme.removeEventListener('change', onScheme); };
+  const stop = () => { scheme.removeEventListener('change', onScheme); window.removeEventListener('themechange', onScheme); };
+  const onScheme = () => { if (canvas.isConnected) draw(); else stop(); };
   scheme.addEventListener('change', onScheme);
+  window.addEventListener('themechange', onScheme);
   const ro = new ResizeObserver(() => {
-    if (!canvas.isConnected) { ro.disconnect(); scheme.removeEventListener('change', onScheme); return; }
+    if (!canvas.isConnected) { ro.disconnect(); stop(); return; }
     if (canvas.clientWidth === lastW) return;
     lastW = canvas.clientWidth;
     draw();

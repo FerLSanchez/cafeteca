@@ -23,7 +23,7 @@ The phone sits on the counter and stays awake. Fernando checks or accepts the su
 ## Non-goals
 
 - **No change in functionality**, with one exception Fernando asked for: the count of scale shots waiting to be rated. Otherwise the actions, data, flows, API, schema and calculations stay the same. The only other backend change is the font delivery item under Fonts.
-- No other new features, and no theme setting in Ajustes.
+- No other new features. A theme selector in Ajustes (device, light, dark) was added at Fernando's request after the first trial deploy.
 - No changes to the scale protocol, shot detection, `StopCountdown` timing, the grind model or the taste logic.
 
 ## Anti-goals
@@ -75,7 +75,7 @@ Accent and `danger` have nearly equal lightness in the light theme, so destructi
 
 Fonts: Bricolage Grotesque (titles and wordmark), Geist (UI), Geist Mono (grams, seconds, g/s, ratios, prices, dates in columns). These replace Playfair Display and Figtree.
 
-Theme: follow `prefers-color-scheme` with no setting, as Bodega does. Canvases must redraw when the theme changes.
+Theme: follow `prefers-color-scheme` by default, as Bodega does. Ajustes offers device, light or dark, stored per device in `localStorage('theme')`. Canvases must redraw when the theme changes.
 
 ## Icon
 

@@ -13,6 +13,7 @@ const SHELL = [
   '/static/fonts/geist.woff2',
   '/static/fonts/geist-mono.woff2',
   '/static/fonts/bricolage-grotesque.woff2',
+  '/static/js/theme.js',
   '/static/js/state.js',
   '/static/js/api.js',
   '/static/js/utils.js',

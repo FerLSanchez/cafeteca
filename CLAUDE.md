@@ -4,7 +4,7 @@ Contexto para continuar el desarrollo de esta aplicación en Claude Code.
 
 ## Qué es
 
-App web personal para registrar cafés de especialidad. Flask + SQLite + HTML/CSS/JS vanilla. Mobile-first (también tablet y escritorio), con el sistema de diseño de Bodega: tokens en `static/css/style.css` (porcelana + Tueste, tema claro y oscuro según el dispositivo), Geist / Geist Mono / Bricolage Grotesque en `static/fonts/`, iconos Lucide (sin emoji). Corre en Docker.
+App web personal para registrar cafés de especialidad. Flask + SQLite + HTML/CSS/JS vanilla. Mobile-first (también tablet y escritorio), con el sistema de diseño de Bodega: tokens en `static/css/style.css` (porcelana + Tueste, tema del dispositivo, claro u oscuro según Ajustes), Geist / Geist Mono / Bricolage Grotesque en `static/fonts/`, iconos Lucide (sin emoji). Corre en Docker.
 
 ## Ficheros relevantes
 
@@ -17,6 +17,7 @@ App web personal para registrar cafés de especialidad. Flask + SQLite + HTML/CS
 - `templates/index.html` — todo el frontend en un único fichero (HTML + CSS + JS)
 - `docker-compose.yml` — monta `./data` como volumen para persistir la BD
 - `Dockerfile` — imagen Python 3.14-slim, depende de Flask + gunicorn
+- `static/js/theme.js` — tema (`system`/`light`/`dark`, por dispositivo en `localStorage('theme')`); se carga en el `<head>` para no dar un destello; `changeTheme()` avisa con el evento `themechange` y `drawCanvasFitted()` redibuja
 - `static/js/i18n.js` — helper de internacionalización: `t()`, `initI18n()`, `applyI18n()`, `changeLang()`
 - `static/js/scale.js` — báscula Bookoo por Web Bluetooth: `parseScalePacket()` (puro, testeado con node), `scaleConnect()`/`scaleTare()`/`scaleDisconnect()`, bus `scale.bus` y la captura de tramas
 - `static/js/scale-analysis.js` — puro (testeado con node): `DoseTracker` (congela la dosis al levantar el recipiente), `ShotTracker` (el timer 0→>0 arranca, vuelve a 0 = fin), `analyzeShot()` (métricas de flujo §5.4)
@@ -266,6 +267,7 @@ node --test tests/js/*.test.js # tests JS (báscula, i18n, inventario de accione
 # BASE_URL=http://localhost:5399 node tests/e2e/modals.e2e.js          # Esc, foco y Tab en los modales
 # BASE_URL=http://localhost:5399 node tests/e2e/list-prefs.e2e.js      # filtros recordados, localStorage bloqueado
 # BASE_URL=http://localhost:5399 node tests/e2e/grind-prediction.e2e.js # molienda sugerida, ficha y Stats
+# BASE_URL=http://localhost:5399 node tests/e2e/theme.e2e.js          # selector de tema, recordado, sin localStorage
 # BASE_URL=http://localhost:5399 node tests/e2e/layout-widths.e2e.js   # sin scroll horizontal a 390/768/820/1024/1280 px
 # BASE_URL=http://localhost:5399 node tests/e2e/touch-targets.e2e.js [carpeta-capturas]
 #   ↑ recorre todas las pantallas a 390 px: falla con controles < 36 px, pegados (< 8 px) o fuera de pantalla

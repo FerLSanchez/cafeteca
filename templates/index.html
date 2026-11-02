@@ -7,6 +7,7 @@
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#f6f5f2" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#121211" media="(prefers-color-scheme: dark)">
+<script src="/static/js/theme.js"></script>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Cafeteca">
@@ -177,7 +178,7 @@
 
 <nav class="app-nav">
   <div class="app-nav-brand">
-    <picture><source srcset="/static/mark-dark.svg" media="(prefers-color-scheme: dark)"><img src="/static/mark.svg" alt="" width="34" height="28"></picture>
+    <img class="mark-light" src="/static/mark.svg" alt="" width="34" height="28"><img class="mark-dark" src="/static/mark-dark.svg" alt="" width="34" height="28">
     <span data-i18n="nav.title">Cafeteca</span>
   </div>
   <button class="app-nav-add" type="button" onclick="openAddModal()" data-i18n-aria-label="nav.add" data-i18n-title="nav.add">
@@ -836,6 +837,15 @@
     <button class="btn-secondary" onclick="openScaleTest()" style="width:100%;margin-bottom:10px" data-i18n="scale.test.open">Probar báscula</button>
     <button class="btn-secondary" onclick="recomputeShotMetrics()" style="width:100%;margin-bottom:4px" data-i18n="scale.recompute">Recalcular métricas de flujo</button>
     <div class="form-hint" style="margin-bottom:18px" data-i18n="scale.recompute_hint">Vuelve a analizar los shots guardados con curva (p. ej. tras cambiar la tolerancia).</div>
+    <div class="form-section" data-i18n="settings.section.appearance">Apariencia</div>
+    <div class="form-group">
+      <label class="form-label" for="theme-select" data-i18n="settings.theme">Tema</label>
+      <select class="form-input" id="theme-select" onchange="changeTheme(this.value)">
+        <option value="system" data-i18n="settings.theme.system">Según el dispositivo</option>
+        <option value="light" data-i18n="settings.theme.light">Claro</option>
+        <option value="dark" data-i18n="settings.theme.dark">Oscuro</option>
+      </select>
+    </div>
     <div class="form-section" data-i18n="settings.section.language">Idioma</div>
     <div class="form-group">
       <select class="form-input" id="lang-select" onchange="changeLang(this.value)">

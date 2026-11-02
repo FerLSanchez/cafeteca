@@ -28,6 +28,7 @@ async function startup() {
   renderPageHeader();
   const langSel = document.getElementById('lang-select');
   if (langSel) langSel.value = _currentLang;
+  document.getElementById('theme-select').value = themePref();
   scaleLabInit();
   scaleUiInit();
   init();

@@ -49,7 +49,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --bg: #121211;
     --surface: #1b1a19;
     --surface-sunken: #0d0d0c;
@@ -77,8 +77,8 @@
     color-scheme: dark;
   }
 }
-/* El shot en vivo es oscuro en cualquier tema */
-.theme-dark {
+/* Oscuro elegido en Ajustes; y el shot en vivo, oscuro en cualquier tema */
+:root[data-theme="dark"], .theme-dark {
   --bg: #121211;
   --surface: #1b1a19;
   --surface-sunken: #0d0d0c;
@@ -219,6 +219,16 @@ body {
 .app-nav-add-label { display: none; }
 .app-tool-label { display: none; }
 
+/* La marca sigue al tema, también al elegido en Ajustes */
+.mark-light { display: block; }
+.mark-dark { display: none; }
+:root[data-theme="dark"] .mark-light { display: none; }
+:root[data-theme="dark"] .mark-dark { display: block; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .mark-light { display: none; }
+  :root:not([data-theme="light"]) .mark-dark { display: block; }
+}
+
 /* Cabecera de página */
 .app-main { min-width: 0; max-width: 1280px; margin: 0 auto; }
 .page-header {
@@ -339,7 +349,6 @@ body {
     text-transform: lowercase;
     color: var(--ink);
   }
-  .app-nav-brand img { display: block; }
   .app-nav-add {
     width: 100%;
     height: var(--control-md);

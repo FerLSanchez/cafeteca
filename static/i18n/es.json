@@ -462,5 +462,10 @@
   "scale.flow.in_band": "En banda",
   "scale.flow.slow": "Lento",
   "scale.flow.fast": "Rápido",
-  "brew.pending": "{count} shot{s} por valorar"
+  "brew.pending": "{count} shot{s} por valorar",
+  "settings.section.appearance": "Apariencia",
+  "settings.theme": "Tema",
+  "settings.theme.system": "Según el dispositivo",
+  "settings.theme.light": "Claro",
+  "settings.theme.dark": "Oscuro"
 }
