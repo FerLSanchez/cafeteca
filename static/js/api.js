@@ -119,11 +119,13 @@ document.addEventListener('keydown', e => {
     e.preventDefault();
     closeModal(top.id);
   } else if (e.key === 'Tab' && dialog) {
-    const items = [...dialog.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')]
+    // Con el shot en vivo abierto, Tab se queda en él: lo de debajo no se ve
+    const scope = dialog.querySelector('.shot-stage') || dialog;
+    const items = [...scope.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')]
       .filter(el => !el.disabled && el.getClientRects().length && getComputedStyle(el).visibility !== 'hidden');
     if (!items.length) return;
     const first = items[0], last = items[items.length - 1];
-    if (e.shiftKey && (document.activeElement === first || document.activeElement === dialog)) { e.preventDefault(); last.focus(); }
+    if (e.shiftKey && (document.activeElement === first || document.activeElement === scope)) { e.preventDefault(); last.focus(); }
     else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
   }
 });

@@ -106,7 +106,7 @@ function brewSummaryLine(b) {
     ? t('scale.summary_flow', {main: fmtNum(m.main_flow, 2)}) + (m.irregular ? ' · ' + t('scale.row.irregular_short') : '')
     : fmtFlow(b.yield_g, b.time_s);
   if (flow) parts.push(flow);
-  if (b.grind)  parts.push(t('brew.grind_label', {grind: b.grind}));
+  if (b.grind)  parts.push(t('brew.grind_label', {grind: fmtPlain(b.grind)}));
   if (b.temp_c) parts.push(`${b.temp_c} °C`);
   return parts.join(' · ') || '—';
 }
@@ -130,7 +130,7 @@ function recipeSummaryLine(recipe) {
   const parts = [];
   if (recipe.dose_g && recipe.yield_g) parts.push(`${fmtGrams(recipe.dose_g)} → ${fmtGrams(recipe.yield_g)}${ratio ? ' (' + ratio + ')' : ''}`);
   else if (recipe.dose_g)              parts.push(`${fmtGrams(recipe.dose_g)}`);
-  if (recipe.grind)  parts.push(t('recipe.grind_label', {grind: recipe.grind}));
+  if (recipe.grind)  parts.push(t('recipe.grind_label', {grind: fmtPlain(recipe.grind)}));
   if (recipe.temp_c) parts.push(`${recipe.temp_c} °C`);
   if (recipe.target_flow) parts.push(`${fmtNum(recipe.target_flow, 2)} g/s`);
   return parts.join(' · ') || '—';

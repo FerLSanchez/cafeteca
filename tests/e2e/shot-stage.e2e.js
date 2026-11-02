@@ -191,8 +191,22 @@ const end = (page, t, weight) => page.evaluate(([t, weight]) => {
     const {ctx, page} = await open();
     assert.strictEqual(await page.getAttribute('#b-submit', 'class'), 'btn-secondary');
     await finishShot(page);
+    // Tab no sale de la pantalla del shot hacia los campos que quedan debajo
+    for (let i = 0; i < 12; i++) {
+      await page.keyboard.press(i % 5 === 4 ? 'Shift+Tab' : 'Tab');
+      assert.ok(await page.evaluate(() => !!document.activeElement.closest('.shot-stage')), `foco dentro del shot tras ${i + 1} tabs`);
+    }
     await page.click('.shot-back');
     assert.strictEqual(await page.locator('.shot-stage').count(), 0);
+    // La curva del resumen sigue al tema si cambia con el modal abierto
+    await page.waitForFunction(() => document.querySelector('#b-shot-summary canvas')?.width > 0);
+    const summaryCurve = () => page.$eval('#b-shot-summary canvas', c => c.toDataURL());
+    await page.waitForTimeout(100);
+    const lightCurve = await summaryCurve();
+    await page.emulateMedia({colorScheme: 'dark'});
+    await page.waitForTimeout(200);
+    assert.notStrictEqual(await summaryCurve(), lightCurve, 'la curva cambia con el tema');
+    await page.emulateMedia({colorScheme: 'light'});
     assert.ok(await page.locator('#b-shot-summary').isVisible());
     assert.strictEqual(await page.getAttribute('#b-submit', 'class'), 'btn-primary');
     await ctx.close();

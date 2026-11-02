@@ -9,7 +9,7 @@ async function fetchGrindData() {
   } catch (_) { return []; }
 }
 
-const fmtGrind = g => { const v = +g.toFixed(2); return fmtNum(v, Number.isInteger(v) ? 0 : Number.isInteger(v * 10) ? 1 : 2); };
+const fmtGrind = g => fmtPlain(g);
 const fmtDrift = m => (m.per_week > 0 ? '+' : m.per_week < 0 ? '−' : '') + fmtNum(Math.abs(m.per_week), 2);
 // |γ| < 2·error típico: con estos datos no se distingue de "sin deriva"
 const driftConclusive = m => Math.abs(m.gamma) >= 2 * m.gamma_se;

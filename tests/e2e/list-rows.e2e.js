@@ -48,6 +48,21 @@ const LONG = 'Café con un nombre de cuarenta caracteres';
     await page.selectOption('#sort-select', 'smart');
     await page.close();
   }
+  // Números con coma en el aviso de consumir y en las líneas de preparación
+  {
+    const page = await browser.newPage({viewport: {width: 390, height: 900}, serviceWorkers: 'block'});
+    await page.goto(BASE + '/');
+    await page.waitForFunction(() => typeof fetchAndRender === 'function' && document.querySelector('#page-title')?.textContent);
+    const id = await page.evaluate(async () => (await (await fetch('/api/coffees', {method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({name: 'Decimales', opened_date: '2026-10-01', quantity_g: 250, remaining_g: 100.5})})).json()).id);
+    await page.evaluate(() => fetchAndRender());
+    await page.click(`#actions-${id} .btn-consume`);
+    await page.waitForSelector('.toast.show');
+    assert.match(await page.textContent('.toast'), /83,5 g/);
+    assert.match(await page.evaluate(() => brewSummaryLine({grind: 15.5})), /15,5/);
+    assert.match(await page.evaluate(() => recipeSummaryLine({grind: 15.5})), /15,5/);
+    await page.close();
+  }
   // Lista plana larga: con "Mostrar más" debajo, cada fila sigue diciendo su estado
   {
     const page = await browser.newPage({viewport: {width: 390, height: 900}, serviceWorkers: 'block'});

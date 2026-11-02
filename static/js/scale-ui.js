@@ -651,9 +651,10 @@ function brewShowShotSummary(metrics, curve) {
   const yield_g = parseFloat(document.getElementById('b-yield')?.value) || null;
   el.innerHTML = metrics ? (curve ? '<canvas class="shot-chart"></canvas>' : '') + shotSummaryHtml(metrics, null, {yield_g}) : '';
   if (metrics && curve) {
-    // tras abrir el modal, para que el canvas ya tenga tamaño
-    requestAnimationFrame(() => drawShotChart(el.querySelector('canvas'), samplesFromCurve(curve),
-      {target: metrics.target_flow, tol: flowTolerance}));
+    // Dibuja cuando el canvas ya tiene tamaño, y otra vez si cambia el ancho o el tema
+    const canvas = el.querySelector('canvas');
+    const samples = samplesFromCurve(curve);
+    drawCanvasFitted(canvas, () => drawShotChart(canvas, samples, {target: metrics.target_flow, tol: flowTolerance}));
   }
 }
 

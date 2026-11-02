@@ -199,7 +199,7 @@ function toggleCompactView() {
 async function consumeShot(id) {
   const result = await api('/coffees/' + id + '/consume', { method: 'POST', body: JSON.stringify({date: todayLocal()}) });
   if (!result || result.error) { showToast(result?.error || t('error.generic')); return; }
-  showToast(t('toast.consume_summary', { consumed_g: result.consumed_g, remaining_g: result.remaining_g }),
+  showToast(t('toast.consume_summary', { consumed_g: fmtPlain(result.consumed_g), remaining_g: fmtPlain(result.remaining_g) }),
     { undo: () => undoConsume(id, result) });
   const idx = displayedCoffees.findIndex(c => c.id === id);
   if (idx !== -1) displayedCoffees[idx] = result.coffee;

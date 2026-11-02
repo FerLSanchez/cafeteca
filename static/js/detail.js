@@ -254,7 +254,7 @@ async function consumeCoffee() {
       }
     });
   } else {
-    showToast(t('toast.consume_summary', {consumed_g: result.consumed_g, remaining_g: result.remaining_g}),
+    showToast(t('toast.consume_summary', {consumed_g: fmtPlain(result.consumed_g), remaining_g: fmtPlain(result.remaining_g)}),
       { undo: () => undoConsume(updated.id, result) });
   }
 }

@@ -54,4 +54,10 @@ function fmtNum(value, decimals, lang = _currentLang) {
   return lang === 'en' ? n : n.replace('.', ',');
 }
 
-if (typeof module !== 'undefined') module.exports = {fmtNum};
+// Con los decimales que tenga el valor, hasta dos: 15 · 15,5 · 15,25
+function fmtPlain(value, lang = _currentLang) {
+  const v = +Number(value).toFixed(2);
+  return fmtNum(v, Number.isInteger(v) ? 0 : Number.isInteger(+(v * 10).toFixed(6)) ? 1 : 2, lang);
+}
+
+if (typeof module !== 'undefined') module.exports = {fmtNum, fmtPlain};
