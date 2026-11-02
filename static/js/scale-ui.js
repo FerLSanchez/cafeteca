@@ -148,7 +148,7 @@ function brewScaleDoseStop(keepMsg = false) {
 // Vista de shot en vivo (modo auto) — reutilizada por el brew y la página de prueba (§5.2, §5.4)
 // ---------------------------------------------------------------------------
 function createShotView(root, opts) {
-  // opts: {dose, target, tol, targetYield, stopOffset, compare, onDone(r, metrics, curve), onCancel, onRetry}
+  // opts: {dose, target, tol, targetYield, stopDelay, compare, onDone(r, metrics, curve), onCancel, onRetry}
   root.innerHTML = `
     <div class="shot-status"></div>
     <div class="shot-stats">
@@ -173,11 +173,11 @@ function createShotView(root, opts) {
   const tracker = new ShotTracker();
   let metrics = null;
   // Cuenta atrás de corte: solo con salida objetivo
-  const cd = opts.targetYield ? new StopCountdown({targetYield: opts.targetYield, offset: opts.stopOffset}) : null;
+  const cd = opts.targetYield ? new StopCountdown({targetYield: opts.targetYield, delay: opts.stopDelay}) : null;
   const cdRun = {timers: [], el: null, stopAtG: null};
   if (cd) {
     q('.shot-cue').hidden = false;
-    q('.shot-cue span').textContent = t('scale.stop.cue', {cue: cd.cue.toFixed(1), target: fmtG(cd.target)});
+    q('.shot-cue span').textContent = t('scale.stop.cue', {delay: cd.delay.toFixed(1), target: fmtG(cd.target)});
   }
 
   const setStatus = key => { q('.shot-status').textContent = t(key); };
@@ -230,7 +230,7 @@ function createShotView(root, opts) {
     if (!r) { setAction(t('scale.shot.retry'), opts.onRetry); return; }
     metrics = analyzeShot(tracker.samples, {target: opts.target, tol: opts.tol, ...r});
     if (metrics && cd?.startAt != null) {
-      Object.assign(metrics, {stop_target_g: cd.target, stop_cue_g: cd.cue, stop_at_g: cdRun.stopAtG});
+      Object.assign(metrics, {stop_target_g: cd.target, stop_cue_g: cd.cue, stop_at_g: cdRun.stopAtG, stop_flow: cd.flow});
     }
     q('[data-k=time]').textContent = (r.time_ms / 1000).toFixed(1);
     q('[data-k=weight]').textContent = fmtG(r.yield_g);
@@ -361,13 +361,13 @@ function drawShotChart(canvas, samples, opts) {
 // ---------------------------------------------------------------------------
 const STOP_HOLD_MS = 2000;   // el STOP sigue a la vista tras el último tiempo
 
-// Offset global (una sola cafetera): de los últimos brews de cualquier café.
-async function loadStopOffset() {
+// Retardo global (una sola cafetera): de los últimos brews de cualquier café.
+async function loadStopDelay() {
   try {
     const r = await fetch('/api/brews?limit=30');
-    if (r.ok) return stopOffset((await r.json()).brews);
+    if (r.ok) return stopDelay((await r.json()).brews);
   } catch (_) {}
-  return STOP_OFFSET_G;
+  return STOP_DELAY_S;
 }
 
 function stopCountdownRun(run, beats, cue, weightNow) {
@@ -475,14 +475,14 @@ async function brewScaleShot() {
   const compare = (_brewHistory || []).filter(b => b.rating && b.shot_metrics?.main_flow != null && b.id !== _editBrewId)
     .sort((a, b) => b.rating - a.rating || !!b.shot_curve - !!a.shot_curve
       || (b.brew_date > a.brew_date ? 1 : -1))[0] || null;
-  const stopOffset = targetYield ? await loadStopOffset() : null;
+  const delay = targetYield ? await loadStopDelay() : null;
   const root = document.getElementById('b-shot-live');
   root.hidden = false;
   document.querySelector('#modal-brew .btn-shot').hidden = true;
   document.getElementById('b-shot-summary').hidden = true;
   _shotView?.destroy();
   _shotView = createShotView(root, {
-    dose, target, tol: flowTolerance, targetYield, stopOffset, compare,
+    dose, target, tol: flowTolerance, targetYield, stopDelay: delay, compare,
     onCancel: brewShotClose,
     onRetry: brewScaleShot,
     onDone: (r, metrics, curve) => {
@@ -570,9 +570,9 @@ async function scaleTestAutoStart() {
   const target = parseFloat(document.getElementById('st-target').value) || null;
   const dose = parseFloat(document.getElementById('st-dose').value) || null;
   const targetYield = parseFloat(document.getElementById('st-yield').value) || null;
-  const stopOffset = targetYield ? await loadStopOffset() : null;
+  const delay = targetYield ? await loadStopDelay() : null;
   _testShotView?.destroy();
-  _testShotView = createShotView(document.getElementById('st-shot-view'), {dose, target, tol: flowTolerance, targetYield, stopOffset});
+  _testShotView = createShotView(document.getElementById('st-shot-view'), {dose, target, tol: flowTolerance, targetYield, stopDelay: delay});
 }
 
 

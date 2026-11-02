@@ -427,7 +427,7 @@
   "scale.dose.again": "Volver a pesar",
   "scale.shot.cancel": "Cancelar",
   "scale.shot.retry": "↺ Repetir shot",
-  "scale.stop.cue": "⏳ Cuenta atrás: corta en {cue} g (objetivo {target} g)",
+  "scale.stop.cue": "⏳ Cuenta atrás: corta {delay} s antes de {target} g",
   "scale.stop.stop": "STOP",
   "scale.stop.sound": "Sonido de la cuenta atrás",
   "toast.undo": "Deshacer",

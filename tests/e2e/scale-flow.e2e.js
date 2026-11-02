@@ -81,8 +81,8 @@ async function apiCall(page, method, url, body) {
   await page.click('#modal-brew .btn-shot');
   await page.waitForSelector('#b-shot-live:not([hidden])');
   const replay = page.evaluate(() => window.__replay(96, 132));
-  // Cuenta atrás de corte: salida objetivo 38 (receta) − 0.7 por defecto → corta en 37.3 g, a 1 s por tiempo
-  assert.match(await page.textContent('#b-shot-live .shot-cue'), /37\.3 g/);
+  // Cuenta atrás de corte: salida objetivo 38 (receta), 1.5 s antes por defecto, a 1 s por tiempo
+  assert.match(await page.textContent('#b-shot-live .shot-cue'), /1\.5 s\D+38\.0 g/);
   await page.waitForSelector('.stop-cd[data-n="3"]', {timeout: 40000});
   const t3 = Date.now();
   assert.strictEqual(await page.textContent('.stop-cd-num'), '3');
@@ -118,7 +118,8 @@ async function apiCall(page, method, url, body) {
   assert.ok(brews[0].shot_curve.pts.length > 200, 'curva completa guardada');
   assert.strictEqual(brews[0].shot_curve.time_ms, 27800);
   assert.strictEqual(m.stop_target_g, 38);
-  assert.strictEqual(m.stop_cue_g, 37.3);
+  assert.ok(m.stop_flow > 1 && m.stop_flow < 3, `flujo al lanzar ${m.stop_flow}`);
+  assert.ok(Math.abs(m.stop_cue_g - (38 - 1.5 * m.stop_flow)) < 0.051, `corte ${m.stop_cue_g}`);
   assert.ok(m.stop_at_g > 30 && m.stop_at_g < 38.5, `peso en el STOP ${m.stop_at_g}`);
 
   // 4) Siguiente shot: con la báscula conectada la dosis empieza sola, y la curva
@@ -127,9 +128,10 @@ async function apiCall(page, method, url, body) {
   await page.waitForSelector('#b-dose-scale:not([hidden]):not(.locked)');
   await page.click('#modal-brew .btn-shot');
   await page.waitForSelector('#b-shot-live .shot-legend', {state: 'attached'});
-  // …y el corte usa el offset aprendido: 38.5 − 37.3 = 1.2 g
-  const [, cue, target] = (await page.textContent('#b-shot-live .shot-cue')).match(/([\d.]+) g \D+([\d.]+) g/);
-  assert.ok(Math.abs(target - cue - 1.2) < 0.051, `corte ${cue} con objetivo ${target}`);
+  // …y el corte usa el retardo aprendido: (salida − corte) / flujo del shot anterior
+  const delay = parseFloat((await page.textContent('#b-shot-live .shot-cue')).match(/([\d.]+) s/)[1]);
+  const learned = (brews[0].yield_g - m.stop_cue_g) / m.stop_flow;
+  assert.ok(Math.abs(delay - learned) < 0.051, `retardo ${delay} vs ${learned}`);
   await page.evaluate(() => closeModal('modal-brew'));
   assert.ok(await page.$('#b-shot-live[hidden]'), 'la vista en vivo se cierra con el modal');
 
