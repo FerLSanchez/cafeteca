@@ -102,7 +102,7 @@ test('curva guardada: ~3 KB y reproduce las métricas del shot en vivo', () => {
 // ---------------------------------------------------------------------------
 // Cuenta atrás para cortar el shot
 // ---------------------------------------------------------------------------
-const {StopCountdown, stopOffset, STOP_BEAT_S, STOP_OFFSET_G} = require('../../static/js/scale-analysis.js');
+const {StopCountdown, stopDelay, STOP_BEAT_S, STOP_DELAY_S} = require('../../static/js/scale-analysis.js');
 
 // Shot sintético: preinfusión 0–4 s, luego flujo constante
 const steady = (flow, until = 40) => {
@@ -117,45 +117,95 @@ const runCd = (samples, opts) => {
 };
 
 test('cuenta atrás: arranca con 3 tiempos y el STOP cae cuando el peso llega al punto de corte', () => {
-  const {cd, r} = runCd(steady(1.8), {targetYield: 36, offset: 0.6});
-  assert.strictEqual(cd.cue, 35.4);
+  const {cd, r} = runCd(steady(1.8), {targetYield: 36, delay: 0.5});
+  assert.strictEqual(cd.flow, 1.8);
+  assert.strictEqual(cd.cue, 35.1);   // 36 − 0.5 s × 1.8 g/s
   assert.strictEqual(r.beats, 3);
   assert.ok(Math.abs(r.stopAt - r.startAt - 3 * STOP_BEAT_S) < 1e-9);
-  const tCue = 4 + (35.4 - 0.8) / 1.8;
+  const tCue = 4 + (35.1 - 0.8) / 1.8;
   assert.ok(Math.abs(r.stopAt - tCue) < 0.15, `stop ${r.stopAt} vs ${tCue}`);
   // el ritmo es fijo: 3, 2, 1 y STOP (0) cada STOP_BEAT_S
   assert.deepStrictEqual([0, 0.99, 1, 2, 3, 4].map(d => cd.beatAt(r.startAt + d)), [3, 3, 2, 1, 0, 0]);
   assert.strictEqual(cd.push({t: r.startAt + 0.5, weight: 40}), null, 'una vez lanzada no se recalcula');
+  assert.strictEqual(cd.cue, 35.1, 'el corte queda fijo al lanzarse');
+});
+
+test('cuenta atrás: el mismo retardo corta antes cuanto más rápido sale', () => {
+  const slow = runCd(steady(1.2), {targetYield: 36, delay: 1.5}).cd;
+  const fast = runCd(steady(2.2), {targetYield: 36, delay: 1.5}).cd;
+  assert.strictEqual(slow.cue, 34.2);   // 1.8 g antes
+  assert.strictEqual(fast.cue, 32.7);   // 3.3 g antes
+});
+
+test('cuenta atrás: sin retardo aprendido usa el de por defecto; antes de lanzarse no hay corte', () => {
+  const cd = new StopCountdown({targetYield: 36});
+  assert.strictEqual(cd.delay, STOP_DELAY_S);
+  assert.strictEqual(cd.cue, null);
+  assert.strictEqual(cd.flow, null);
 });
 
 test('cuenta atrás: nada durante la preinfusión ni sin objetivo', () => {
-  const cd = new StopCountdown({targetYield: 3});
+  const cd = new StopCountdown({targetYield: 3, delay: 0});
   for (const s of steady(1.8, 4.9)) assert.strictEqual(cd.push(s), null);
   assert.strictEqual(new StopCountdown({targetYield: null}).push({t: 10, weight: 50}), null);
 });
 
+test('cuenta atrás: sin flujo no se lanza hasta que el peso alcanza el objetivo', () => {
+  const flat = w => [5, 6, 7].map(t => ({t, weight: w}));
+  assert.strictEqual(runCd(flat(20), {targetYield: 36, delay: 1.5}).r, null);
+  const {cd, r} = runCd(flat(36), {targetYield: 36, delay: 1.5});
+  assert.strictEqual(r.beats, 0);
+  assert.strictEqual(cd.cue, 36);
+});
+
 test('cuenta atrás: si al armarse ya falta poco arranca con menos tiempos; pasado el corte, STOP directo', () => {
-  const {r} = runCd(steady(1.8), {targetYield: 4, offset: 0});
+  const {r} = runCd(steady(1.8), {targetYield: 4, delay: 0});
   assert.strictEqual(r.startAt, 5);
   assert.ok(r.beats >= 1 && r.beats < 3, `beats ${r.beats}`);
-  const late = runCd([{t: 5, weight: 20}, {t: 6, weight: 22}, {t: 7, weight: 24}], {targetYield: 20, offset: 0});
+  const late = runCd([{t: 5, weight: 20}, {t: 6, weight: 22}, {t: 7, weight: 24}], {targetYield: 20, delay: 0});
   assert.strictEqual(late.r.beats, 0);
 });
 
 test('cuenta atrás: shot real F0 — el STOP llega cerca de cuando la taza alcanza el corte', () => {
   const st = runShot();
   const yld = st.result.yield_g;
-  const {cd, r} = runCd(st.samples, {targetYield: yld - 3, offset: 0.7});
+  const {cd, r} = runCd(st.samples, {targetYield: yld - 3, delay: 0.4});
   assert.ok(r && r.beats === 3);
   const reach = st.samples.find(s => s.weight >= cd.cue).t;
   assert.ok(Math.abs(r.stopAt - reach) < 0.8, `stop ${r.stopAt.toFixed(2)} vs ${reach.toFixed(2)}`);
 });
 
-test('offset aprendido: mediana de (salida − corte) de los 5 últimos shots con cuenta atrás', () => {
-  const b = (y, cue) => ({yield_g: y, shot_metrics: {stop_cue_g: cue}});
-  assert.strictEqual(stopOffset([]), STOP_OFFSET_G);
-  assert.strictEqual(stopOffset([{yield_g: 36, shot_metrics: {main_flow: 1.8}}, {yield_g: 36}]), STOP_OFFSET_G);
-  assert.strictEqual(stopOffset([b(36, 35.5), b(36.2, 35.4), b(35.9, 35.6)]), 0.5);
-  // solo cuentan los 5 más recientes y se descartan los disparates (> 3 g: no hizo caso)
-  assert.strictEqual(stopOffset([b(36, 35), b(40, 35), b(36, 35), b(36, 35), b(36, 35.2), b(36, 35.2), b(9, 1)]), 1);
+// Shot con el flujo del lanzamiento guardado: (salida − corte) / flujo = retardo
+const delayShot = (d, flow = 2, cue = 30) => ({yield_g: cue + d * flow, shot_metrics: {stop_cue_g: cue, stop_flow: flow}});
+
+test('retardo aprendido: mediana de (salida − corte) / flujo de los 5 últimos shots', () => {
+  assert.strictEqual(stopDelay([]), STOP_DELAY_S);
+  assert.strictEqual(stopDelay([{yield_g: 36, shot_metrics: {main_flow: 1.8}}, {yield_g: 36}]), STOP_DELAY_S);
+  assert.strictEqual(stopDelay([delayShot(1), delayShot(1.2), delayShot(1.4)]), 1.2);
+  assert.strictEqual(stopDelay([delayShot(1), delayShot(1), delayShot(1), delayShot(1), delayShot(1), delayShot(3), delayShot(3)]), 1);
+});
+
+test('retardo aprendido: el mismo retardo a distinto flujo da el mismo valor', () => {
+  assert.strictEqual(stopDelay([delayShot(1.5, 1.2), delayShot(1.5, 1.8), delayShot(1.5, 2.3)]), 1.5);
+});
+
+test('retardo aprendido: solo descarta cuentas no seguidas (corte antes del STOP o > 4 s tarde)', () => {
+  assert.strictEqual(stopDelay([delayShot(-0.5), delayShot(5), delayShot(1.6), delayShot(1.8)]), 1.7);
+  assert.strictEqual(stopDelay([delayShot(-0.5), delayShot(5)]), STOP_DELAY_S);
+});
+
+test('retardo aprendido: los shots rápidos con 3.6–3.9 g tras el corte sí cuentan (el offset en gramos se congelaba)', () => {
+  // Producción, más reciente primero: #391, #389, #387, #386, #384 (salida − corte, flujo al lanzar)
+  const real = [[3.9, 1.88], [3.9, 1.82], [3.9, 2.08], [3.7, 1.59], [3.6, 2.03]]
+    .map(([e, flow]) => ({yield_g: 30 + e, shot_metrics: {stop_cue_g: 30, stop_flow: flow}}));
+  assert.strictEqual(stopDelay(real), 2.07);
+});
+
+test('retardo aprendido: los shots sin stop_flow toman el flujo de la curva, 3 tiempos antes del STOP', () => {
+  const pts = [];
+  for (let t = 0; t <= 30; t += 0.5) pts.push([t, t * 2]);   // 2 g/s: el peso 40 se alcanza en t = 20
+  const legacy = {yield_g: 43, shot_metrics: {stop_cue_g: 40, stop_at_g: 40}, shot_curve: {pts}};
+  assert.strictEqual(stopDelay([legacy]), 1.5);
+  // sin curva no hay flujo: no cuenta
+  assert.strictEqual(stopDelay([{yield_g: 39, shot_metrics: {stop_cue_g: 30, stop_at_g: 30}}]), STOP_DELAY_S);
 });

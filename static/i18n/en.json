@@ -420,7 +420,7 @@
   "scale.dose.again": "Weigh again",
   "scale.shot.cancel": "Cancel",
   "scale.shot.retry": "↺ Pull again",
-  "scale.stop.cue": "⏳ Countdown: stop at {cue} g (target {target} g)",
+  "scale.stop.cue": "⏳ Countdown: stop {delay} s before {target} g",
   "scale.stop.stop": "STOP",
   "scale.stop.sound": "Countdown sound",
   "toast.undo": "Undo",

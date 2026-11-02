@@ -324,7 +324,7 @@ class TestShotMetrics:
 
     def test_brew_stores_stop_countdown(self, client):
         coffee = make_coffee(client)
-        m = {**METRICS, 'stop_target_g': 36, 'stop_cue_g': 35.3, 'stop_at_g': 35.1}
+        m = {**METRICS, 'stop_target_g': 36, 'stop_cue_g': 35.3, 'stop_at_g': 35.1, 'stop_flow': 1.8}
         assert make_brew(client, coffee['id'], {'shot_metrics': m})['shot_metrics'] == m
 
     def test_brew_without_metrics_returns_null(self, client):

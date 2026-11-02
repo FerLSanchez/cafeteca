@@ -251,15 +251,17 @@ const STOP_BEATS      = 3;
 const STOP_FLOW_WIN_S = 2.0;   // flujo para predecir: media de los últimos 2 s
 const STOP_ARM_S      = 5;     // antes la preinfusión y la rampa no predicen
 const STOP_MIN_FLOW   = 0.3;   // g/s
-const STOP_OFFSET_G   = 0.7;   // gotas tras cortar + latencias, hasta aprenderlo
-const STOP_OFFSET_N   = 5;     // shots con cuenta atrás para aprender el offset
-const STOP_OFFSET_MAX = 3;     // |salida − corte| mayor: no se siguió la cuenta
-const STOP_KEYS = ['stop_target_g', 'stop_cue_g', 'stop_at_g'];   // en shot_metrics
+const STOP_DELAY_S     = 1.5;   // s que sigue saliendo a pleno flujo tras el STOP, hasta aprenderlo
+const STOP_DELAY_N     = 5;     // shots con cuenta atrás para aprender el retardo
+const STOP_DELAY_MAX_S = 4;     // fuera de 0…4 s: no se siguió la cuenta
+const STOP_KEYS = ['stop_target_g', 'stop_cue_g', 'stop_at_g', 'stop_flow'];   // en shot_metrics
 
 class StopCountdown {
-  constructor({targetYield, offset = STOP_OFFSET_G}) {
+  constructor({targetYield, delay = STOP_DELAY_S}) {
     this.target = targetYield || null;
-    this.cue = this.target ? r1(this.target - offset) : null;
+    this.delay = delay;
+    this.cue = null;       // punto de corte: objetivo − retardo × flujo; se fija al lanzarse
+    this.flow = null;      // flujo (g/s) con el que se lanzó
     this.win = [];
     this.startAt = null;   // t (s del shot) en que se muestra el primer número
     this.beats = null;     // números de la cuenta (3, o menos si el flujo se disparó)
@@ -267,21 +269,24 @@ class StopCountdown {
   }
   // Muestras {t (s desde el inicio del shot), weight}. Devuelve {startAt, beats, stopAt} al lanzarse.
   push({t, weight}) {
-    if (this.startAt !== null || this.cue === null) return null;
+    if (this.startAt !== null || this.target === null) return null;
     this.win.push({t, weight});
     while (t - this.win[0].t > STOP_FLOW_WIN_S) this.win.shift();
     if (t < STOP_ARM_S) return null;
     const first = this.win[0];
     if (t - first.t < STOP_FLOW_WIN_S * 0.8) return null;
     const flow = (weight - first.weight) / (t - first.t);
+    const cue = this.target - this.delay * Math.max(0, flow);
     let beats;
-    if (weight >= this.cue) beats = 0;
+    if (weight >= cue) beats = 0;
     else {
       if (flow < STOP_MIN_FLOW) return null;
-      const eta = (this.cue - weight) / flow;
+      const eta = (cue - weight) / flow;
       if (eta > STOP_BEATS * STOP_BEAT_S) return null;
       beats = Math.round(eta / STOP_BEAT_S);
     }
+    this.cue = r1(cue);
+    this.flow = r2(flow);
     this.beats = beats;
     this.startAt = t;
     this.stopAt = t + beats * STOP_BEAT_S;
@@ -294,22 +299,41 @@ class StopCountdown {
   }
 }
 
-// Offset aprendido de los brews (del más reciente al más antiguo, de cualquier café):
-// mediana de (salida − punto de corte) de los últimos shots con cuenta atrás.
-function stopOffset(brews) {
-  const errs = [];
+// Flujo con el que se lanzó la cuenta. Los shots anteriores a stop_flow lo sacan de la curva:
+// la media de 2 s que acaba 3 tiempos antes de que el peso llegase al del STOP.
+function stopLaunchFlow(b) {
+  const m = b.shot_metrics;
+  if (m?.stop_flow != null) return m.stop_flow;
+  const pts = b.shot_curve?.pts;
+  if (m?.stop_at_g == null || !pts) return null;
+  const stop = pts.find(p => p[1] >= m.stop_at_g);
+  if (!stop) return null;
+  const end = stop[0] - STOP_BEATS * STOP_BEAT_S;
+  const win = pts.filter(p => p[0] >= end - STOP_FLOW_WIN_S && p[0] <= end);
+  if (win.length < 2) return null;
+  const [a, z] = [win[0], win[win.length - 1]];
+  return z[0] - a[0] < STOP_FLOW_WIN_S * 0.8 ? null : (z[1] - a[1]) / (z[0] - a[0]);
+}
+
+// Retardo aprendido de los brews (del más reciente al más antiguo, de cualquier café): mediana de
+// (salida − punto de corte) / flujo de los últimos shots con cuenta atrás. En segundos porque lo
+// constante es lo que tardas en cortar: en gramos depende del flujo de cada shot.
+function stopDelay(brews) {
+  const delays = [];
   for (const b of brews || []) {
     const cue = b.shot_metrics?.stop_cue_g;
     if (cue == null || b.yield_g == null) continue;
-    const e = b.yield_g - cue;
-    if (Math.abs(e) > STOP_OFFSET_MAX) continue;
-    errs.push(e);
-    if (errs.length === STOP_OFFSET_N) break;
+    const flow = stopLaunchFlow(b);
+    if (!(flow >= STOP_MIN_FLOW)) continue;
+    const d = (b.yield_g - cue) / flow;
+    if (d < 0 || d > STOP_DELAY_MAX_S) continue;
+    delays.push(d);
+    if (delays.length === STOP_DELAY_N) break;
   }
-  return errs.length ? r2(median(errs)) : STOP_OFFSET_G;
+  return delays.length ? r2(median(delays)) : STOP_DELAY_S;
 }
 
 if (typeof module !== 'undefined') {
   module.exports = {DoseTracker, ShotTracker, flowSeries, analyzeShot, curveFromShot, samplesFromCurve, reanalyzeCurve,
-    StopCountdown, stopOffset, STOP_BEAT_S, STOP_OFFSET_G, STOP_KEYS};
+    StopCountdown, stopDelay, STOP_BEAT_S, STOP_DELAY_S, STOP_KEYS};
 }
