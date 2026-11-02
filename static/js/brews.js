@@ -88,26 +88,26 @@ function _setupBrewsObserver(el) {
 
 function fmtRatio(dose, yld) {
   if (!dose || !yld) return null;
-  return '1:' + (yld / dose).toFixed(2);
+  return '1:' + fmtNum((yld / dose), 2);
 }
 
 function fmtFlow(yld, time_s) {
   if (!yld || !time_s) return null;
-  return (yld / time_s).toFixed(2) + ' g/s';
+  return fmtNum((yld / time_s), 2) + ' g/s';
 }
 
 function brewSummaryLine(b) {
   const parts = [];
-  if (b.dose_g && b.yield_g) parts.push(`${b.dose_g}g → ${b.yield_g}g (${fmtRatio(b.dose_g, b.yield_g)})`);
-  else if (b.dose_g)         parts.push(`${b.dose_g}g café`);
-  if (b.time_s) parts.push(`${b.time_s}s`);
+  if (b.dose_g && b.yield_g) parts.push(`${fmtGrams(b.dose_g)} → ${fmtGrams(b.yield_g)} (${fmtRatio(b.dose_g, b.yield_g)})`);
+  else if (b.dose_g)         parts.push(`${fmtGrams(b.dose_g)} café`);
+  if (b.time_s) parts.push(`${b.time_s} s`);
   const m = b.shot_metrics;
   const flow = m?.main_flow != null
-    ? t('scale.summary_flow', {main: m.main_flow.toFixed(2)}) + (m.irregular ? ' ⚠️' : '')
+    ? t('scale.summary_flow', {main: fmtNum(m.main_flow, 2)}) + (m.irregular ? ' · ' + t('scale.row.irregular_short') : '')
     : fmtFlow(b.yield_g, b.time_s);
   if (flow) parts.push(flow);
   if (b.grind)  parts.push(t('brew.grind_label', {grind: b.grind}));
-  if (b.temp_c) parts.push(`${b.temp_c}°C`);
+  if (b.temp_c) parts.push(`${b.temp_c} °C`);
   return parts.join(' · ') || '—';
 }
 
@@ -115,11 +115,11 @@ function brewSummaryLine(b) {
 function brewMetricsLine(b) {
   const m = b.shot_metrics;
   if (!m) return '';
-  const parts = [t('scale.row.ramp', {s: (+m.t_ramp_s).toFixed(1)})];
+  const parts = [t('scale.row.ramp', {s: fmtNum((+m.t_ramp_s), 1)})];
   if (m.in_band_pct != null) parts.push(t('scale.row.in_band', {pct: m.in_band_pct}));
-  parts.push(t('scale.row.peak', {flow: (+m.peak_flow).toFixed(2)}));
-  parts.push(t('scale.row.tail', {s: (+m.tail_s).toFixed(1)}));
-  return (b.shot_curve ? '' : '🌊 ') + parts.join(' · ');
+  parts.push(t('scale.row.peak', {flow: fmtNum((+m.peak_flow), 2)}));
+  parts.push(t('scale.row.tail', {s: fmtNum((+m.tail_s), 1)}));
+  return parts.join(' · ');
 }
 
 
@@ -128,11 +128,11 @@ const recipeRatio = r => (r?.dose_g && r?.yield_g ? r.yield_g / r.dose_g : null)
 function recipeSummaryLine(recipe) {
   const ratio = fmtRatio(recipe.dose_g, recipe.yield_g);
   const parts = [];
-  if (recipe.dose_g && recipe.yield_g) parts.push(`${recipe.dose_g}g → ${recipe.yield_g}g${ratio ? ' (' + ratio + ')' : ''}`);
-  else if (recipe.dose_g)              parts.push(`${recipe.dose_g}g`);
+  if (recipe.dose_g && recipe.yield_g) parts.push(`${fmtGrams(recipe.dose_g)} → ${fmtGrams(recipe.yield_g)}${ratio ? ' (' + ratio + ')' : ''}`);
+  else if (recipe.dose_g)              parts.push(`${fmtGrams(recipe.dose_g)}`);
   if (recipe.grind)  parts.push(t('recipe.grind_label', {grind: recipe.grind}));
-  if (recipe.temp_c) parts.push(`${recipe.temp_c}°C`);
-  if (recipe.target_flow) parts.push(`🎯 ${recipe.target_flow} g/s`);
+  if (recipe.temp_c) parts.push(`${recipe.temp_c} °C`);
+  if (recipe.target_flow) parts.push(`${fmtNum(recipe.target_flow, 2)} g/s`);
   return parts.join(' · ') || '—';
 }
 
@@ -144,7 +144,7 @@ async function saveBrewAsRecipe(brewId, coffeeId) {
   const r = {dose_g: b.dose_g, yield_g: b.yield_g, time_s: b.time_s, grind: b.grind, temp_c: b.temp_c,
     target_flow: flow != null && flow >= 0.1 && flow <= 10 ? +flow.toFixed(2) : null};
   showConfirm({
-    icon: '📋', title: t('confirm.save_recipe.title'),
+    icon: 'clipboard', title: t('confirm.save_recipe.title'),
     msg: t('confirm.save_recipe.msg', {recipe: recipeSummaryLine(r)}),
     btnLabel: t('confirm.save_recipe.btn'), btnClass: 'btn-primary',
     onConfirm: async () => {
@@ -209,7 +209,7 @@ async function renderBrewsSection(coffeeId) {
         <span class="detail-brew-date">${fmtDate(b.brew_date)}</span>
         <span class="detail-brew-summary">${esc(brewSummaryLine(b))}</span>
         <span class="detail-brew-rating">${canQuickRate(b) ? '' : b.rating ? stars(b.rating) : '—'}</span>
-        ${b.rating >= 4 ? `<button class="btn-inline-edit" onclick="saveBrewAsRecipe(${b.id},${coffeeId})" title="${esc(t('brew.btn.save_recipe'))}" aria-label="${esc(t('brew.btn.save_recipe'))}">📋</button>` : ''}
+        ${b.rating >= 4 ? `<button class="btn-inline-edit" onclick="saveBrewAsRecipe(${b.id},${coffeeId})" title="${esc(t('brew.btn.save_recipe'))}" aria-label="${esc(t('brew.btn.save_recipe'))}">${icon('clipboard')}</button>` : ''}
         <button class="btn-inline-edit" onclick="openBrewModal(${coffeeId},${b.id})" title="${esc(t('brew.btn.edit'))}" aria-label="${esc(t('brew.btn.edit'))}">${icon('edit')}</button>
         <button class="btn-inline-edit" onclick="deleteBrew(${b.id}, ${coffeeId})" title="${esc(t('brew.btn.delete'))}" aria-label="${esc(t('brew.btn.delete'))}" style="color:var(--text3)">${icon('trash')}</button>
         ${tasteLine(b) && !canQuickRate(b) ? `<div class="brew-taste-line detail-brew-metrics">${esc(tasteLine(b))}</div>` : ''}
@@ -256,7 +256,7 @@ function updateRatioDisplay() {
   const el   = document.getElementById('r-ratio-display');
   if (!el) return;
   const parts = [];
-  if (dose && yld) parts.push(t('brew.ratio', {ratio: '1:' + (yld / dose).toFixed(2)}));
+  if (dose && yld) parts.push(t('brew.ratio', {ratio: '1:' + fmtNum((yld / dose), 2)}));
   const flow = fmtFlow(yld, time);
   if (flow) parts.push(t('brew.flow', {flow}));
   el.textContent = parts.join('  ·  ');
@@ -282,7 +282,7 @@ async function submitRecipe() {
 
 function confirmDeleteRecipe(coffeeId) {
   showConfirm({
-    icon: '📋', title: t('confirm.delete_recipe.title'),
+    icon: 'clipboard', title: t('confirm.delete_recipe.title'),
     msg: t('confirm.delete_recipe.msg'),
     btnLabel: t('confirm.delete_recipe.btn'), btnClass: 'btn-danger',
     onConfirm: async () => {
@@ -390,12 +390,12 @@ function updateBrewRatioDisplay() {
   const el   = _bv('b-ratio-display');
   if (!el) return;
   const parts = [];
-  if (dose && yld) parts.push(t('brew.ratio', {ratio: '1:' + (yld / dose).toFixed(2)}));
+  if (dose && yld) parts.push(t('brew.ratio', {ratio: '1:' + fmtNum((yld / dose), 2)}));
   // Con métricas de báscula se muestra el flujo principal (el mismo que el resumen del shot),
   // no la media salida/tiempo, para no tener dos "flujos" distintos en pantalla
   const metrics = _brewShotMetrics === undefined ? _brewCache[_editBrewId]?.shot_metrics : _brewShotMetrics;
   const flow = metrics?.main_flow != null ? null : fmtFlow(yld, time);
-  if (metrics?.main_flow != null) parts.push(t('scale.summary_flow', {main: metrics.main_flow.toFixed(2)}));
+  if (metrics?.main_flow != null) parts.push(t('scale.summary_flow', {main: fmtNum(metrics.main_flow, 2)}));
   else if (flow) parts.push(t('brew.flow', {flow}));
   el.textContent = parts.join('  ·  ');
   scheduleBrewRatioHint();
@@ -510,7 +510,7 @@ function afterQuickRate(id) {
 
 async function deleteBrew(id, coffeeId) {
   showConfirm({
-    icon: '🫖', title: t('confirm.delete_brew.title'),
+    icon: 'coffee', title: t('confirm.delete_brew.title'),
     msg: t('confirm.delete_brew.msg'),
     btnLabel: t('confirm.delete_brew.btn'), btnClass: 'btn-danger',
     onConfirm: async () => {

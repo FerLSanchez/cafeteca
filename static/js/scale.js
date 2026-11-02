@@ -161,7 +161,7 @@ function scaleLabRenderLive(pkt, bytes) {
   const el = document.getElementById('scale-lab-live');
   if (!pkt) { el.textContent = `✗ ${scaleHex(bytes)}`; return; }
   if (pkt.type === 'weight') {
-    el.textContent = `⏱ ${(pkt.ms / 1000).toFixed(1)}s · ${pkt.weight.toFixed(2)} g · ${pkt.flow.toFixed(2)} g/s · 🔋${pkt.battery}% · sign ${pkt.raw_sign.map(x => x.toString(16)).join('/')}`;
+    el.textContent = `${(pkt.ms / 1000).toFixed(1)}s · ${pkt.weight.toFixed(2)} g · ${pkt.flow.toFixed(2)} g/s · bat ${pkt.battery} % · sign ${pkt.raw_sign.map(x => x.toString(16)).join('/')}`;
   } else if (pkt.type === 'event') {
     document.getElementById('scale-lab-events').textContent += `0D state=${pkt.state} ${(pkt.ms / 1000).toFixed(1)}s ${pkt.weight}g\n`;
   } else {

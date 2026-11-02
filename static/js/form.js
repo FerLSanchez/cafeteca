@@ -38,7 +38,7 @@ async function fillFamilySelect(self = null, preselect = null) {
   const others = all.filter(c => c.id !== self?.id)
     .sort((a, b) => a.name.localeCompare(b.name) || (b.roast_date || '').localeCompare(a.roast_date || ''));
   others.forEach(c => {
-    const label = c.name + (c.roast_date ? ' · 🔥 ' + fmtDate(c.roast_date) : '');
+    const label = c.name + (c.roast_date ? ' · ' + fmtDate(c.roast_date) : '');
     sel.add(new Option(label, c.id));
   });
   const pick = preselect ?? (self && self.family_size > 1 ? others.find(c => key(c) === key(self))?.id : null);
@@ -138,7 +138,7 @@ function deleteCoffee() {
   if (!id) return;
   const name = document.getElementById('f-name').value;
   showConfirm({
-    icon: '🗑', title: t('confirm.delete_coffee.title'),
+    icon: 'trash', title: t('confirm.delete_coffee.title'),
     msg: t('confirm.delete_coffee.msg', {name}),
     btnLabel: t('confirm.delete_coffee.btn'), btnClass: 'btn-danger',
     onConfirm: async () => {
@@ -182,7 +182,7 @@ async function saveSettings() {
 function purgeOldBrews() {
   const months = parseInt(document.getElementById('s-purge-months').value, 10);
   showConfirm({
-    icon: '🗑️', title: t('confirm.purge_brews.title'),
+    icon: 'trash', title: t('confirm.purge_brews.title'),
     msg: t('confirm.purge_brews.msg', {months}),
     btnLabel: t('confirm.purge_brews.btn'), btnClass: 'btn-danger',
     onConfirm: async () => {

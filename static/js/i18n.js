@@ -46,3 +46,12 @@ function changeLang(lang) {
   try { localStorage.setItem('lang', lang); } catch (_) {}
   location.reload();
 }
+
+// Número para mostrar con el separador decimal del idioma. Solo para pantalla: lo que va al API
+// o a un <input> sigue siendo un número normal.
+function fmtNum(value, decimals, lang = _currentLang) {
+  const n = Number(value).toFixed(decimals);
+  return lang === 'en' ? n : n.replace('.', ',');
+}
+
+if (typeof module !== 'undefined') module.exports = {fmtNum};

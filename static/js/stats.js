@@ -52,7 +52,7 @@ function renderStatsHero(s) {
       <div class="stats-hero-big">${m.consumed_g ?? 0}<span class="stats-hero-big-unit">g ${t('stats.consumed')}</span></div>
       <div class="stats-hero-row">
         <div><div class="v">${m.brews_count ?? 0}</div><div class="k">${t('stats.preparations')}</div></div>
-        <div><div class="v">★ ${m.avg_rating != null ? m.avg_rating.toFixed(1) : '—'}</div><div class="k">${t('stats.avg_rating')}</div></div>
+        <div><div class="v">★ ${m.avg_rating != null ? fmtNum(m.avg_rating, 1) : '—'}</div><div class="k">${t('stats.avg_rating')}</div></div>
         <div><div class="v">${s.days_per_kg != null ? s.days_per_kg + 'd' : '—'}</div><div class="k">${t('stats.per_kg')}</div></div>
       </div>
     </div>
@@ -123,7 +123,7 @@ function buildBarChart(title, data) {
       <span class="bar-label" title="${esc(r.name)}">${esc(r.name)}</span>
       <div class="bar-track"><div class="bar-fill" style="width:${Math.round(r.cnt/max*100)}%"></div></div>
       <span class="bar-cnt">${r.cnt}</span>
-      <span class="bar-rating">${r.avg_rating != null ? `<span class="bar-star">★</span>${r.avg_rating.toFixed(1)}` : ''}</span>
+      <span class="bar-rating">${r.avg_rating != null ? `<span class="bar-star">★</span>${fmtNum(r.avg_rating, 1)}` : ''}</span>
     </div>`).join('');
   return `<div class="stats-section"><h3>${title}</h3>${rows}</div>`;
 }

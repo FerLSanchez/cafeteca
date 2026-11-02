@@ -81,7 +81,7 @@ function renderBrewRatioHint() {
   if (!differs) { el.innerHTML = ''; el.dataset.yield = ''; return; }
   el.dataset.yield = s.yield_g;
   el.innerHTML = `<span><b>${esc(t('grind.suggested_label'))}</b> ${esc(s.yield_g + ' g')}`
-    + ` · ${esc(t('brew.ratio_learned', {ratio: s.ratio.toFixed(2), source: targetSourceLabel(s.source)}))}</span>`
+    + ` · ${esc(t('brew.ratio_learned', {ratio: fmtNum(s.ratio, 2), source: targetSourceLabel(s.source)}))}</span>`
     + `<button type="button" class="brew-grind-use" onclick="useSuggestedYield()"`
     + ` aria-label="${esc(t('brew.ratio_use_aria', {yield: s.yield_g}))}"></button>`;
   syncYieldUse();
@@ -108,7 +108,7 @@ function syncYieldUse() {
   if (!btn) return;
   const applied = parseFloat(document.getElementById('b-yield').value) === parseFloat(hint.dataset.yield);
   btn.disabled = applied;
-  btn.textContent = applied ? '✓' : t('grind.use');
+  btn.innerHTML = applied ? icon('check') : esc(t('grind.use'));
 }
 
 // --- Valorar después (Prepas y ficha) ----------------------------------------------------

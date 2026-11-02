@@ -8,7 +8,7 @@ function showOpenDatePicker(e, id) {
     <div class="open-date-row" onclick="event.stopPropagation()">
       <input type="date" class="form-input" id="open-date-${id}" value="${today}">
       <button class="btn-quick open" onclick="confirmOpen(event,${id})">${t('list.btn.confirm_open')}</button>
-      <button class="btn-quick" onclick="event.stopPropagation();renderList()">✕</button>
+      <button class="btn-quick" onclick="event.stopPropagation();renderList()">${icon('x')}</button>
     </div>`;
 }
 
@@ -81,7 +81,7 @@ function showDetail(id, coffee = null) {
   }
 
   const coste = c.price_kg && c.quantity_g
-    ? (c.price_kg * c.quantity_g / 1000).toFixed(2) + '€'
+    ? fmtNum((c.price_kg * c.quantity_g / 1000), 2) + ' €'
     : null;
 
   // Profile rows (labeled, no horizontal scroll)
@@ -104,7 +104,7 @@ function showDetail(id, coffee = null) {
     gridRow(t('detail.label.shop'),      c.shop,                                  t('detail.label.purchase'),   fmtDate(c.purchase_date)),
     gridRow(t('detail.label.roast'),     fmtDate(c.roast_date),                   t('detail.label.opened'),     fmtDate(c.opened_date)),
     gridRow(t('detail.label.finished'),  fmtDate(c.finished_date),                t('detail.label.quantity'),   c.quantity_g ? c.quantity_g + 'g' : null),
-    gridRow(t('detail.label.price_kg'),  c.price_kg ? c.price_kg + '€/kg' : null, t('detail.label.total_cost'), coste),
+    gridRow(t('detail.label.price_kg'),  c.price_kg ? fmtNum(c.price_kg, 2) + ' €/kg' : null, t('detail.label.total_cost'), coste),
   ].join('');
 
   // Remaining row (preserves IDs used by editRemainingInline/saveRemaining)
@@ -123,8 +123,8 @@ function showDetail(id, coffee = null) {
           <input class="remaining-input" type="number" id="remaining-input" value="${c.remaining_g ?? ''}" min="0"
             onkeydown="if(event.key==='Enter')saveRemaining(${c.id});if(event.key==='Escape'){event.stopPropagation();cancelEditRemaining()}">
           <span style="color:var(--text3);font-size:13px">g</span>
-          <button class="btn-quick open" onclick="saveRemaining(${c.id})" aria-label="${t('form.btn.save_coffee')}">✓</button>
-          <button class="btn-quick" onclick="cancelEditRemaining()" aria-label="${t('form.btn.cancel')}">✕</button>
+          <button class="btn-quick open" onclick="saveRemaining(${c.id})" aria-label="${t('form.btn.save_coffee')}">${icon('check')}</button>
+          <button class="btn-quick" onclick="cancelEditRemaining()" aria-label="${t('form.btn.cancel')}">${icon('x')}</button>
         </span>
       </div>
     </div>` : '';
@@ -177,7 +177,7 @@ async function renderFamilyBags(id) {
     const state = b.finished_date ? t('detail.family_finished', {date: fmtDate(b.finished_date)})
       : b.opened_date ? t('status.open') : t('status.unopened');
     return `<button type="button" class="detail-family-bag" onclick="showDetail(${b.id}, _familyBags[${b.id}])">
-      <span>${esc(b.roast_date ? '🔥 ' + fmtDate(b.roast_date) : b.name)}</span><span class="detail-family-state">${esc(state)}</span>
+      <span>${esc(b.roast_date ? fmtDate(b.roast_date) : b.name)}</span><span class="detail-family-state">${esc(state)}</span>
     </button>`;
   }).join('');
 }
@@ -238,7 +238,7 @@ async function consumeCoffee() {
   renderList();
   if (result.remaining_g <= 0) {
     showConfirm({
-      icon: '☕', /* confirm icon */
+      icon: 'coffee', /* confirm icon */
       title: t('confirm.consume_finish.title'),
       msg: t('confirm.consume_finish.msg', {name: updated.name}),
       btnLabel: t('confirm.consume_finish.btn'),

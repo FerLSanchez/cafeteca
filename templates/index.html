@@ -164,6 +164,15 @@
     <rect x="3" y="3" width="18" height="8" rx="2"/><rect x="3" y="13" width="18" height="8" rx="2"/>
   </symbol>
 
+  <symbol id="ic-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="ic-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol>
+  <symbol id="ic-clipboard" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></symbol>
+  <symbol id="ic-flame" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></symbol>
+  <symbol id="ic-bluetooth" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m7 7 10 10-5 5V2l5 5L7 17"/></symbol>
+  <symbol id="ic-volume-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z"/><path d="M16 9a5 5 0 0 1 0 6"/><path d="M19.364 18.364a9 9 0 0 0 0-12.728"/></symbol>
+  <symbol id="ic-volume-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z"/><path d="m22 9-6 6"/><path d="m16 9 6 6"/></symbol>
+  <symbol id="ic-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+  <symbol id="ic-minus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/></symbol>
 </svg>
 
 <nav class="nav">
@@ -191,7 +200,7 @@
   </div>
   <div class="nav-right">
     <input class="nav-search" id="search-input" placeholder="Buscar..." data-i18n-placeholder="nav.search_placeholder" oninput="onSearch(this.value)">
-    <button class="scale-chip" id="scale-chip" hidden onclick="scaleChipClick()">⚖️</button>
+    <button class="scale-chip" id="scale-chip" hidden onclick="scaleChipClick()"></button>
     <button class="btn-icon-nav" onclick="openSettings()" data-i18n-title="nav.settings">
       <svg class="ic" viewBox="0 0 24 24"><use href="#ic-settings"/></svg>
     </button>
@@ -218,12 +227,12 @@
     <!-- Ordenar + toggle filtros -->
     <div class="filter-toolbar">
       <select class="filter-select filter-sort" id="sort-select" onchange="onSortChange()">
-        <option value="smart" data-i18n="sort.smart">↕ Recomendado</option>
-        <option value="created_desc" data-i18n="sort.created_desc">↕ Más reciente</option>
-        <option value="roast_desc" data-i18n="sort.roast_desc">↕ Tueste reciente</option>
-        <option value="roast_asc" data-i18n="sort.roast_asc">↕ Tueste antiguo</option>
-        <option value="rating_desc" data-i18n="sort.rating_desc">↕ Mejor valorados</option>
-        <option value="name_asc" data-i18n="sort.name_asc">↕ Nombre A→Z</option>
+        <option value="smart" data-i18n="sort.smart">Recomendado</option>
+        <option value="created_desc" data-i18n="sort.created_desc">Más reciente</option>
+        <option value="roast_desc" data-i18n="sort.roast_desc">Tueste reciente</option>
+        <option value="roast_asc" data-i18n="sort.roast_asc">Tueste antiguo</option>
+        <option value="rating_desc" data-i18n="sort.rating_desc">Mejor valorados</option>
+        <option value="name_asc" data-i18n="sort.name_asc">Nombre A→Z</option>
       </select>
       <button class="filter-toggle-btn" id="view-toggle-btn" onclick="toggleCompactView()">
         <svg class="ic ic-md" viewBox="0 0 24 24"><use href="#ic-view-compact" id="view-toggle-icon"/></svg>
@@ -292,7 +301,7 @@
 
 <!-- PÁGINA: PREPAS -->
 <div class="page" id="page-brews">
-  <button class="btn-new-brew" type="button" onclick="newBrewFromBrews()" data-i18n="brew.btn.new">🫖 Nueva preparación</button>
+  <button class="btn-new-brew" type="button" onclick="newBrewFromBrews()" data-i18n="brew.btn.new">Nueva preparación</button>
   <div id="brews-list"><div class="loading" data-i18n="loading">Cargando...</div></div>
 </div>
 
@@ -593,7 +602,7 @@
         <label class="form-label" for="b-dose" data-i18n="brew.field.dose">Café (g)</label>
         <div class="input-with-btn">
           <input class="form-input" id="b-dose" type="number" step="0.1" min="0" inputmode="decimal" placeholder="18" oninput="updateBrewRatioDisplay()">
-          <button class="btn-scale scale-only" type="button" onclick="brewScaleDose()" data-i18n-title="scale.dose.btn_title"><span aria-hidden="true">⚖️</span> <span data-i18n="scale.dose.weigh">Pesar</span></button>
+          <button class="btn-scale scale-only" type="button" onclick="brewScaleDose()" data-i18n-title="scale.dose.btn_title"><svg class="ic ic-sm" aria-hidden="true"><use href="#ic-bluetooth"/></svg> <span data-i18n="scale.dose.weigh">Pesar</span></button>
         </div>
       </div>
       <div class="scale-panel" id="b-dose-scale" hidden>
@@ -634,7 +643,7 @@
     <!-- 3 · Extracción -->
     <section class="brew-step" id="b-step-shot">
       <div class="brew-step-title"><span class="brew-step-n">3</span><span data-i18n="brew.step.shot">Extracción</span></div>
-      <button class="btn-shot scale-only" type="button" onclick="brewScaleShot()" data-i18n="scale.shot.btn">⏱ Sacar shot con báscula</button>
+      <button class="btn-shot scale-only" type="button" onclick="brewScaleShot()" data-i18n="scale.shot.btn">Sacar shot con báscula</button>
       <div class="shot-view brew-shot-live" id="b-shot-live" hidden></div>
       <div class="form-row">
         <div class="form-group">
@@ -749,7 +758,7 @@
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px">
             <button class="btn-secondary" onclick="scaleLabRecord('dose')" data-i18n="scale.lab.rec_dose">● Dosis</button>
             <button class="btn-secondary" onclick="scaleLabRecord('shot')" data-i18n="scale.lab.rec_shot">● Shot</button>
-            <button class="btn-secondary" onclick="scaleLabPause()" data-i18n="scale.lab.pause">⏸ Pausa</button>
+            <button class="btn-secondary" onclick="scaleLabPause()" data-i18n="scale.lab.pause">Pausa</button>
           </div>
           <div style="font-size:12px;color:var(--text2);margin-bottom:6px"><span id="scale-lab-rec"></span> <span id="scale-lab-count"></span></div>
           <pre id="scale-lab-events" style="font-size:11px;max-height:120px;overflow:auto;white-space:pre-wrap;margin:0 0 8px"></pre>
@@ -794,7 +803,7 @@
     <div class="form-group">
       <label class="form-label" data-i18n="settings.field.low_stock_threshold">Alerta de stock bajo (tomas)</label>
       <input class="form-input" id="s-low-stock" type="number" min="1" max="50" placeholder="5">
-      <div style="font-size:12px;color:var(--text3);margin-top:4px" data-i18n="settings.low_stock_hint">Muestra ⚠️ en la ficha cuando quedan esta cantidad de tomas o menos.</div>
+      <div style="font-size:12px;color:var(--text3);margin-top:4px" data-i18n="settings.low_stock_hint">Muestra un aviso en la ficha cuando quedan esta cantidad de tomas o menos.</div>
     </div>
     <button class="btn-primary" onclick="saveSettings()" style="margin-bottom:18px" data-i18n="settings.btn.save">Guardar ajustes</button>
     <div class="form-section" data-i18n="settings.section.data">Datos</div>
@@ -823,7 +832,7 @@
       <input class="form-input" id="s-flow-tol" type="number" step="0.05" min="0.05" max="1" placeholder="0.2">
     </div>
     <button class="btn-primary" onclick="saveSettings()" style="margin-bottom:10px" data-i18n="settings.btn.save">Guardar ajustes</button>
-    <button class="btn-secondary" onclick="openScaleTest()" style="width:100%;margin-bottom:10px" data-i18n="scale.test.open">⚖️ Probar báscula</button>
+    <button class="btn-secondary" onclick="openScaleTest()" style="width:100%;margin-bottom:10px" data-i18n="scale.test.open">Probar báscula</button>
     <button class="btn-secondary" onclick="recomputeShotMetrics()" style="width:100%;margin-bottom:4px" data-i18n="scale.recompute">Recalcular métricas de flujo</button>
     <div class="form-hint" style="margin-bottom:18px" data-i18n="scale.recompute_hint">Vuelve a analizar los shots guardados con curva (p. ej. tras cambiar la tolerancia).</div>
     <div class="form-section" data-i18n="settings.section.language">Idioma</div>

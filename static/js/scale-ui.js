@@ -44,7 +44,7 @@ function scaleChipRender() {
   if (!chip) return;
   chip.hidden = !scaleConnected();
   const bat = scale.last?.battery;
-  chip.textContent = bat != null ? `⚖️ ${bat}%` : '⚖️';
+  chip.innerHTML = icon('bluetooth') + (bat != null ? ` <span class="mono">${bat} %</span>` : '');
   const low = bat != null && bat <= SCALE_LOW_BATTERY;
   chip.classList.toggle('low', low);
   if (low && !_lowBatteryWarned) {
@@ -58,7 +58,7 @@ let _lowBatteryWarned = false;  // un aviso por sesión
 
 function scaleChipClick() {
   showConfirm({
-    icon: '⚖️', title: t('scale.chip.title'),
+    icon: 'bluetooth', title: t('scale.chip.title'),
     msg: t('scale.chip.msg', {name: scale.device?.name || 'Bookoo'}),
     btnLabel: t('scale.btn.disconnect'), btnClass: 'btn-danger',
     onConfirm: scaleDisconnect,
@@ -72,7 +72,7 @@ function scaleSubscribe(fn) {
   return () => scale.bus.removeEventListener('scale:weight', h);
 }
 
-const fmtG = v => (v == null ? '—' : v.toFixed(1));
+const fmtG = v => (v == null ? '—' : fmtNum(v, 1));
 
 // ---------------------------------------------------------------------------
 // Dosis (modo normal) → campo "Café (g)" del modal de brew (§5.1)
@@ -177,7 +177,7 @@ function createShotView(root, opts) {
   const cdRun = {timers: [], el: null, stopAtG: null};
   if (cd) {
     q('.shot-cue').hidden = false;
-    q('.shot-cue span').textContent = t('scale.stop.cue', {delay: cd.delay.toFixed(1), target: fmtG(cd.target)});
+    q('.shot-cue span').textContent = t('scale.stop.cue', {delay: fmtNum(cd.delay, 1), target: fmtG(cd.target)});
   }
 
   const setStatus = key => { q('.shot-status').textContent = t(key); };
@@ -187,19 +187,19 @@ function createShotView(root, opts) {
     if (fn) q('.shot-actions button').onclick = fn;
   };
   setAction(t('scale.shot.cancel'), opts.onCancel);
-  if (opts.target) q('[data-k=target]').textContent = t('scale.shot.target', {target: opts.target.toFixed(1), tol: opts.tol.toFixed(1)});
+  if (opts.target) q('[data-k=target]').textContent = t('scale.shot.target', {target: fmtNum(opts.target, 1), tol: fmtNum(opts.tol, 1)});
 
   const renderLive = (s, flow) => {
     const running = tracker.state !== 'waiting';
     const last = tracker.samples[tracker.samples.length - 1];
-    q('[data-k=time]').textContent = running && last ? last.t.toFixed(1) : '0.0';
+    q('[data-k=time]').textContent = running && last ? fmtNum(last.t, 1) : fmtNum(0, 1);
     q('[data-k=weight]').textContent = fmtG(running && last ? last.weight : Math.max(0, s.weight));
-    q('[data-k=flow]').textContent = flow == null ? '—' : Math.max(0, flow).toFixed(1);
+    q('[data-k=flow]').textContent = flow == null ? '—' : fmtNum(Math.max(0, flow), 1);
     const flowEl = q('[data-k=flow]');
     flowEl.classList.toggle('in-band', !!opts.target && flow != null && Math.abs(flow - opts.target) <= opts.tol);
     flowEl.classList.toggle('over', !!opts.target && flow != null && flow > opts.target + opts.tol);
     const w = running && last ? last.weight : 0;
-    q('[data-k=ratio]').textContent = opts.dose && w > 0 ? `1:${(w / opts.dose).toFixed(2)}` : '';
+    q('[data-k=ratio]').textContent = opts.dose && w > 0 ? `1:${fmtNum((w / opts.dose), 2)}` : '';
     if (opts.targetYield) {
       q('.shot-progress').hidden = false;
       q('.shot-progress-bar').style.width = `${Math.min(100, w / opts.targetYield * 100)}%`;
@@ -232,9 +232,9 @@ function createShotView(root, opts) {
     if (metrics && cd?.startAt != null) {
       Object.assign(metrics, {stop_target_g: cd.target, stop_cue_g: cd.cue, stop_at_g: cdRun.stopAtG, stop_flow: cd.flow});
     }
-    q('[data-k=time]').textContent = (r.time_ms / 1000).toFixed(1);
+    q('[data-k=time]').textContent = fmtNum((r.time_ms / 1000), 1);
     q('[data-k=weight]').textContent = fmtG(r.yield_g);
-    q('[data-k=flow]').textContent = metrics?.main_flow?.toFixed(2) ?? '—';
+    q('[data-k=flow]').textContent = metrics?.main_flow != null ? fmtNum(metrics.main_flow, 2) : '—';
     q('.shot-summary').hidden = false;
     q('.shot-summary').innerHTML = shotSummaryHtml(metrics, r, opts);
     setAction(t('scale.shot.retry'), opts.onRetry);
@@ -259,33 +259,35 @@ function createShotView(root, opts) {
 
 function shotSummaryHtml(m, r, opts) {
   if (!m) return '';
+  const n2 = v => (v == null ? '—' : fmtNum(v, 2));
+  const n1 = v => (v == null ? '—' : fmtNum(v, 1));
   const rows = [
-    [t('scale.metric.main_flow'), `${m.main_flow ?? '—'} g/s`],
-    [t('scale.metric.avg_flow'), `${m.avg_flow ?? '—'} g/s`],
-    [t('scale.metric.ramp'), `${m.t_ramp_s} s`],
-    [t('scale.metric.peak'), `${m.peak_flow} g/s @ ${m.t_peak_s} s`],
+    [t('scale.metric.main_flow'), `${n2(m.main_flow)} g/s`],
+    [t('scale.metric.avg_flow'), `${n2(m.avg_flow)} g/s`],
+    [t('scale.metric.ramp'), `${n1(m.t_ramp_s)} s`],
+    [t('scale.metric.peak'), `${n2(m.peak_flow)} g/s @ ${n1(m.t_peak_s)} s`],
   ];
   if (m.target_flow) {
     rows.push([t('scale.metric.in_band'), `${m.in_band_pct ?? '—'} %`]);
-    rows.push([t('scale.metric.overshoot'), `${m.overshoot_s} s`]);
+    rows.push([t('scale.metric.overshoot'), `${n1(m.overshoot_s)} s`]);
   }
   rows.push([t('scale.metric.stability'), m.flow_cv == null ? '—' : `${Math.round(m.flow_cv * 100)} %`]);
-  rows.push([t('scale.metric.tail'), `${m.tail_s} s · ${m.tail_g} g`]);
+  rows.push([t('scale.metric.tail'), `${n1(m.tail_s)} s · ${n1(m.tail_g)} g`]);
   const yld = r?.yield_g ?? opts.yield_g;
   if (m.stop_cue_g != null && yld != null) {
     const d = yld - m.stop_target_g;
-    rows.push([t('scale.metric.stop'), `${fmtG(m.stop_at_g)} → ${fmtG(yld)} g (${d >= 0 ? '+' : ''}${d.toFixed(1)})`]);
+    rows.push([t('scale.metric.stop'), `${fmtG(m.stop_at_g)} → ${fmtG(yld)} g (${d >= 0 ? '+' : ''}${fmtNum(d, 1)})`]);
   }
   let html = `<div class="shot-metrics">${rows.map(([k, v]) =>
     `<div class="shot-metric"><span>${esc(k)}</span><b>${esc(v)}</b></div>`).join('')}</div>`;
-  if (m.irregular) html += `<div class="shot-warn">⚠️ ${esc(t('scale.metric.irregular'))}</div>`;
+  if (m.irregular) html += `<div class="shot-warn">${icon('alert','ic-sm')} ${esc(t('scale.metric.irregular'))}</div>`;
   const c = opts.compare;
   if (c?.shot_metrics?.main_flow != null && m.main_flow != null) {
     const dRamp = m.t_ramp_s - (c.shot_metrics.t_ramp_s ?? m.t_ramp_s);
     html += `<div class="shot-compare">${esc(t('scale.shot.compare', {
       rating: '★'.repeat(c.rating || 0),
-      now: m.main_flow.toFixed(2), best: c.shot_metrics.main_flow.toFixed(2),
-      ramp: (dRamp >= 0 ? '+' : '') + dRamp.toFixed(1),
+      now: fmtNum(m.main_flow, 2), best: fmtNum(c.shot_metrics.main_flow, 2),
+      ramp: (dRamp >= 0 ? '+' : '') + fmtNum(dRamp, 1),
     }))}</div>`;
   }
   return html;
@@ -416,7 +418,7 @@ function stopSoundOn() {
 function stopSoundButtonHtml() {
   const on = stopSoundOn();
   return `<button type="button" class="shot-sound" onclick="stopSoundToggle()" aria-pressed="${on}"
-    title="${esc(t('scale.stop.sound'))}" aria-label="${esc(t('scale.stop.sound'))}">${on ? '🔊' : '🔇'}</button>`;
+    title="${esc(t('scale.stop.sound'))}" aria-label="${esc(t('scale.stop.sound'))}">${icon(on ? 'volume-on' : 'volume-off')}</button>`;
 }
 
 function stopSoundToggle() {
@@ -424,7 +426,7 @@ function stopSoundToggle() {
   try { localStorage.setItem('stopSound', on ? '1' : '0'); } catch (_) {}
   stopAudioUnlock();
   document.querySelectorAll('.shot-sound').forEach(b => {
-    b.textContent = on ? '🔊' : '🔇';
+    b.innerHTML = icon(on ? 'volume-on' : 'volume-off');
     b.setAttribute('aria-pressed', String(on));
   });
 }
@@ -552,7 +554,7 @@ function scaleTestNormalStart() {
   msg.textContent = scaleConnected() ? t('scale.dose.live') : t('scale.test.connect_first');
   const unsub = scaleSubscribe(s => {
     tracker.push(s);
-    big.textContent = s.weight.toFixed(1);
+    big.textContent = fmtNum(s.weight, 1);
     msg.textContent = tracker.frozen !== null ? t('scale.dose.locked', {g: fmtG(tracker.frozen)})
       : tracker.stable !== null ? t('scale.dose.stable', {g: fmtG(tracker.stable)}) : t('scale.dose.live');
   });
@@ -627,7 +629,7 @@ async function recomputeShotMetrics() {
 // Rango [min, max] de un array de números, formateado
 const fmtRange = (vals, d = 2) => {
   const lo = Math.min(...vals), hi = Math.max(...vals);
-  return lo === hi ? lo.toFixed(d) : `${lo.toFixed(d)}–${hi.toFixed(d)}`;
+  return lo === hi ? fmtNum(lo, d) : `${fmtNum(lo, d)}–${fmtNum(hi, d)}`;
 };
 
 // Sección "Dial-in" en la ficha: flujo principal vs valoración de los shots con báscula.
@@ -655,7 +657,7 @@ async function renderDialIn(coffeeId, brews) {
   }
   if (target) {
     const inBand = shots.filter(b => Math.abs(b.shot_metrics.main_flow - target) <= flowTolerance).length;
-    lines.push(t('scale.dialin.in_band', {n: inBand, total: shots.length, target: target.toFixed(1)}));
+    lines.push(t('scale.dialin.in_band', {n: inBand, total: shots.length, target: fmtNum(target, 1)}));
   }
   const irregular = shots.filter(b => b.shot_metrics.irregular).length;
   if (irregular) lines.push(t('scale.dialin.irregular', {n: irregular, total: shots.length}));
@@ -694,7 +696,7 @@ function drawDialIn(canvas, shots, target) {
     ctx.fillText(r ? `${r}★` : '—', 2, Y(r) + 3);
   }
   const step = xMax - xMin > 1.5 ? 0.5 : 0.2;
-  for (let f = Math.ceil(xMin / step) * step; f <= xMax + 1e-9; f += step) ctx.fillText(f.toFixed(1), X(f) - 8, h - 4);
+  for (let f = Math.ceil(xMin / step) * step; f <= xMax + 1e-9; f += step) ctx.fillText(fmtNum(f, 1), X(f) - 8, h - 4);
   if (target) {
     ctx.fillStyle = col('--success-soft');
     ctx.fillRect(X(target - flowTolerance), pad.t, X(target + flowTolerance) - X(target - flowTolerance), h - pad.t - pad.b);

@@ -51,16 +51,21 @@ function fmtDate(d) {
   const [y,m,day] = d.split('-'); return `${day}/${m}/${y}`;
 }
 
+// Gramos para mostrar: sin decimales si es entero, con el separador del idioma
+function fmtGrams(g) {
+  return fmtNum(g, Number.isInteger(+g) ? 0 : 1) + ' g';
+}
+
 function fmtWeight(g) {
-  if (!g) return '0g';
-  return g >= 1000 ? (g / 1000).toFixed(1) + 'kg' : g + 'g';
+  if (!g) return '0 g';
+  return g >= 1000 ? fmtNum(g / 1000, 1) + ' kg' : fmtGrams(g);
 }
 
 function fmtPrice(c) {
   if (!c.price_kg||!c.quantity_g) return null;
-  const total = (c.quantity_g / 1000 * c.price_kg).toFixed(2);
-  const perCup = (c.price_kg * gramsPerShot / 1000).toFixed(2);
-  return `${c.price_kg}€/kg · ${total}€ · ${t('list.per_cup', {price: perCup})}`;
+  const total = fmtNum((c.quantity_g / 1000 * c.price_kg), 2);
+  const perCup = fmtNum((c.price_kg * gramsPerShot / 1000), 2);
+  return `${fmtNum(c.price_kg, 2)} €/kg · ${total} € · ${t('list.per_cup', {price: perCup})}`;
 }
 
 function getStatus(c) {

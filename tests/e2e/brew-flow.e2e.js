@@ -39,7 +39,7 @@ const BASE = process.env.BASE_URL || 'http://localhost:5399';
   assert.strictEqual(await page.inputValue('#b-grind'), '13');
   await page.fill('#b-yield', '36');
   await page.fill('#b-time', '30');
-  assert.match(await page.textContent('#b-ratio-display'), /1:2\.00/);
+  assert.match(await page.textContent('#b-ratio-display'), /1:2,00/);
   assert.ok(await page.$('#b-step-shot.done'), 'paso 3 marcado');
   assert.match(await page.textContent('#b-submit'), /valorar después|rate later/);
   await page.tap('#modal-brew .brew-star[data-val="4"]');
