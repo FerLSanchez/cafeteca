@@ -1,6 +1,5 @@
 {
   "nav.title": "Cafeteca",
-  "nav.tagline": "tu diario de café",
   "nav.search_placeholder": "Buscar...",
   "nav.settings": "Ajustes",
   "nav.tab.coffees": "Cafés",
@@ -454,5 +453,6 @@
   "grind.stats_verdict": "Para mantener el flujo hay que mover la molienda con la edad de la bolsa; lo explican mejor los días {basis}.",
   "grind.stats_unclear": "Con estos datos aún no se ve una deriva clara (mejor ajuste: días {basis}).",
   "grind.stats_help": "Cambio de molienda por semana que mantiene el mismo flujo (negativo = más fino). Resaltada, la base que mejor explica tus shots.",
-  "scale.row.irregular_short": "irregular"
+  "scale.row.irregular_short": "irregular",
+  "nav.add": "Añadir café"
 }

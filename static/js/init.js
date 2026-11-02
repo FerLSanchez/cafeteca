@@ -19,6 +19,10 @@ document.querySelectorAll('.modal-overlay:not([data-keep-open])').forEach(m=>{
 async function startup() {
   await initI18n();
   applyI18n();
+  placeNavTools();
+  for (const q of ['(min-width: 640px)', '(min-width: 1024px)']) window.matchMedia(q).addEventListener('change', placeNavTools);
+  document.querySelector('.bnav-item[data-page="list"]').classList.add('active');
+  renderPageHeader();
   const langSel = document.getElementById('lang-select');
   if (langSel) langSel.value = _currentLang;
   scaleLabInit();

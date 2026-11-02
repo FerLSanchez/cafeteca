@@ -210,12 +210,55 @@ function refreshCoffee(coffee) {
   if (document.getElementById('page-brews')?.classList.contains('active')) loadBrews();
 }
 
+const PAGE_TITLES = {list: 'nav.tab.coffees', brews: 'nav.tab.brews', stats: 'nav.tab.stats', catalog: 'nav.tab.catalog'};
+let currentPage = 'list';
+const _pageSummaries = {};
+
+// Línea de resumen bajo el título de cada página (html ya escapado)
+function setPageSummary(name, html) {
+  _pageSummaries[name] = html || '';
+  if (name === currentPage) renderPageHeader();
+}
+
+function renderPageHeader() {
+  document.getElementById('page-title').textContent = t(PAGE_TITLES[currentPage]);
+  const el = document.getElementById('page-summary');
+  el.innerHTML = _pageSummaries[currentPage] || '';
+  el.hidden = !el.innerHTML;
+  document.querySelectorAll('.page-action').forEach(b => { b.hidden = b.dataset.forPage !== currentPage; });
+}
+
 function showPage(name, tab) {
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.bnav-item').forEach(t=>t.classList.remove('active'));
   document.getElementById('page-'+name).classList.add('active');
   document.querySelectorAll(`[data-page="${name}"]`).forEach(t=>t.classList.add('active'));
+  currentPage = name;
+  renderPageHeader();
   if (name==='stats') loadStats();
   if (name==='catalog') loadCatalog();
   if (name==='brews') loadBrews();
+}
+
+// Ajustes, báscula y búsqueda cambian de sitio según el ancho: cabecera en móvil, navegación en
+// tablet y escritorio. Son los mismos elementos, solo se mueven.
+function placeNavTools() {
+  const tablet = window.matchMedia('(min-width: 640px)').matches;
+  const desktop = window.matchMedia('(min-width: 1024px)').matches;
+  const home = tablet ? document.querySelector('.app-nav-foot') : document.querySelector('.app-tools');
+  home.append(document.getElementById('scale-chip'), document.getElementById('settings-btn'));
+  const box = document.getElementById('search-box');
+  if (desktop) { document.querySelector('.app-nav-search').append(box); box.hidden = false; }
+  else {
+    document.querySelector('.page-header').after(box);
+    box.hidden = !document.getElementById('search-input').value;
+  }
+}
+
+function toggleSearch() {
+  const box = document.getElementById('search-box');
+  const input = document.getElementById('search-input');
+  if (box.hidden) { box.hidden = false; input.focus(); }
+  else if (!input.value) box.hidden = true;
+  else input.focus();
 }

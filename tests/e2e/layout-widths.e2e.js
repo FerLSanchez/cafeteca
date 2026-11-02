@@ -5,7 +5,7 @@ const assert = require('node:assert');
 const {chromium} = require('playwright');
 
 const BASE = process.env.BASE_URL || 'http://localhost:5399';
-const WIDTHS = [390, 768, 820, 1024, 1280];
+const WIDTHS = [390, 640, 768, 820, 1024, 1280, 1440];
 
 (async () => {
   const browser = await chromium.launch({executablePath: process.env.CHROMIUM || undefined});
@@ -51,8 +51,15 @@ const WIDTHS = [390, 768, 820, 1024, 1280];
       });
       bad.forEach(b => failures.push(`[${w}px ${label}] ${b}`));
     };
+    // Una sola navegación: barra inferior en móvil, raíl en tablet, barra lateral en escritorio
+    const nav = await page.locator('.app-nav').boundingBox();
+    if (w < 640) assert.ok(nav.y > 700 && nav.width === w, `barra inferior a ${w}: ${JSON.stringify(nav)}`);
+    else if (w < 1024) assert.strictEqual(nav.width, 72, `raíl a ${w}`);
+    else assert.strictEqual(nav.width, 232, `barra lateral a ${w}`);
+    assert.ok(await page.locator('.app-nav .app-nav-add').isVisible(), `añadir visible a ${w}`);
+    assert.strictEqual(await page.locator('#page-title').textContent(), 'Cafés');
     await check('lista');
-    await check('busqueda-abierta', () => document.getElementById('search-input').focus());   // la búsqueda se ensancha: cabecera al límite
+    await check('busqueda-abierta', () => { if (innerWidth < 1024) toggleSearch(); document.getElementById('search-input').focus(); });   // la búsqueda se ensancha: cabecera al límite
     await page.evaluate(() => document.activeElement.blur());
     await check('compacta', () => toggleCompactView());
     await check('ficha', () => { toggleCompactView(); showDetail(displayedCoffees.find(c => c.name.startsWith('LW')).id); });

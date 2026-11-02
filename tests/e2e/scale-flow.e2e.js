@@ -129,7 +129,7 @@ async function apiCall(page, method, url, body) {
   await page.click('#modal-brew .btn-shot');
   await page.waitForSelector('#b-shot-live .shot-legend', {state: 'attached'});
   // …y el corte usa el retardo aprendido: (salida − corte) / flujo del shot anterior
-  const delay = parseFloat((await page.textContent('#b-shot-live .shot-cue')).match(/([\d.]+) s/)[1]);
+  const delay = parseFloat((await page.textContent('#b-shot-live .shot-cue')).match(/([\d,]+) s/)[1].replace(',', '.'));
   const learned = (brews[0].yield_g - m.stop_cue_g) / m.stop_flow;
   assert.ok(Math.abs(delay - learned) < 0.051, `retardo ${delay} vs ${learned}`);
   await page.evaluate(() => closeModal('modal-brew'));
