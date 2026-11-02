@@ -40,6 +40,8 @@ const LONG = 'Café con un nombre de cuarenta caracteres';
       assert.ok(row.includes(text), `falta "${text}" en la fila a ${w}: ${row}`);
     }
     assert.ok(await page.locator('.coffee-row', {hasText: LONG}).locator('[aria-label]', {has: page.locator('svg')}).first().isVisible());
+    const boxes = await page.locator('.coffee-row', {hasText: LONG}).locator('.card-actions button').evaluateAll(els => els.map(e => e.getBoundingClientRect().top));
+    assert.ok(boxes.length === 3 && boxes.every(y => y === boxes[0]), `acciones en una línea a ${w}: ${boxes}`);
     assert.deepStrictEqual(await page.$$eval('.list-group-head', els => els.map(e => e.textContent)), ['Abiertos', 'Sin abrir']);
     await page.selectOption('#sort-select', 'name_asc');
     assert.strictEqual(await page.locator('.list-group-head').count(), 0, 'sin grupos con otro orden');

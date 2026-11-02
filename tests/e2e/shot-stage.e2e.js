@@ -73,6 +73,8 @@ const end = (page, t, weight) => page.evaluate(([t, weight]) => {
     assert.strictEqual(await page.$eval('#b-shot-live', el => getComputedStyle(el).backgroundColor), 'rgb(18, 18, 17)');
     assert.strictEqual(await page.evaluate(() => getComputedStyle(document.body).backgroundColor), 'rgb(246, 245, 242)', 'el resto sigue claro');
 
+    assert.strictEqual(await page.textContent('[data-k=weight]'), '0,0', 'antes de arrancar, con el formato del idioma');
+    assert.strictEqual(await page.textContent('[data-k=time]'), '0,0');
     // El peso manda: alrededor de 104 px y lo más grande
     const size = await page.$eval('[data-k=weight]', el => parseFloat(getComputedStyle(el).fontSize));
     assert.ok(size >= 96 && size <= 112, `peso a ${size} px`);

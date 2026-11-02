@@ -154,11 +154,11 @@ function createShotView(root, opts) {
   root.innerHTML = `
     <div class="shot-panel">
       <div class="shot-top"><div class="shot-status"></div><div class="shot-conn"></div></div>
-      <div class="shot-weight"><span class="shot-num" data-k="weight">0.0</span><span class="shot-unit">g</span></div>
+      <div class="shot-weight"><span class="shot-num" data-k="weight">${fmtNum(0, 1)}</span><span class="shot-unit">g</span></div>
       <div class="shot-sub"><span data-k="yield-target"></span><span data-k="ratio"></span></div>
       <div class="shot-progress" hidden><div class="shot-progress-bar"></div></div>
       <div class="shot-stats">
-        <div><div><span class="shot-num" data-k="time">0.0</span><span class="shot-unit">s</span></div><div class="shot-label">${esc(t('scale.shot.time'))}</div></div>
+        <div><div><span class="shot-num" data-k="time">${fmtNum(0, 1)}</span><span class="shot-unit">s</span></div><div class="shot-label">${esc(t('scale.shot.time'))}</div></div>
         <div><div><span class="shot-num shot-flow" data-k="flow">—</span><span class="shot-unit">g/s</span></div><div class="shot-label"><span class="shot-flow-state" data-k="flow-state"></span> <span data-k="target"></span></div></div>
       </div>
       <div class="shot-cue" hidden><span></span>${stopSoundButtonHtml()}</div>
