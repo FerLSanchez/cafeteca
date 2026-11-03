@@ -11,17 +11,29 @@ function icon(name, extraClass) {
 // ---------------------------------------------------------------------------
 function stars(rating) {
   const r = parseInt(rating, 10);
-  if (!r||r<1||r>5) return `<span style="color:var(--text3);font-size:13px">${t('status.unrated')}</span>`;
+  if (!r||r<1||r>5) return `<span style="color:var(--ink-muted);font-size:13px">${t('status.unrated')}</span>`;
   return [1,2,3,4,5].map(i=>`<span class="star ${i<=r?'filled':''}">★</span>`).join('');
 }
 
-// Dibuja un canvas ahora y cada vez que cambie de tamaño (girar el móvil, redimensionar);
-// deja de observar cuando el canvas sale del DOM.
+// Colores de los tokens tal como los ve este canvas: dentro del shot en vivo (.theme-dark)
+// son los del tema oscuro aunque el resto de la app esté en claro.
+function canvasColors(canvas) {
+  const css = getComputedStyle(canvas);
+  return name => css.getPropertyValue(name).trim();
+}
+
+// Dibuja un canvas ahora y cada vez que cambie de tamaño (girar el móvil, redimensionar) o de
+// tema (claro/oscuro del sistema); deja de observar cuando el canvas sale del DOM.
 function drawCanvasFitted(canvas, draw) {
   if (typeof ResizeObserver === 'undefined') { draw(); return; }
   let lastW = -1;
+  const scheme = window.matchMedia('(prefers-color-scheme: dark)');
+  const stop = () => { scheme.removeEventListener('change', onScheme); window.removeEventListener('themechange', onScheme); };
+  const onScheme = () => { if (canvas.isConnected) draw(); else stop(); };
+  scheme.addEventListener('change', onScheme);
+  window.addEventListener('themechange', onScheme);
   const ro = new ResizeObserver(() => {
-    if (!canvas.isConnected) { ro.disconnect(); return; }
+    if (!canvas.isConnected) { ro.disconnect(); stop(); return; }
     if (canvas.clientWidth === lastW) return;
     lastW = canvas.clientWidth;
     draw();
@@ -41,16 +53,21 @@ function fmtDate(d) {
   const [y,m,day] = d.split('-'); return `${day}/${m}/${y}`;
 }
 
+// Gramos para mostrar: sin decimales si es entero, con el separador del idioma
+function fmtGrams(g) {
+  return fmtNum(g, Number.isInteger(+g) ? 0 : 1) + ' g';
+}
+
 function fmtWeight(g) {
-  if (!g) return '0g';
-  return g >= 1000 ? (g / 1000).toFixed(1) + 'kg' : g + 'g';
+  if (!g) return '0 g';
+  return g >= 1000 ? fmtNum(g / 1000, 1) + ' kg' : fmtGrams(g);
 }
 
 function fmtPrice(c) {
   if (!c.price_kg||!c.quantity_g) return null;
-  const total = (c.quantity_g / 1000 * c.price_kg).toFixed(2);
-  const perCup = (c.price_kg * gramsPerShot / 1000).toFixed(2);
-  return `${c.price_kg}€/kg · ${total}€ · ${t('list.per_cup', {price: perCup})}`;
+  const total = fmtNum((c.quantity_g / 1000 * c.price_kg), 2);
+  const perCup = fmtNum((c.price_kg * gramsPerShot / 1000), 2);
+  return `${fmtNum(c.price_kg, 2)} €/kg · ${total} € · ${t('list.per_cup', {price: perCup})}`;
 }
 
 function getStatus(c) {

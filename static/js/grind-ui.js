@@ -9,8 +9,8 @@ async function fetchGrindData() {
   } catch (_) { return []; }
 }
 
-const fmtGrind = g => String(+g.toFixed(2));
-const fmtDrift = m => (m.per_week > 0 ? '+' : m.per_week < 0 ? '−' : '') + Math.abs(m.per_week).toFixed(2);
+const fmtGrind = g => fmtPlain(g);
+const fmtDrift = m => (m.per_week > 0 ? '+' : m.per_week < 0 ? '−' : '') + fmtNum(Math.abs(m.per_week), 2);
 // |γ| < 2·error típico: con estos datos no se distingue de "sin deriva"
 const driftConclusive = m => Math.abs(m.gamma) >= 2 * m.gamma_se;
 const GRIND_BASIS_KEYS  = {roast: 'grind.basis_roast', open: 'grind.basis_open'};
@@ -57,7 +57,7 @@ function renderBrewGrindHint() {
   el.hidden = !s;
   if (!s) { el.innerHTML = ''; return; }
   el.innerHTML = `<span><b>${esc(t('grind.suggested_label'))}</b> ${esc(fmtGrind(s.grind))}`
-    + ` · ${esc(t('grind.for_flow', {flow: s.target.toFixed(1), source: targetSourceLabel(ctx.target.source)}))}`
+    + ` · ${esc(t('grind.for_flow', {flow: fmtNum(s.target, 1), source: targetSourceLabel(ctx.target.source)}))}`
     + ` · ${esc(t('grind.drift_short', {drift: fmtDrift(ctx.model), basis: basisLabel(ctx.model.basis)}))}</span>`
     + `<button type="button" class="brew-grind-use" onclick="useSuggestedGrind()"`
     + ` aria-label="${esc(t('grind.use_aria', {grind: fmtGrind(s.grind)}))}"></button>`;
@@ -79,7 +79,7 @@ function syncGrindUse() {
   if (!btn) return;
   const applied = parseFloat(document.getElementById('b-grind').value) === _brewGrind?.grind;
   btn.disabled = applied;
-  btn.textContent = applied ? '✓' : t('grind.use');
+  btn.innerHTML = applied ? icon('check') : esc(t('grind.use'));
 }
 
 // --- Ficha: molienda vs días, color = flujo respecto al objetivo -----------------------
@@ -103,14 +103,14 @@ async function renderGrindSection(coffeeId) {
   if (model) {
     lines.push(t(driftConclusive(model) ? 'grind.drift_line' : 'grind.drift_unclear', {
       drift: fmtDrift(model), basis: basisLabel(model.basis),
-      se: (model.gamma_se * 7).toFixed(2), n: model.n, bags: model.bags,
+      se: fmtNum((model.gamma_se * 7), 2), n: model.n, bags: model.bags,
     }));
   } else {
     lines.push(t('grind.not_enough'));
   }
   if (suggestion && !currentDetail.finished_date) {
     lines.push(t('grind.today', {grind: fmtGrind(suggestion.grind), days: suggestion.days,
-      flow: suggestion.target.toFixed(1), source: targetSourceLabel(target.source)}));
+      flow: fmtNum(suggestion.target, 1), source: targetSourceLabel(target.source)}));
   }
   el.innerHTML = `
     <div class="detail-brews-header">${esc(t('grind.title'))}</div>
@@ -134,8 +134,7 @@ function drawGrindChart(canvas, {pts, lineRows = pts, key, model, target, sugges
   canvas.width = w * dpr; canvas.height = h * dpr;
   const ctx = canvas.getContext('2d');
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  const css = getComputedStyle(document.documentElement);
-  const col = name => css.getPropertyValue(name).trim();
+  const col = canvasColors(canvas);
 
   const days = pts.map(r => r[key]).concat(suggestion ? [suggestion.days] : []);
   const dMax = Math.max(1, ...days);
@@ -147,8 +146,8 @@ function drawGrindChart(canvas, {pts, lineRows = pts, key, model, target, sugges
   const Y = g => pad.t + (gMax - g) / (gMax - gMin) * (h - pad.t - pad.b);
 
   ctx.font = '10px system-ui, sans-serif';
-  ctx.fillStyle = col('--text3');
-  ctx.strokeStyle = col('--border');
+  ctx.fillStyle = col('--ink-muted');
+  ctx.strokeStyle = col('--line');
   const gStep = Math.max(1, Math.ceil((gMax - gMin) / 4));
   for (let g = gMin; g <= gMax; g += gStep) {
     ctx.beginPath(); ctx.moveTo(pad.l, Y(g)); ctx.lineTo(w - pad.r, Y(g)); ctx.stroke();
@@ -160,7 +159,7 @@ function drawGrindChart(canvas, {pts, lineRows = pts, key, model, target, sugges
   if (line.length) {
     ctx.save();
     ctx.setLineDash([4, 4]);
-    ctx.strokeStyle = col('--text2');
+    ctx.strokeStyle = col('--ink-2');
     ctx.beginPath(); ctx.moveTo(X(line[0][0]), Y(line[0][1])); ctx.lineTo(X(line[1][0]), Y(line[1][1])); ctx.stroke();
     ctx.restore();
   }
@@ -175,7 +174,7 @@ function drawGrindChart(canvas, {pts, lineRows = pts, key, model, target, sugges
     } else {
       ctx.arc(x, y, 4, 0, Math.PI * 2);
     }
-    ctx.fillStyle = !target ? col('--accent2') : kind < 0 ? col('--amber') : kind > 0 ? col('--red') : col('--green');
+    ctx.fillStyle = !target ? col('--accent') : kind < 0 ? col('--warning') : kind > 0 ? col('--danger') : col('--success');
     ctx.globalAlpha = 0.85;
     ctx.fill();
     ctx.globalAlpha = 1;
@@ -183,7 +182,7 @@ function drawGrindChart(canvas, {pts, lineRows = pts, key, model, target, sugges
   if (suggestion) {
     ctx.beginPath();
     ctx.arc(X(suggestion.days), Y(suggestion.grind), 5.5, 0, Math.PI * 2);
-    ctx.strokeStyle = col('--text');
+    ctx.strokeStyle = col('--ink');
     ctx.lineWidth = 2; ctx.stroke(); ctx.lineWidth = 1;
   }
 }
@@ -200,7 +199,7 @@ async function renderStatsGrind() {
     <div class="stats-grind-row${m.basis === best.basis ? ' best' : ''}">
       <div class="stat-val">${esc(fmtDrift(m))}</div>
       <div class="stat-label">${esc(t('grind.stats_per_week', {basis: basisLabel(m.basis)}))}</div>
-      <div class="stat-sub">${esc(t('grind.stats_sub', {se: (m.gamma_se * 7).toFixed(2), n: m.n, bags: m.bags}))}</div>
+      <div class="stat-sub">${esc(t('grind.stats_sub', {se: fmtNum((m.gamma_se * 7), 2), n: m.n, bags: m.bags}))}</div>
     </div>`;
   el.innerHTML = `
     <div class="stats-section">

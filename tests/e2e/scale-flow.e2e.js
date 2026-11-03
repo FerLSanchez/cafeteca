@@ -2,14 +2,14 @@
 // captura real (tests/js/fixtures/f0-real-2026-09-26.json) a velocidad real.
 //
 //   python app.py  (o cualquier servidor en BASE_URL, con BD de prueba)
-//   BASE_URL=http://localhost:5323 node tests/e2e/scale-flow.e2e.js [captura.png]
+//   BASE_URL=http://localhost:5399 node tests/e2e/scale-flow.e2e.js [captura.png]
 //
 // Requiere el paquete `playwright` (no está en CI: tarda ~50 s y necesita Chromium).
 const assert = require('node:assert');
 const path = require('node:path');
 const {chromium} = require('playwright');
 
-const BASE = process.env.BASE_URL || 'http://localhost:5323';
+const BASE = process.env.BASE_URL || 'http://localhost:5399';
 const fixture = require(path.join(__dirname, '../js/fixtures/f0-real-2026-09-26.json'));
 
 async function apiCall(page, method, url, body) {
@@ -72,17 +72,17 @@ async function apiCall(page, method, url, body) {
   const zero = '03 0b 00 00 00 01 2b 00 00 00 2b 00 00 32 00 32 00 00 00 09';
   await page.evaluate(z => { window.__emit(z); window.__emit(z); }, zero);
   assert.strictEqual(await page.inputValue('#b-dose'), '17.0');
-  assert.match(await page.textContent('#b-dose-scale .scale-dose-msg'), /17\.0/);
+  assert.match(await page.textContent('#b-dose-scale .scale-dose-msg'), /17,0/);
   assert.ok(await page.$('#b-dose-scale.locked'), 'panel en estado fijado');
   assert.ok(await page.$('#b-step-dose.done'), 'paso 1 marcado');
-  assert.match(await page.textContent('#scale-chip'), /50%/);
+  assert.match(await page.textContent('#scale-chip'), /50 %/);
 
   // 2) Shot en modo auto (inline en el paso 3): taza (auto-tara), shot y reset del timer
   await page.click('#modal-brew .btn-shot');
   await page.waitForSelector('#b-shot-live:not([hidden])');
   const replay = page.evaluate(() => window.__replay(96, 132));
   // Cuenta atrás de corte: salida objetivo 38 (receta), 1.5 s antes por defecto, a 1 s por tiempo
-  assert.match(await page.textContent('#b-shot-live .shot-cue'), /1\.5 s\D+38\.0 g/);
+  assert.match(await page.textContent('#b-shot-live .shot-cue'), /1,5 s\D+38,0 g/);
   await page.waitForSelector('.stop-cd[data-n="3"]', {timeout: 40000});
   const t3 = Date.now();
   assert.strictEqual(await page.textContent('.stop-cd-num'), '3');
@@ -94,19 +94,20 @@ async function apiCall(page, method, url, body) {
   await page.waitForSelector('.stop-cd', {state: 'detached'});
   await replay;
   await page.waitForSelector('#b-shot-live .shot-summary:not([hidden])');
-  assert.match(await page.textContent('#b-shot-live .shot-summary'), /→ 38\.5 g \(\+0\.5\)/);
+  assert.match(await page.textContent('#b-shot-live .shot-summary'), /→ 38,5 g \(\+0,5\)/);
   const summary = await page.textContent('#b-shot-live .shot-summary');
-  assert.match(summary, /1\.7\d g\/s/, 'flujo principal ≈ 1.73');
-  assert.match(summary, /1\.38 g\/s/, 'media de la báscula');
+  assert.match(summary, /1,7\d g\/s/, 'flujo principal ≈ 1.73');
+  assert.match(summary, /1,38 g\/s/, 'media de la báscula');
   if (process.argv[2]) await page.screenshot({path: process.argv[2]});
   // El resultado se aplica solo al terminar
   assert.strictEqual(await page.inputValue('#b-yield'), '38.5');
   assert.strictEqual(await page.inputValue('#b-time'), '28');
   // Un solo "flujo" en pantalla: el principal del shot, no la media salida/tiempo
-  assert.match(await page.textContent('#b-ratio-display'), /1\.7\d g\/s/);
-  assert.doesNotMatch(await page.textContent('#b-ratio-display'), /1\.38/);
+  assert.match(await page.textContent('#b-ratio-display'), /1,7\d g\/s/);
+  assert.doesNotMatch(await page.textContent('#b-ratio-display'), /1,38/);
 
   // 3) Guardar con valoración: el brew lleva métricas y curva
+  await page.click('.shot-back');
   await page.click('#modal-brew .brew-star[data-val="5"]');
   await page.click('#b-submit');
   await page.waitForSelector('#modal-brew:not(.open)', {state: 'attached'});
@@ -129,7 +130,7 @@ async function apiCall(page, method, url, body) {
   await page.click('#modal-brew .btn-shot');
   await page.waitForSelector('#b-shot-live .shot-legend', {state: 'attached'});
   // …y el corte usa el retardo aprendido: (salida − corte) / flujo del shot anterior
-  const delay = parseFloat((await page.textContent('#b-shot-live .shot-cue')).match(/([\d.]+) s/)[1]);
+  const delay = parseFloat((await page.textContent('#b-shot-live .shot-cue')).match(/([\d,]+) s/)[1].replace(',', '.'));
   const learned = (brews[0].yield_g - m.stop_cue_g) / m.stop_flow;
   assert.ok(Math.abs(delay - learned) < 0.051, `retardo ${delay} vs ${learned}`);
   await page.evaluate(() => closeModal('modal-brew'));

@@ -5,14 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Cafeteca</title>
 <link rel="manifest" href="/manifest.json">
-<meta name="theme-color" content="#bf5b26">
+<meta name="theme-color" content="#f6f5f2" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#121211" media="(prefers-color-scheme: dark)">
+<script src="/static/js/theme.js"></script>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Cafeteca">
-<link rel="apple-touch-icon" href="/static/icon-192.png">
-<link rel="icon" type="image/svg+xml" href="/static/icon.svg">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
+<link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+<link rel="preload" href="/static/fonts/geist.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
@@ -164,43 +165,72 @@
     <rect x="3" y="3" width="18" height="8" rx="2"/><rect x="3" y="13" width="18" height="8" rx="2"/>
   </symbol>
 
+  <symbol id="ic-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="ic-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol>
+  <symbol id="ic-clipboard" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></symbol>
+  <symbol id="ic-flame" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></symbol>
+  <symbol id="ic-bluetooth" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m7 7 10 10-5 5V2l5 5L7 17"/></symbol>
+  <symbol id="ic-volume-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z"/><path d="M16 9a5 5 0 0 1 0 6"/><path d="M19.364 18.364a9 9 0 0 0 0-12.728"/></symbol>
+  <symbol id="ic-volume-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z"/><path d="m22 9-6 6"/><path d="m16 9 6 6"/></symbol>
+  <symbol id="ic-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+  <symbol id="ic-minus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/></symbol>
 </svg>
 
-<nav class="nav">
-  <div class="nav-logo">
-    <span class="nav-logo-name" data-i18n="nav.title">Cafeteca</span>
-    <span class="nav-logo-tag" data-i18n="nav.tagline">tu diario de café</span>
+<nav class="app-nav">
+  <div class="app-nav-brand">
+    <img class="mark-light" src="/static/mark.svg" alt="" width="34" height="28"><img class="mark-dark" src="/static/mark-dark.svg" alt="" width="34" height="28">
+    <span data-i18n="nav.title">Cafeteca</span>
   </div>
-  <div class="nav-tabs" id="nav-tabs">
-    <button class="bnav-item nav-tab-btn active" onclick="showPage('list',this)" data-page="list" data-i18n-aria-label="nav.tab.coffees" data-i18n-title="nav.tab.coffees">
-      <span class="bnav-icon"><svg class="ic ic-md" viewBox="0 0 24 24"><use href="#ic-coffee"/></svg></span>
-      <span class="bnav-label" data-i18n="nav.tab.coffees">Cafés</span>
+  <button class="app-nav-add" type="button" onclick="openAddModal()" data-i18n-aria-label="nav.add" data-i18n-title="nav.add">
+    <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-plus"/></svg>
+    <span class="app-nav-add-label" data-i18n="nav.add">Añadir café</span>
+  </button>
+  <div class="app-nav-search"></div>
+  <div class="app-nav-items">
+    <button class="bnav-item app-nav-item" type="button" onclick="showPage('list',this)" data-page="list" data-i18n-aria-label="nav.tab.coffees" data-i18n-title="nav.tab.coffees">
+      <span class="bnav-icon"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-coffee"/></svg></span>
+      <span class="bnav-label" data-i18n="nav.tab.coffees"></span>
     </button>
-    <button class="bnav-item nav-tab-btn" onclick="showPage('brews',this)" data-page="brews" data-i18n-aria-label="nav.tab.brews" data-i18n-title="nav.tab.brews">
-      <span class="bnav-icon"><svg class="ic ic-md" viewBox="0 0 24 24"><use href="#ic-beaker"/></svg></span>
-      <span class="bnav-label" data-i18n="nav.tab.brews">Prepas</span>
+    <button class="bnav-item app-nav-item" type="button" onclick="showPage('brews',this)" data-page="brews" data-i18n-aria-label="nav.tab.brews" data-i18n-title="nav.tab.brews">
+      <span class="bnav-icon"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-beaker"/></svg></span>
+      <span class="bnav-label" data-i18n="nav.tab.brews"></span><span class="nav-count" id="nav-count-brews" hidden></span>
     </button>
-    <button class="bnav-item nav-tab-btn" onclick="showPage('stats',this)" data-page="stats" data-i18n-aria-label="nav.tab.stats" data-i18n-title="nav.tab.stats">
-      <span class="bnav-icon"><svg class="ic ic-md" viewBox="0 0 24 24"><use href="#ic-chart"/></svg></span>
-      <span class="bnav-label" data-i18n="nav.tab.stats">Stats</span>
+    <button class="bnav-item app-nav-item" type="button" onclick="showPage('stats',this)" data-page="stats" data-i18n-aria-label="nav.tab.stats" data-i18n-title="nav.tab.stats">
+      <span class="bnav-icon"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-chart"/></svg></span>
+      <span class="bnav-label" data-i18n="nav.tab.stats"></span>
     </button>
-    <button class="bnav-item nav-tab-btn" onclick="showPage('catalog',this)" data-page="catalog" data-i18n-aria-label="nav.tab.catalog" data-i18n-title="nav.tab.catalog">
-      <span class="bnav-icon"><svg class="ic ic-md" viewBox="0 0 24 24"><use href="#ic-layers"/></svg></span>
-      <span class="bnav-label" data-i18n="nav.tab.catalog">Catálogos</span>
-    </button>
-  </div>
-  <div class="nav-right">
-    <input class="nav-search" id="search-input" placeholder="Buscar..." data-i18n-placeholder="nav.search_placeholder" oninput="onSearch(this.value)">
-    <button class="scale-chip" id="scale-chip" hidden onclick="scaleChipClick()">⚖️</button>
-    <button class="btn-icon-nav" onclick="openSettings()" data-i18n-title="nav.settings">
-      <svg class="ic" viewBox="0 0 24 24"><use href="#ic-settings"/></svg>
-    </button>
-    <button class="nav-add" onclick="openAddModal()">
-      <svg class="ic" viewBox="0 0 24 24"><use href="#ic-plus"/></svg>
+    <button class="bnav-item app-nav-item" type="button" onclick="showPage('catalog',this)" data-page="catalog" data-i18n-aria-label="nav.tab.catalog" data-i18n-title="nav.tab.catalog">
+      <span class="bnav-icon"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-layers"/></svg></span>
+      <span class="bnav-label" data-i18n="nav.tab.catalog"></span>
     </button>
   </div>
+  <div class="app-nav-foot"></div>
 </nav>
 
+<main class="app-main">
+<header class="page-header">
+  <div class="page-heading">
+    <h1 class="page-title" id="page-title"></h1>
+    <div class="page-summary" id="page-summary" hidden></div>
+  </div>
+  <div class="page-actions" id="page-actions">
+    <button class="btn-new-brew page-action" data-for-page="brews" type="button" hidden onclick="newBrewFromBrews()" data-i18n="brew.btn.new">Nueva preparación</button>
+  </div>
+  <div class="app-tools">
+    <button class="btn-icon-nav search-toggle" type="button" onclick="toggleSearch()" data-i18n-aria-label="nav.search_placeholder" data-i18n-title="nav.search_placeholder">
+      <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-search"/></svg>
+    </button>
+    <button class="scale-chip" id="scale-chip" type="button" hidden onclick="scaleChipClick()"></button>
+    <button class="btn-icon-nav" id="settings-btn" type="button" onclick="openSettings()" data-i18n-aria-label="nav.settings" data-i18n-title="nav.settings">
+      <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-sliders"/></svg>
+      <span class="app-tool-label" data-i18n="nav.settings"></span>
+    </button>
+  </div>
+</header>
+<div class="search-box" id="search-box" hidden>
+  <svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-search"/></svg>
+  <input class="nav-search" id="search-input" type="search" placeholder="Buscar..." data-i18n-placeholder="nav.search_placeholder" data-i18n-aria-label="nav.search_placeholder" oninput="onSearch(this.value)">
+</div>
 
 <!-- PÁGINA: LISTA -->
 <div class="page active" id="page-list">
@@ -218,12 +248,12 @@
     <!-- Ordenar + toggle filtros -->
     <div class="filter-toolbar">
       <select class="filter-select filter-sort" id="sort-select" onchange="onSortChange()">
-        <option value="smart" data-i18n="sort.smart">↕ Recomendado</option>
-        <option value="created_desc" data-i18n="sort.created_desc">↕ Más reciente</option>
-        <option value="roast_desc" data-i18n="sort.roast_desc">↕ Tueste reciente</option>
-        <option value="roast_asc" data-i18n="sort.roast_asc">↕ Tueste antiguo</option>
-        <option value="rating_desc" data-i18n="sort.rating_desc">↕ Mejor valorados</option>
-        <option value="name_asc" data-i18n="sort.name_asc">↕ Nombre A→Z</option>
+        <option value="smart" data-i18n="sort.smart">Recomendado</option>
+        <option value="created_desc" data-i18n="sort.created_desc">Más reciente</option>
+        <option value="roast_desc" data-i18n="sort.roast_desc">Tueste reciente</option>
+        <option value="roast_asc" data-i18n="sort.roast_asc">Tueste antiguo</option>
+        <option value="rating_desc" data-i18n="sort.rating_desc">Mejor valorados</option>
+        <option value="name_asc" data-i18n="sort.name_asc">Nombre A→Z</option>
       </select>
       <button class="filter-toggle-btn" id="view-toggle-btn" onclick="toggleCompactView()">
         <svg class="ic ic-md" viewBox="0 0 24 24"><use href="#ic-view-compact" id="view-toggle-icon"/></svg>
@@ -292,7 +322,6 @@
 
 <!-- PÁGINA: PREPAS -->
 <div class="page" id="page-brews">
-  <button class="btn-new-brew" type="button" onclick="newBrewFromBrews()" data-i18n="brew.btn.new">🫖 Nueva preparación</button>
   <div id="brews-list"><div class="loading" data-i18n="loading">Cargando...</div></div>
 </div>
 
@@ -308,7 +337,7 @@
 <!-- PÁGINA: CATÁLOGO -->
 <div class="page" id="page-catalog">
   <div style="margin-bottom:14px">
-    <div style="font-size:13px;color:var(--text2);line-height:1.6" data-i18n="catalog.description">
+    <div style="font-size:13px;color:var(--ink-2);line-height:1.6" data-i18n="catalog.description">
       Gestiona los valores de referencia. Puedes renombrar cualquier entrada (actualizará todos los cafés que la usen) o eliminar las que no estén en uso.
     </div>
     <button class="btn-purge-all" onclick="purgeAll()" style="margin-top:10px">
@@ -319,25 +348,7 @@
   <div id="catalog-content"><div class="loading" data-i18n="loading">Cargando...</div></div>
 </div>
 
-<!-- Navegación inferior -->
-<nav class="bottom-nav" id="bottom-nav">
-  <button class="bnav-item active" onclick="showPage('list',this)" data-page="list">
-    <span class="bnav-icon"><svg class="ic" viewBox="0 0 24 24"><use href="#ic-coffee"/></svg></span>
-    <span class="bnav-label" data-i18n="nav.tab.coffees">Cafés</span>
-  </button>
-  <button class="bnav-item" onclick="showPage('brews',this)" data-page="brews">
-    <span class="bnav-icon"><svg class="ic" viewBox="0 0 24 24"><use href="#ic-beaker"/></svg></span>
-    <span class="bnav-label" data-i18n="nav.tab.brews">Prepas</span>
-  </button>
-  <button class="bnav-item" onclick="showPage('stats',this)" data-page="stats">
-    <span class="bnav-icon"><svg class="ic" viewBox="0 0 24 24"><use href="#ic-chart"/></svg></span>
-    <span class="bnav-label" data-i18n="nav.tab.stats">Stats</span>
-  </button>
-  <button class="bnav-item" onclick="showPage('catalog',this)" data-page="catalog">
-    <span class="bnav-icon"><svg class="ic" viewBox="0 0 24 24"><use href="#ic-layers"/></svg></span>
-    <span class="bnav-label" data-i18n="nav.tab.catalog">Catálogos</span>
-  </button>
-</nav>
+</main>
 
 <!-- MODAL: FORMULARIO DE CAFÉ -->
 <div class="modal-overlay" id="modal-form">
@@ -553,7 +564,7 @@
       <label class="form-label" data-i18n="brew.field.time">Tiempo de extracción (s)</label>
       <input class="form-input" id="r-time" type="number" min="0" placeholder="ej. 27" oninput="updateRatioDisplay()">
     </div>
-    <div style="font-size:13px;color:var(--accent2);min-height:18px;margin-bottom:8px" id="r-ratio-display"></div>
+    <div style="font-size:13px;color:var(--accent);min-height:18px;margin-bottom:8px" id="r-ratio-display"></div>
     <div class="form-group">
       <label class="form-label" data-i18n="recipe.field.grind">Grado de molienda</label>
       <input class="form-input" id="r-grind" type="number" min="0" step="any" inputmode="decimal" placeholder="ej. 15">
@@ -593,7 +604,7 @@
         <label class="form-label" for="b-dose" data-i18n="brew.field.dose">Café (g)</label>
         <div class="input-with-btn">
           <input class="form-input" id="b-dose" type="number" step="0.1" min="0" inputmode="decimal" placeholder="18" oninput="updateBrewRatioDisplay()">
-          <button class="btn-scale scale-only" type="button" onclick="brewScaleDose()" data-i18n-title="scale.dose.btn_title"><span aria-hidden="true">⚖️</span> <span data-i18n="scale.dose.weigh">Pesar</span></button>
+          <button class="btn-scale scale-only" type="button" onclick="brewScaleDose()" data-i18n-title="scale.dose.btn_title"><svg class="ic ic-sm" aria-hidden="true"><use href="#ic-bluetooth"/></svg> <span data-i18n="scale.dose.weigh">Pesar</span></button>
         </div>
       </div>
       <div class="scale-panel" id="b-dose-scale" hidden>
@@ -634,7 +645,7 @@
     <!-- 3 · Extracción -->
     <section class="brew-step" id="b-step-shot">
       <div class="brew-step-title"><span class="brew-step-n">3</span><span data-i18n="brew.step.shot">Extracción</span></div>
-      <button class="btn-shot scale-only" type="button" onclick="brewScaleShot()" data-i18n="scale.shot.btn">⏱ Sacar shot con báscula</button>
+      <button class="btn-shot scale-only" type="button" onclick="brewScaleShot()" data-i18n="scale.shot.btn">Sacar shot con báscula</button>
       <div class="shot-view brew-shot-live" id="b-shot-live" hidden></div>
       <div class="form-row">
         <div class="form-group">
@@ -701,7 +712,7 @@
         <svg class="ic" viewBox="0 0 24 24"><use href="#ic-x"/></svg>
       </button>
     </div>
-    <div id="scale-lab-unsupported" style="display:none;font-size:13px;color:var(--text3)" data-i18n="scale.unsupported">Este navegador no soporta Web Bluetooth (usa Chrome en Android).</div>
+    <div id="scale-lab-unsupported" style="display:none;font-size:13px;color:var(--ink-muted)" data-i18n="scale.unsupported">Este navegador no soporta Web Bluetooth (usa Chrome en Android).</div>
     <div class="scale-only">
       <div class="st-row">
         <button class="btn-secondary" onclick="scaleTestConnect()" data-i18n="scale.btn.connect">Conectar</button>
@@ -744,14 +755,14 @@
       <details id="scale-lab" class="st-lab">
         <summary class="form-section" style="cursor:pointer" data-i18n="scale.lab.title">Captura de tramas (JSON)</summary>
         <div id="scale-lab-body">
-          <div style="font-size:12px;color:var(--text3);margin-bottom:8px" data-i18n="scale.lab.hint">Captura tramas de la Bookoo para calibrar la integración. Desconecta antes la app oficial.</div>
+          <div style="font-size:12px;color:var(--ink-muted);margin-bottom:8px" data-i18n="scale.lab.hint">Captura tramas de la Bookoo para calibrar la integración. Desconecta antes la app oficial.</div>
           <div id="scale-lab-live" style="font-family:monospace;font-size:12px;margin-bottom:8px">—</div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px">
             <button class="btn-secondary" onclick="scaleLabRecord('dose')" data-i18n="scale.lab.rec_dose">● Dosis</button>
             <button class="btn-secondary" onclick="scaleLabRecord('shot')" data-i18n="scale.lab.rec_shot">● Shot</button>
-            <button class="btn-secondary" onclick="scaleLabPause()" data-i18n="scale.lab.pause">⏸ Pausa</button>
+            <button class="btn-secondary" onclick="scaleLabPause()" data-i18n="scale.lab.pause">Pausa</button>
           </div>
-          <div style="font-size:12px;color:var(--text2);margin-bottom:6px"><span id="scale-lab-rec"></span> <span id="scale-lab-count"></span></div>
+          <div style="font-size:12px;color:var(--ink-2);margin-bottom:6px"><span id="scale-lab-rec"></span> <span id="scale-lab-count"></span></div>
           <pre id="scale-lab-events" style="font-size:11px;max-height:120px;overflow:auto;white-space:pre-wrap;margin:0 0 8px"></pre>
           <div style="display:flex;gap:8px">
             <button class="btn-primary" onclick="scaleLabDownload()" data-i18n="scale.lab.download">Descargar JSON</button>
@@ -789,12 +800,12 @@
     <div class="form-group">
       <label class="form-label" data-i18n="settings.field.grams_per_shot">Gramos por toma (g)</label>
       <input class="form-input" id="s-grams" type="number" min="1" max="100" placeholder="17">
-      <div style="font-size:12px;color:var(--text3);margin-top:4px" data-i18n="settings.grams_hint">Gramos que se restan al pulsar "Consumir" en la ficha del café.</div>
+      <div style="font-size:12px;color:var(--ink-muted);margin-top:4px" data-i18n="settings.grams_hint">Gramos que se restan al pulsar "Consumir" en la ficha del café.</div>
     </div>
     <div class="form-group">
       <label class="form-label" data-i18n="settings.field.low_stock_threshold">Alerta de stock bajo (tomas)</label>
       <input class="form-input" id="s-low-stock" type="number" min="1" max="50" placeholder="5">
-      <div style="font-size:12px;color:var(--text3);margin-top:4px" data-i18n="settings.low_stock_hint">Muestra ⚠️ en la ficha cuando quedan esta cantidad de tomas o menos.</div>
+      <div style="font-size:12px;color:var(--ink-muted);margin-top:4px" data-i18n="settings.low_stock_hint">Muestra un aviso en la ficha cuando quedan esta cantidad de tomas o menos.</div>
     </div>
     <button class="btn-primary" onclick="saveSettings()" style="margin-bottom:18px" data-i18n="settings.btn.save">Guardar ajustes</button>
     <div class="form-section" data-i18n="settings.section.data">Datos</div>
@@ -809,7 +820,7 @@
         </select>
         <button class="btn-danger" onclick="purgeOldBrews()" style="white-space:nowrap;padding:8px 12px" data-i18n="settings.btn.purge">Purgar</button>
       </div>
-      <div style="font-size:12px;color:var(--text3);margin-top:4px" data-i18n="settings.purge_hint">Elimina permanentemente las preparaciones anteriores al período seleccionado.</div>
+      <div style="font-size:12px;color:var(--ink-muted);margin-top:4px" data-i18n="settings.purge_hint">Elimina permanentemente las preparaciones anteriores al período seleccionado.</div>
     </div>
     <div class="form-section" data-i18n="settings.section.grinder">Molinillo</div>
     <div class="form-group">
@@ -823,9 +834,18 @@
       <input class="form-input" id="s-flow-tol" type="number" step="0.05" min="0.05" max="1" placeholder="0.2">
     </div>
     <button class="btn-primary" onclick="saveSettings()" style="margin-bottom:10px" data-i18n="settings.btn.save">Guardar ajustes</button>
-    <button class="btn-secondary" onclick="openScaleTest()" style="width:100%;margin-bottom:10px" data-i18n="scale.test.open">⚖️ Probar báscula</button>
+    <button class="btn-secondary" onclick="openScaleTest()" style="width:100%;margin-bottom:10px" data-i18n="scale.test.open">Probar báscula</button>
     <button class="btn-secondary" onclick="recomputeShotMetrics()" style="width:100%;margin-bottom:4px" data-i18n="scale.recompute">Recalcular métricas de flujo</button>
     <div class="form-hint" style="margin-bottom:18px" data-i18n="scale.recompute_hint">Vuelve a analizar los shots guardados con curva (p. ej. tras cambiar la tolerancia).</div>
+    <div class="form-section" data-i18n="settings.section.appearance">Apariencia</div>
+    <div class="form-group">
+      <label class="form-label" for="theme-select" data-i18n="settings.theme">Tema</label>
+      <select class="form-input" id="theme-select" onchange="changeTheme(this.value)">
+        <option value="system" data-i18n="settings.theme.system">Según el dispositivo</option>
+        <option value="light" data-i18n="settings.theme.light">Claro</option>
+        <option value="dark" data-i18n="settings.theme.dark">Oscuro</option>
+      </select>
+    </div>
     <div class="form-section" data-i18n="settings.section.language">Idioma</div>
     <div class="form-group">
       <select class="form-input" id="lang-select" onchange="changeLang(this.value)">

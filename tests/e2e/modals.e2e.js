@@ -2,11 +2,11 @@
 // el foco vuelve al botón que lo abrió y Tab no se sale del modal.
 //
 //   python app.py  (o cualquier servidor en BASE_URL, con BD de prueba)
-//   BASE_URL=http://localhost:5323 node tests/e2e/modals.e2e.js
+//   BASE_URL=http://localhost:5399 node tests/e2e/modals.e2e.js
 const assert = require('node:assert');
 const {chromium} = require('playwright');
 
-const BASE = process.env.BASE_URL || 'http://localhost:5323';
+const BASE = process.env.BASE_URL || 'http://localhost:5399';
 
 (async () => {
   const browser = await chromium.launch({executablePath: process.env.CHROMIUM || undefined});

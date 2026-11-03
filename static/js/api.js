@@ -6,7 +6,7 @@ async function api(path, opts={}) {
   try {
     r = await fetch('/api'+path, {headers:{'Content-Type':'application/json'}, ...opts});
   } catch {
-    showToast('⚠️ ' + t('error.network'));
+    showToast(t('error.network'));
     throw new Error('network error');
   }
   // Authelia session expired: NPM answers API calls with a bare 401 (no redirect,
@@ -20,7 +20,7 @@ async function api(path, opts={}) {
     const msg = data.error_key
       ? t(data.error_key, data.error_key_params || {})
       : (data.error || `Error ${r.status}`);
-    showToast('⚠️ ' + msg);
+    showToast(msg);
     throw Object.assign(new Error(msg), {status: r.status});
   }
   return data;
@@ -53,10 +53,10 @@ function esc(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
-function showConfirm({icon='🗑', title, msg='', btnLabel, btnClass='btn-danger', onConfirm}) {
+function showConfirm({icon: iconName='trash', title, msg='', btnLabel, btnClass='btn-danger', onConfirm}) {
   title = title ?? t('modal.confirm.default_title');
   btnLabel = btnLabel ?? t('modal.confirm.default_btn');
-  document.getElementById('confirm-icon').textContent = icon;
+  document.getElementById('confirm-icon').innerHTML = icon(iconName);
   document.getElementById('confirm-title').textContent = title;
   document.getElementById('confirm-msg').textContent = msg;
   const btn = document.getElementById('confirm-action-btn');
@@ -119,11 +119,13 @@ document.addEventListener('keydown', e => {
     e.preventDefault();
     closeModal(top.id);
   } else if (e.key === 'Tab' && dialog) {
-    const items = [...dialog.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')]
+    // Con el shot en vivo abierto, Tab se queda en él: lo de debajo no se ve
+    const scope = dialog.querySelector('.shot-stage') || dialog;
+    const items = [...scope.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')]
       .filter(el => !el.disabled && el.getClientRects().length && getComputedStyle(el).visibility !== 'hidden');
     if (!items.length) return;
     const first = items[0], last = items[items.length - 1];
-    if (e.shiftKey && (document.activeElement === first || document.activeElement === dialog)) { e.preventDefault(); last.focus(); }
+    if (e.shiftKey && (document.activeElement === first || document.activeElement === scope)) { e.preventDefault(); last.focus(); }
     else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
   }
 });

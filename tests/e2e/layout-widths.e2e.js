@@ -1,11 +1,11 @@
 // E2E: ninguna pantalla tiene scroll horizontal en móvil, tablet ni escritorio
 // (con el chip de la báscula visible, que es cuando la cabecera va más llena).
-//   BASE_URL=http://localhost:5323 node tests/e2e/layout-widths.e2e.js
+//   BASE_URL=http://localhost:5399 node tests/e2e/layout-widths.e2e.js
 const assert = require('node:assert');
 const {chromium} = require('playwright');
 
-const BASE = process.env.BASE_URL || 'http://localhost:5323';
-const WIDTHS = [390, 768, 820, 1024, 1280];
+const BASE = process.env.BASE_URL || 'http://localhost:5399';
+const WIDTHS = [390, 640, 768, 820, 1024, 1280, 1440];
 
 (async () => {
   const browser = await chromium.launch({executablePath: process.env.CHROMIUM || undefined});
@@ -51,8 +51,15 @@ const WIDTHS = [390, 768, 820, 1024, 1280];
       });
       bad.forEach(b => failures.push(`[${w}px ${label}] ${b}`));
     };
+    // Una sola navegación: barra inferior en móvil, raíl en tablet, barra lateral en escritorio
+    const nav = await page.locator('.app-nav').boundingBox();
+    if (w < 640) assert.ok(nav.y > 700 && nav.width === w, `barra inferior a ${w}: ${JSON.stringify(nav)}`);
+    else if (w < 1024) assert.strictEqual(nav.width, 72, `raíl a ${w}`);
+    else assert.strictEqual(nav.width, 232, `barra lateral a ${w}`);
+    assert.ok(await page.locator('.app-nav .app-nav-add').isVisible(), `añadir visible a ${w}`);
+    assert.strictEqual(await page.locator('#page-title').textContent(), 'Cafés');
     await check('lista');
-    await check('busqueda-abierta', () => document.getElementById('search-input').focus());   // la búsqueda se ensancha: cabecera al límite
+    await check('busqueda-abierta', () => { if (innerWidth < 1024) toggleSearch(); document.getElementById('search-input').focus(); });   // la búsqueda se ensancha: cabecera al límite
     await page.evaluate(() => document.activeElement.blur());
     await check('compacta', () => toggleCompactView());
     await check('ficha', () => { toggleCompactView(); showDetail(displayedCoffees.find(c => c.name.startsWith('LW')).id); });
@@ -62,6 +69,16 @@ const WIDTHS = [390, 768, 820, 1024, 1280];
     await check('prepas', () => { closeModal('modal-settings'); showPage('brews'); });
     await check('stats', () => showPage('stats'));
     await check('catalogo', () => showPage('catalog'));
+    await page.close();
+  }
+  // Móvil apaisado con la báscula: el raíl entero cabe y Ajustes se alcanza
+  {
+    const page = await browser.newPage({viewport: {width: 844, height: 390}, serviceWorkers: 'block'});
+    await page.goto(BASE + '/');
+    await page.waitForFunction(() => typeof fetchAndRender === 'function' && document.querySelector('[data-i18n]')?.textContent);
+    await page.evaluate(() => { document.getElementById('scale-chip').hidden = false; });
+    const b = await page.locator('#settings-btn').boundingBox();
+    assert.ok(b.y + b.height <= 390, `Ajustes dentro a 844×390: ${JSON.stringify(b)}`);
     await page.close();
   }
   await browser.close();

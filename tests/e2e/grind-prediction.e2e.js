@@ -3,11 +3,11 @@
 // ("Usar" rellena la molienda), la gráfica de la ficha y la tarjeta de Stats.
 //
 //   python app.py  (o cualquier servidor en BASE_URL, con BD de prueba vacía)
-//   BASE_URL=http://localhost:5323 node tests/e2e/grind-prediction.e2e.js [carpeta-capturas]
+//   BASE_URL=http://localhost:5399 node tests/e2e/grind-prediction.e2e.js [carpeta-capturas]
 const assert = require('node:assert');
 const {chromium} = require('playwright');
 
-const BASE = process.env.BASE_URL || 'http://localhost:5323';
+const BASE = process.env.BASE_URL || 'http://localhost:5399';
 const SHOTS = process.argv[2];
 
 const ymd = d => d.toISOString().slice(0, 10);
@@ -51,12 +51,12 @@ const daysAgo = n => ymd(new Date(Date.now() - n * 86400000));
   const hint = page.locator('#b-grind-hint');
   await hint.waitFor({state: 'visible'});
   const text = await hint.textContent();
-  assert.match(text, /13\.5/, text);
-  assert.match(text, /1\.8 g\/s/, text);
-  assert.match(text, /−0\.[67]\d/, text);
+  assert.match(text, /13,5/, text);
+  assert.match(text, /1,8 g\/s/, text);
+  assert.match(text, /−0,[67]\d/, text);
   if (SHOTS) await page.screenshot({path: `${SHOTS}/grind-brew-modal.png`});
   const use = hint.locator('button');
-  assert.match(await use.getAttribute('aria-label'), /13\.5/);
+  assert.match(await use.getAttribute('aria-label'), /13,5/);
   const box = await use.boundingBox();
   assert.ok(box.height >= 40 && box.width >= 40, 'botón Usar ≥ 40 px');
   // la sugerida (aprendida) ya viene puesta; la receta es solo una recomendación
@@ -70,7 +70,7 @@ const daysAgo = n => ymd(new Date(Date.now() - n * 86400000));
   // Registrar un shot de hace 7 días: la sugerida retrocede ~0.7 pasos (más gruesa)
   await page.fill('#b-date', daysAgo(7));
   await page.dispatchEvent('#b-date', 'change');
-  assert.match(await hint.textContent(), /14\.5/);
+  assert.match(await hint.textContent(), /14,5/);
   await page.evaluate(() => closeModal('modal-brew'));
 
   // 1b) Bolsa nueva del mismo café (abierta hoy, sin shots): parte de la anterior de la familia
@@ -99,7 +99,7 @@ const daysAgo = n => ymd(new Date(Date.now() - n * 86400000));
   await section.locator('canvas').waitFor();
   const detailText = await section.textContent();
   assert.match(detailText, /pasos\/semana|steps\/week/, detailText);
-  assert.match(detailText, /13\.5/, detailText);
+  assert.match(detailText, /13,5/, detailText);
   const painted = await section.locator('canvas').evaluate(c => c.width > 0 && c.getContext('2d')
     .getImageData(0, 0, c.width, c.height).data.some((v, i) => i % 4 === 3 && v > 0));
   assert.ok(painted, 'la gráfica se dibuja');

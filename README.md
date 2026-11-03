@@ -1,6 +1,6 @@
 # Cafeteca ☕
 
-Diario personal de cafés de especialidad. Registra compras, consumo, valoraciones y notas de cata. Interfaz web mobile-first, tema oscuro cálido. PWA instalable.
+Diario personal de cafés de especialidad. Registra compras, consumo, valoraciones y notas de cata. Interfaz web mobile-first. PWA instalable.
 
 ## Arrancar
 

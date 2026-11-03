@@ -3,11 +3,11 @@
 // Prepas, y "Deshacer" de consumir / terminar bolsa.
 //
 //   python app.py  (o cualquier servidor en BASE_URL, con BD de prueba)
-//   BASE_URL=http://localhost:5323 node tests/e2e/brew-flow.e2e.js
+//   BASE_URL=http://localhost:5399 node tests/e2e/brew-flow.e2e.js
 const assert = require('node:assert');
 const {chromium} = require('playwright');
 
-const BASE = process.env.BASE_URL || 'http://localhost:5323';
+const BASE = process.env.BASE_URL || 'http://localhost:5399';
 
 (async () => {
   const browser = await chromium.launch({executablePath: process.env.CHROMIUM || undefined});
@@ -31,6 +31,12 @@ const BASE = process.env.BASE_URL || 'http://localhost:5323';
   await page.tap(`#actions-${coffee.id} .btn-quick.brew`);
   await page.waitForSelector('#modal-brew.open');
   assert.strictEqual(await page.textContent('#b-coffee-name'), coffee.name);
+  // Hoja inferior en móvil, sin transform (el shot en vivo es position: fixed dentro)
+  await page.waitForTimeout(300);   // termina la animación de entrada
+  const sheet = await page.locator('#modal-brew .modal').boundingBox();
+  const vh = page.viewportSize().height;
+  assert.strictEqual(Math.round(sheet.y + sheet.height), vh, 'la hoja llega al borde inferior');
+  assert.strictEqual(await page.evaluate(() => { const m = getComputedStyle(document.querySelector('#modal-brew .modal')); return m.transform + m.translate; }), 'nonenone');
 
   // 2) Entrada manual por pasos, con los −/+ y sin valorar
   await page.fill('#b-dose', '18');
@@ -39,7 +45,7 @@ const BASE = process.env.BASE_URL || 'http://localhost:5323';
   assert.strictEqual(await page.inputValue('#b-grind'), '13');
   await page.fill('#b-yield', '36');
   await page.fill('#b-time', '30');
-  assert.match(await page.textContent('#b-ratio-display'), /1:2\.00/);
+  assert.match(await page.textContent('#b-ratio-display'), /1:2,00/);
   assert.ok(await page.$('#b-step-shot.done'), 'paso 3 marcado');
   assert.match(await page.textContent('#b-submit'), /valorar después|rate later/);
   await page.tap('#modal-brew .brew-star[data-val="4"]');
@@ -57,6 +63,11 @@ const BASE = process.env.BASE_URL || 'http://localhost:5323';
 
   // 3) Valorar después desde Prepas
   await page.evaluate(() => showPage('brews'));
+  // Prepas: acción en la cabecera y una sola lista con filetes, sin sombras
+  assert.ok(await page.locator('.page-actions .btn-new-brew').isVisible());
+  assert.strictEqual(await page.$eval('#brews-list', el => getComputedStyle(el).borderTopStyle), 'solid');
+  await page.waitForSelector('.brew-card');
+  assert.strictEqual(await page.$eval('.brew-card', el => getComputedStyle(el).boxShadow), 'none');
   const quick = `.brew-card:has(.brew-coffee-tag:text-is("${coffee.name}")) .quick-star`;
   await page.waitForSelector(quick);
   const rateCard = `.brew-card:has(.brew-coffee-tag:text-is("${coffee.name}"))`;

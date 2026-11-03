@@ -454,3 +454,57 @@ class TestTasteScales:
         assert (body['rating'], body['taste_balance'], body['taste_body']) == (3, 0, 1)
         body = client.put(f'/api/brews/{brew["id"]}', json={'taste_body': None}).get_json()
         assert body['taste_body'] is None and body['taste_balance'] == 0
+
+
+class TestPendingBrews:
+    """Shots de báscula por valorar: los que aún muestran "¿Qué tal estaba?"."""
+    SHOT = {'shot_metrics': {'main_flow': 1.5}}
+    SINCE = '2026-11-01'
+
+    def _count(self, client, since=None):
+        resp = client.get(f'/api/brews/pending?since={since or self.SINCE}')
+        assert resp.status_code == 200
+        return resp.get_json()['count']
+
+    def _brew(self, client, **fields):
+        coffee = make_coffee(client)
+        data = {'dose_g': 17, 'brew_date': '2026-11-02', **fields}
+        resp = client.post(f"/api/coffees/{coffee['id']}/brews", json=data)
+        assert resp.status_code == 201, resp.get_json()
+
+    def test_unrated_scale_shot_counts(self, client):
+        self._brew(client, **self.SHOT)
+        assert self._count(client) == 1
+
+    def test_stars_without_balance_still_counts(self, client):
+        self._brew(client, rating=5, **self.SHOT)
+        assert self._count(client) == 1
+
+    def test_balance_without_stars_still_counts(self, client):
+        self._brew(client, taste_balance=0, **self.SHOT)
+        assert self._count(client) == 1
+
+    def test_stars_and_balance_clear_it(self, client):
+        self._brew(client, rating=5, taste_balance=0, **self.SHOT)
+        assert self._count(client) == 0
+
+    def test_manual_brew_never_counts(self, client):
+        self._brew(client, yield_g=36, time_s=28)
+        assert self._count(client) == 0
+
+    def test_consume_never_counts(self, client):
+        coffee = make_coffee(client, {'opened_date': '2026-10-01', 'remaining_g': 200})
+        resp = client.post(f"/api/coffees/{coffee['id']}/consume", json={'date': '2026-11-02'})
+        assert resp.status_code == 200, resp.get_json()
+        assert self._count(client) == 0
+
+    def test_window_starts_on_since(self, client):
+        self._brew(client, **self.SHOT)
+        assert self._count(client, '2026-11-02') == 1
+        assert self._count(client, '2026-11-03') == 0
+
+    @pytest.mark.parametrize('url', ['/api/brews/pending', '/api/brews/pending?since=ayer'])
+    def test_since_is_required_and_validated(self, client, url):
+        resp = client.get(url)
+        assert resp.status_code == 400
+        assert resp.get_json()['error_key'] == 'error.coffee.invalid_date'

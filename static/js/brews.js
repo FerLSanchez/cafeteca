@@ -40,7 +40,7 @@ async function loadBrews(reset = true) {
 
   const el = document.getElementById('brews-list');
   if (reset && !brews.length) {
-    el.innerHTML = `<div style="text-align:center;padding:40px;color:var(--text3)">${t('brew.empty')}</div>`;
+    el.innerHTML = `<div style="text-align:center;padding:40px;color:var(--ink-muted)">${t('brew.empty')}</div>`;
     return;
   }
   if (reset) el.innerHTML = '';
@@ -57,7 +57,7 @@ function _appendBrewCards(brews, el) {
     <div class="brew-card">
       <div class="brew-card-header">
         <span class="brew-date">${fmtDate(b.brew_date)}</span>
-        <span class="brew-rating">${canQuickRate(b) ? '' : b.rating ? stars(b.rating) : `<span style="color:var(--text3)">${t('brew.unrated')}</span>`}</span>
+        <span class="brew-rating">${canQuickRate(b) ? '' : b.rating ? stars(b.rating) : `<span class="row-muted">${t('brew.unrated')}</span>`}</span>
         <div class="brew-card-actions">
           <button class="btn-brew-edit" onclick="openBrewModal(null,${b.id})" title="${esc(t('brew.btn.edit'))}" aria-label="${esc(t('brew.btn.edit'))}">${icon('edit')}</button>
           <button class="btn-brew-delete" onclick="deleteBrew(${b.id})" title="${esc(t('brew.btn.delete'))}" aria-label="${esc(t('brew.btn.delete'))}">${icon('trash')}</button>
@@ -88,26 +88,26 @@ function _setupBrewsObserver(el) {
 
 function fmtRatio(dose, yld) {
   if (!dose || !yld) return null;
-  return '1:' + (yld / dose).toFixed(2);
+  return '1:' + fmtNum((yld / dose), 2);
 }
 
 function fmtFlow(yld, time_s) {
   if (!yld || !time_s) return null;
-  return (yld / time_s).toFixed(2) + ' g/s';
+  return fmtNum((yld / time_s), 2) + ' g/s';
 }
 
 function brewSummaryLine(b) {
   const parts = [];
-  if (b.dose_g && b.yield_g) parts.push(`${b.dose_g}g → ${b.yield_g}g (${fmtRatio(b.dose_g, b.yield_g)})`);
-  else if (b.dose_g)         parts.push(`${b.dose_g}g café`);
-  if (b.time_s) parts.push(`${b.time_s}s`);
+  if (b.dose_g && b.yield_g) parts.push(`${fmtGrams(b.dose_g)} → ${fmtGrams(b.yield_g)} (${fmtRatio(b.dose_g, b.yield_g)})`);
+  else if (b.dose_g)         parts.push(`${fmtGrams(b.dose_g)} café`);
+  if (b.time_s) parts.push(`${b.time_s} s`);
   const m = b.shot_metrics;
   const flow = m?.main_flow != null
-    ? t('scale.summary_flow', {main: m.main_flow.toFixed(2)}) + (m.irregular ? ' ⚠️' : '')
+    ? t('scale.summary_flow', {main: fmtNum(m.main_flow, 2)}) + (m.irregular ? ' · ' + t('scale.row.irregular_short') : '')
     : fmtFlow(b.yield_g, b.time_s);
   if (flow) parts.push(flow);
-  if (b.grind)  parts.push(t('brew.grind_label', {grind: b.grind}));
-  if (b.temp_c) parts.push(`${b.temp_c}°C`);
+  if (b.grind)  parts.push(t('brew.grind_label', {grind: fmtPlain(b.grind)}));
+  if (b.temp_c) parts.push(`${b.temp_c} °C`);
   return parts.join(' · ') || '—';
 }
 
@@ -115,11 +115,11 @@ function brewSummaryLine(b) {
 function brewMetricsLine(b) {
   const m = b.shot_metrics;
   if (!m) return '';
-  const parts = [t('scale.row.ramp', {s: (+m.t_ramp_s).toFixed(1)})];
+  const parts = [t('scale.row.ramp', {s: fmtNum((+m.t_ramp_s), 1)})];
   if (m.in_band_pct != null) parts.push(t('scale.row.in_band', {pct: m.in_band_pct}));
-  parts.push(t('scale.row.peak', {flow: (+m.peak_flow).toFixed(2)}));
-  parts.push(t('scale.row.tail', {s: (+m.tail_s).toFixed(1)}));
-  return (b.shot_curve ? '' : '🌊 ') + parts.join(' · ');
+  parts.push(t('scale.row.peak', {flow: fmtNum((+m.peak_flow), 2)}));
+  parts.push(t('scale.row.tail', {s: fmtNum((+m.tail_s), 1)}));
+  return parts.join(' · ');
 }
 
 
@@ -128,11 +128,11 @@ const recipeRatio = r => (r?.dose_g && r?.yield_g ? r.yield_g / r.dose_g : null)
 function recipeSummaryLine(recipe) {
   const ratio = fmtRatio(recipe.dose_g, recipe.yield_g);
   const parts = [];
-  if (recipe.dose_g && recipe.yield_g) parts.push(`${recipe.dose_g}g → ${recipe.yield_g}g${ratio ? ' (' + ratio + ')' : ''}`);
-  else if (recipe.dose_g)              parts.push(`${recipe.dose_g}g`);
-  if (recipe.grind)  parts.push(t('recipe.grind_label', {grind: recipe.grind}));
-  if (recipe.temp_c) parts.push(`${recipe.temp_c}°C`);
-  if (recipe.target_flow) parts.push(`🎯 ${recipe.target_flow} g/s`);
+  if (recipe.dose_g && recipe.yield_g) parts.push(`${fmtGrams(recipe.dose_g)} → ${fmtGrams(recipe.yield_g)}${ratio ? ' (' + ratio + ')' : ''}`);
+  else if (recipe.dose_g)              parts.push(`${fmtGrams(recipe.dose_g)}`);
+  if (recipe.grind)  parts.push(t('recipe.grind_label', {grind: fmtPlain(recipe.grind)}));
+  if (recipe.temp_c) parts.push(`${recipe.temp_c} °C`);
+  if (recipe.target_flow) parts.push(`${fmtNum(recipe.target_flow, 2)} g/s`);
   return parts.join(' · ') || '—';
 }
 
@@ -144,7 +144,7 @@ async function saveBrewAsRecipe(brewId, coffeeId) {
   const r = {dose_g: b.dose_g, yield_g: b.yield_g, time_s: b.time_s, grind: b.grind, temp_c: b.temp_c,
     target_flow: flow != null && flow >= 0.1 && flow <= 10 ? +flow.toFixed(2) : null};
   showConfirm({
-    icon: '📋', title: t('confirm.save_recipe.title'),
+    icon: 'clipboard', title: t('confirm.save_recipe.title'),
     msg: t('confirm.save_recipe.msg', {recipe: recipeSummaryLine(r)}),
     btnLabel: t('confirm.save_recipe.btn'), btnClass: 'btn-primary',
     onConfirm: async () => {
@@ -174,7 +174,7 @@ async function renderRecipeSection(coffeeId) {
         <div class="recipe-header">
           <span class="recipe-label">${t('recipe.label')}</span>
           <button class="btn-inline-edit" onclick="openRecipeModal(${coffeeId})" title="${esc(t('recipe.btn.edit'))}" aria-label="${esc(t('recipe.btn.edit'))}">${icon('edit')}</button>
-          <button class="btn-inline-edit" onclick="confirmDeleteRecipe(${coffeeId})" title="${esc(t('recipe.btn.delete'))}" aria-label="${esc(t('recipe.btn.delete'))}" style="color:var(--text3)">${icon('trash')}</button>
+          <button class="btn-inline-edit" onclick="confirmDeleteRecipe(${coffeeId})" title="${esc(t('recipe.btn.delete'))}" aria-label="${esc(t('recipe.btn.delete'))}" style="color:var(--ink-muted)">${icon('trash')}</button>
         </div>
         <div class="recipe-summary">${esc(recipeSummaryLine(recipe))}</div>
         <div class="form-hint">${esc(t('recipe.hint'))}</div>
@@ -182,7 +182,7 @@ async function renderRecipeSection(coffeeId) {
   } else {
     el.innerHTML = `
       <div class="recipe-section recipe-empty">
-        <span style="color:var(--text3);font-size:13px">${t('recipe.no_recipe')}</span>
+        <span style="color:var(--ink-muted);font-size:13px">${t('recipe.no_recipe')}</span>
         <button class="btn-add-recipe" onclick="openRecipeModal(${coffeeId})">${t('recipe.add_btn')}</button>
       </div>`;
   }
@@ -209,9 +209,9 @@ async function renderBrewsSection(coffeeId) {
         <span class="detail-brew-date">${fmtDate(b.brew_date)}</span>
         <span class="detail-brew-summary">${esc(brewSummaryLine(b))}</span>
         <span class="detail-brew-rating">${canQuickRate(b) ? '' : b.rating ? stars(b.rating) : '—'}</span>
-        ${b.rating >= 4 ? `<button class="btn-inline-edit" onclick="saveBrewAsRecipe(${b.id},${coffeeId})" title="${esc(t('brew.btn.save_recipe'))}" aria-label="${esc(t('brew.btn.save_recipe'))}">📋</button>` : ''}
+        ${b.rating >= 4 ? `<button class="btn-inline-edit" onclick="saveBrewAsRecipe(${b.id},${coffeeId})" title="${esc(t('brew.btn.save_recipe'))}" aria-label="${esc(t('brew.btn.save_recipe'))}">${icon('clipboard')}</button>` : ''}
         <button class="btn-inline-edit" onclick="openBrewModal(${coffeeId},${b.id})" title="${esc(t('brew.btn.edit'))}" aria-label="${esc(t('brew.btn.edit'))}">${icon('edit')}</button>
-        <button class="btn-inline-edit" onclick="deleteBrew(${b.id}, ${coffeeId})" title="${esc(t('brew.btn.delete'))}" aria-label="${esc(t('brew.btn.delete'))}" style="color:var(--text3)">${icon('trash')}</button>
+        <button class="btn-inline-edit" onclick="deleteBrew(${b.id}, ${coffeeId})" title="${esc(t('brew.btn.delete'))}" aria-label="${esc(t('brew.btn.delete'))}" style="color:var(--ink-muted)">${icon('trash')}</button>
         ${tasteLine(b) && !canQuickRate(b) ? `<div class="brew-taste-line detail-brew-metrics">${esc(tasteLine(b))}</div>` : ''}
         ${b.shot_metrics ? `<div class="brew-metrics detail-brew-metrics">${b.shot_curve ? curveSparkline(b.shot_curve) : ''}${esc(brewMetricsLine(b))}</div>` : ''}
         ${canQuickRate(b) ? `<div class="detail-brew-quick">${quickRateHtml(b)}</div>` : ''}
@@ -256,7 +256,7 @@ function updateRatioDisplay() {
   const el   = document.getElementById('r-ratio-display');
   if (!el) return;
   const parts = [];
-  if (dose && yld) parts.push(t('brew.ratio', {ratio: '1:' + (yld / dose).toFixed(2)}));
+  if (dose && yld) parts.push(t('brew.ratio', {ratio: '1:' + fmtNum((yld / dose), 2)}));
   const flow = fmtFlow(yld, time);
   if (flow) parts.push(t('brew.flow', {flow}));
   el.textContent = parts.join('  ·  ');
@@ -282,7 +282,7 @@ async function submitRecipe() {
 
 function confirmDeleteRecipe(coffeeId) {
   showConfirm({
-    icon: '📋', title: t('confirm.delete_recipe.title'),
+    icon: 'clipboard', title: t('confirm.delete_recipe.title'),
     msg: t('confirm.delete_recipe.msg'),
     btnLabel: t('confirm.delete_recipe.btn'), btnClass: 'btn-danger',
     onConfirm: async () => {
@@ -377,7 +377,7 @@ async function openBrewModal(coffeeId = null, brewId = null, coffeeName = null) 
   updateBrewRatioDisplay();
   renderBrewRatioHint();   // ya, sin esperar: nada se mueve al abrir
   openModal('modal-brew');
-  _bv('modal-brew').scrollTop = 0;
+  document.querySelector('#modal-brew .modal').scrollTop = 0;
   wakeSessionStart('brew');
   // Con la báscula ya conectada, el paso 1 empieza leyendo la dosis sin más toques
   if (!editing && scaleSupported() && scaleConnected()) brewScaleDoseStart();
@@ -390,12 +390,12 @@ function updateBrewRatioDisplay() {
   const el   = _bv('b-ratio-display');
   if (!el) return;
   const parts = [];
-  if (dose && yld) parts.push(t('brew.ratio', {ratio: '1:' + (yld / dose).toFixed(2)}));
+  if (dose && yld) parts.push(t('brew.ratio', {ratio: '1:' + fmtNum((yld / dose), 2)}));
   // Con métricas de báscula se muestra el flujo principal (el mismo que el resumen del shot),
   // no la media salida/tiempo, para no tener dos "flujos" distintos en pantalla
   const metrics = _brewShotMetrics === undefined ? _brewCache[_editBrewId]?.shot_metrics : _brewShotMetrics;
   const flow = metrics?.main_flow != null ? null : fmtFlow(yld, time);
-  if (metrics?.main_flow != null) parts.push(t('scale.summary_flow', {main: metrics.main_flow.toFixed(2)}));
+  if (metrics?.main_flow != null) parts.push(t('scale.summary_flow', {main: fmtNum(metrics.main_flow, 2)}));
   else if (flow) parts.push(t('brew.flow', {flow}));
   el.textContent = parts.join('  ·  ');
   scheduleBrewRatioHint();
@@ -412,6 +412,11 @@ function updateBrewSteps() {
     'b-step-taste': _brewRating >= 1 || _brewTaste.taste_balance != null || _brewTaste.taste_body != null,
   };
   Object.entries(done).forEach(([id, ok]) => _bv(id)?.classList.toggle('done', ok));
+  // Una sola acción principal: sacar el shot mientras se pueda y no haya uno; después, guardar
+  const shotBtn = document.querySelector('#modal-brew .btn-shot');
+  const shotFirst = !_editBrewId && !_brewShotMetrics && !!shotBtn && !shotBtn.hidden && scaleSupported();
+  _bv('b-submit').className = shotFirst ? 'btn-secondary' : 'btn-primary';
+  if (shotBtn) shotBtn.classList.toggle('secondary', !shotFirst);
   syncGrindUse();
 }
 
@@ -441,7 +446,15 @@ function renderBrewRating() {
   updateBrewSteps();
 }
 
+let _brewSaving = false;
+
 async function submitBrew() {
+  if (_brewSaving) return;   // doble toque: un solo brew
+  _brewSaving = true;
+  try { await _submitBrew(); } finally { _brewSaving = false; }
+}
+
+async function _submitBrew() {
   const num = (id, parse) => { const v = parse(_bv(id).value); return Number.isNaN(v) ? null : v; };
   const dose_g    = num('b-dose', parseFloat) || null;
   const yield_g   = num('b-yield', parseFloat) || null;
@@ -466,6 +479,7 @@ async function submitBrew() {
     fetchAndRender();
   }
   refreshBrewViews();
+  refreshPendingCount();
 }
 
 function refreshBrewViews() {
@@ -498,8 +512,28 @@ async function quickRateBrew(id, rating, btn) {
   afterQuickRate(id);
 }
 
+// Shots de báscula por valorar: aviso en Prepas para que no se olviden. Si falla, sin aviso ni error.
+async function refreshPendingCount() {
+  const el = document.getElementById('nav-count-brews');
+  let count = 0;
+  try {
+    const d = new Date();
+    d.setDate(d.getDate() - QUICK_RATE_DAYS);
+    const since = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const r = await fetch('/api/brews/pending?since=' + since);
+    if (r.ok) count = (await r.json()).count;
+  } catch (_) {}
+  el.textContent = count || '';
+  el.hidden = !count;
+  const label = count ? t('brew.pending', {count, s: count !== 1 ? 's' : ''}) : '';
+  const item = el.closest('.bnav-item');
+  item.setAttribute('aria-label', [t('nav.tab.brews'), label].filter(Boolean).join(', '));
+  setPageSummary('brews', esc(label));
+}
+
 // Repinta cuando ya no queda nada por valorar (estrellas + equilibrio); mientras, se queda a la vista
 function afterQuickRate(id) {
+  refreshPendingCount();
   if (_brewCache[id] && canQuickRate(_brewCache[id])) return;
   setTimeout(() => {
     const coffeeId = currentDetail?.id;
@@ -510,12 +544,13 @@ function afterQuickRate(id) {
 
 async function deleteBrew(id, coffeeId) {
   showConfirm({
-    icon: '🫖', title: t('confirm.delete_brew.title'),
+    icon: 'coffee', title: t('confirm.delete_brew.title'),
     msg: t('confirm.delete_brew.msg'),
     btnLabel: t('confirm.delete_brew.btn'), btnClass: 'btn-danger',
     onConfirm: async () => {
       await api('/brews/' + id, { method: 'DELETE' });
       showToast(t('toast.brew_deleted'));
+      refreshPendingCount();
       if (coffeeId) renderBrewsSection(coffeeId);
       if (document.getElementById('page-brews')?.classList.contains('active')) loadBrews();
     }

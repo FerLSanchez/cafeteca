@@ -54,3 +54,23 @@ test('los parámetros {x} coinciden entre idiomas', () => {
     assert.deepStrictEqual(bad, [], `${f}: parámetros distintos`);
   }
 });
+
+const PICT = /\p{Extended_Pictographic}/u;
+test('sin emoji en las cadenas de la UI', () => {
+  for (const [f, d] of Object.entries(dict)) {
+    const bad = Object.entries(d).filter(([, v]) => PICT.test(String(v).replace(/[★☆]/g, '')) || /[✓↺✕]/.test(v)).map(([k]) => k);
+    assert.deepStrictEqual(bad, [], `${f}: claves con emoji`);
+  }
+});
+
+test('sin emoji en el HTML ni en el JS', () => {
+  const files = ['templates/index.html', ...fs.readdirSync(path.join(ROOT, 'static/js')).map(f => 'static/js/' + f)];
+  const bad = [];
+  for (const f of files) {
+    read(f).split('\n').forEach((line, i) => {
+      if (/^\s*\/\//.test(line)) return;
+      if (PICT.test(line.replace(/[★☆]/g, '').replace(/\/\/.*$/, ''))) bad.push(`${f}:${i + 1}`);
+    });
+  }
+  assert.deepStrictEqual(bad, []);
+});

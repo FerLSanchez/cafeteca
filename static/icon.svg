@@ -1,13 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
-  <rect width="192" height="192" rx="40" fill="#0c0907"/>
-  <!-- Vapor -->
-  <path d="M64 50 Q70 40 64 32" fill="none" stroke="#dba055" stroke-width="3.5" stroke-linecap="round" opacity="0.6"/>
-  <path d="M96 46 Q104 34 96 24" fill="none" stroke="#dba055" stroke-width="3.5" stroke-linecap="round" opacity="0.55"/>
-  <path d="M128 50 Q134 40 128 32" fill="none" stroke="#dba055" stroke-width="3.5" stroke-linecap="round" opacity="0.6"/>
-  <!-- Taza -->
-  <path d="M44 70 H148 L134 144 Q132 152 124 152 H68 Q60 152 58 144 Z" fill="none" stroke="#dba055" stroke-width="5.5" stroke-linejoin="round"/>
-  <!-- Asa -->
-  <path d="M148 86 H160 Q174 86 174 104 Q174 122 160 122 H148" fill="none" stroke="#dba055" stroke-width="5.5" stroke-linecap="round"/>
-  <!-- Platillo -->
-  <line x1="34" y1="162" x2="158" y2="162" stroke="#bf5b26" stroke-width="4.5" stroke-linecap="round"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512"><title>Cafeteca</title><rect width="512" height="512" fill="#a64b14"/><rect x="340" y="230" width="98" height="52" rx="26" fill="#f6f5f2"/><circle cx="238" cy="256" r="130" fill="#f6f5f2"/><circle cx="238" cy="256" r="94" fill="#1b1a18"/><path d="M178 256a60 60 0 0 1 60-60" fill="none" stroke="#ee9a63" stroke-width="13" stroke-linecap="round"/></svg>

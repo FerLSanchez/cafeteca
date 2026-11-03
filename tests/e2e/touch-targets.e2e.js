@@ -3,12 +3,12 @@
 // está a menos de GAP_PX de otro control pequeño (el fallo de "Tara" / "✓").
 //
 //   python app.py  (o cualquier servidor en BASE_URL, con BD de prueba)
-//   BASE_URL=http://localhost:5323 node tests/e2e/touch-targets.e2e.js [carpeta-capturas]
+//   BASE_URL=http://localhost:5399 node tests/e2e/touch-targets.e2e.js [carpeta-capturas]
 const assert = require('node:assert');
 const path = require('node:path');
 const {chromium} = require('playwright');
 
-const BASE = process.env.BASE_URL || 'http://localhost:5323';
+const BASE = process.env.BASE_URL || 'http://localhost:5399';
 const SHOTS = process.argv[2] || null;
 const MIN_PX = 36;   // lado corto mínimo de cualquier control
 const GAP_PX = 8;    // separación mínima entre controles si alguno es < 40 px
@@ -100,20 +100,20 @@ async function measure(page) {
   await check('filtros', () => toggleFilterPanel());
   await check('compacta', () => { toggleFilterPanel(); toggleCompactView(); });
   await check('ficha', ids => { toggleCompactView(); showDetail(ids.open); });
-  await check('ficha-abajo', () => document.getElementById('modal-detail').scrollTo(0, 5000));
+  await check('ficha-abajo', () => document.querySelector('#modal-detail .modal').scrollTo(0, 5000));
   await check('restante', ids => editRemainingInline(ids.open));
   await check('ficha-sin-abrir', ids => { closeModal('modal-detail'); showDetail(ids.unopened); });
   await check('brew', ids => { closeModal('modal-detail'); return openBrewModal(ids.open); });
-  await check('brew-abajo', () => document.getElementById('modal-brew').scrollTo(0, 5000));
+  await check('brew-abajo', () => document.querySelector('#modal-brew .modal').scrollTo(0, 5000));
   await check('receta', ids => { closeModal('modal-brew'); return openRecipeModal(ids.open); });
   await check('formulario', () => { closeModal('modal-recipe'); openAddModal(); });
-  await check('formulario-abajo', () => document.getElementById('modal-form').scrollTo(0, 5000));
+  await check('formulario-abajo', () => document.querySelector('#modal-form .modal').scrollTo(0, 5000));
   await check('formulario-editar', ids => {
     closeModal('modal-form'); openEditModal(displayedCoffees.find(c => c.id === ids.open));
     document.getElementById('f-variety-input').scrollIntoView({block: 'center'});   // chips con su ✕
   });
   await check('ajustes', () => { closeModal('modal-form'); openSettings(); });
-  await check('ajustes-abajo', () => document.getElementById('modal-settings').scrollTo(0, 5000));
+  await check('ajustes-abajo', () => document.querySelector('#modal-settings .modal').scrollTo(0, 5000));
   await check('prepas', () => { closeModal('modal-settings'); showPage('brews'); });
   await check('elegir-cafe', () => newBrewFromBrews());
   await check('stats', () => { closeModal('modal-pick-coffee'); showPage('stats'); });

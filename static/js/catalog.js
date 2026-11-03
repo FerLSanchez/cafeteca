@@ -18,10 +18,10 @@ async function loadCatalog() {
         <input class="catalog-row-input" id="cinput-${table}-${r.id}" value="${esc(r.name)}"
           onkeydown="catalogKeydown(event,'${table}',${r.id})" onfocus="this.select()">
         <span class="catalog-count ${r.coffee_count===0?'zero':''}" title="${r.coffee_count} café(s)">
-          ${r.coffee_count===0?'✕':r.coffee_count}
+          ${r.coffee_count}
         </span>
         <button class="btn-icon" id="cedit-${table}-${r.id}" onclick="catalogStartEdit('${table}',${r.id})" title="${esc(t('catalog.btn.rename'))}" aria-label="${esc(t('catalog.btn.rename'))}">${icon('edit')}</button>
-        <button class="btn-icon save" id="csave-${table}-${r.id}" style="display:none" onclick="catalogSave('${table}',${r.id})" title="${esc(t('catalog.btn.save'))}" aria-label="${esc(t('catalog.btn.save'))}">✓</button>
+        <button class="btn-icon save" id="csave-${table}-${r.id}" style="display:none" onclick="catalogSave('${table}',${r.id})" title="${esc(t('catalog.btn.save'))}" aria-label="${esc(t('catalog.btn.save'))}">${icon('check')}</button>
         <button class="btn-icon" id="ccancel-${table}-${r.id}" style="display:none" onclick="catalogCancelEdit('${table}',${r.id})" title="${esc(t('catalog.btn.cancel'))}" aria-label="${esc(t('catalog.btn.cancel'))}">${icon('x')}</button>
         <button class="btn-icon danger" onclick="catalogDelete('${table}',${r.id},${r.coffee_count})" title="${esc(t('catalog.btn.delete'))}" aria-label="${esc(t('catalog.btn.delete'))}" ${r.coffee_count>0?'disabled style="opacity:0.3;cursor:not-allowed"':''}>${icon('trash')}</button>
       </div>`).join('');
@@ -32,10 +32,10 @@ async function loadCatalog() {
           <span class="catalog-title">${getCatalogLabels()[table]}</span>
           ${badge}
         </div>
-        <span id="cat-arrow-${table}" style="color:var(--text3)">${icon('chevron-right', 'ic-sm')}</span>
+        <span id="cat-arrow-${table}" style="color:var(--ink-muted)">${icon('chevron-right', 'ic-sm')}</span>
       </div>
       <div class="catalog-body" id="catbody-${table}">
-        ${rows || `<div style="padding:14px 16px;color:var(--text3);font-size:13px">${t('catalog.no_entries')}</div>`}
+        ${rows || `<div style="padding:14px 16px;color:var(--ink-muted);font-size:13px">${t('catalog.no_entries')}</div>`}
         ${purgeBtn}
       </div>
     </div>`;
@@ -92,7 +92,7 @@ function catalogDelete(table, id, count) {
   if (count > 0) return;
   const name = document.getElementById('cname-'+table+'-'+id)?.textContent || '';
   showConfirm({
-    icon: '🗑', title: t('confirm.catalog_delete.title'),
+    icon: 'trash', title: t('confirm.catalog_delete.title'),
     msg: t('confirm.catalog_delete.msg', {name}),
     btnLabel: t('confirm.catalog_delete.btn'), btnClass: 'btn-danger',
     onConfirm: async () => {
@@ -132,7 +132,7 @@ async function catalogPurge(table) {
 
 function purgeAll() {
   showConfirm({
-    icon: '🧹', title: t('confirm.purge_all.title'),
+    icon: 'broom', title: t('confirm.purge_all.title'),
     msg: t('confirm.purge_all.msg'),
     btnLabel: t('confirm.purge_all.btn'), btnClass: 'btn-danger',
     onConfirm: async () => {
