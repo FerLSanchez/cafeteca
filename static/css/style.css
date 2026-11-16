@@ -854,6 +854,8 @@ textarea.form-input { padding: var(--space-2) var(--space-3); line-height: 22px;
 .recipe-header { display: flex; align-items: center; gap: var(--space-1); }
 .recipe-label { font-size: 15px; line-height: 22px; font-weight: 600; color: var(--ink); flex: 1; }
 .recipe-summary { font-size: 14px; line-height: 20px; font-variant-numeric: tabular-nums; color: var(--ink); }
+.recipe-item + .recipe-item { border-top: 1px solid var(--line); margin-top: var(--space-2); padding-top: var(--space-2); }
+.recipe-add-row { display: flex; justify-content: flex-end; margin-top: var(--space-2); }
 .btn-add-recipe {
   min-height: 44px;
   padding: 0 var(--space-3);
@@ -1090,6 +1092,14 @@ textarea.form-input { padding: var(--space-2) var(--space-3); line-height: 22px;
   border-radius: var(--radius-sm); padding: var(--space-2) 10px; margin: 0 0 var(--space-3);
 }
 .brew-last b { color: var(--ink-muted); font-weight: 600; margin-right: var(--space-1); }
+/* Varias recetas del café (espresso, largo…): se elige una al empezar */
+.recipe-pick-group { display: flex; flex-wrap: wrap; gap: var(--space-2); margin: 0 0 var(--space-3); }
+.recipe-pick {
+  min-height: 44px; padding: 0 var(--space-3); border: 1px solid var(--line-strong); border-radius: 999px;
+  background: transparent; color: var(--ink); font: 600 14px var(--font-sans); cursor: pointer;
+}
+.recipe-pick:hover { background: var(--surface-sunken); }
+.recipe-pick.active { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
 .brew-step { padding: var(--space-1) 0 var(--space-2); border-top: 1px solid var(--line); }
 .brew-step:first-of-type { border-top: 0; }
 .brew-step-title { display: flex; align-items: center; gap: var(--space-2); font-size: 15px; line-height: 22px; font-weight: 600; color: var(--ink); margin: var(--space-3) 0; }

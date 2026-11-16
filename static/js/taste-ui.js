@@ -75,7 +75,7 @@ function renderBrewRatioHint() {
   if (!el) return;
   const dose = parseFloat(document.getElementById('b-dose').value);
   const rr = recipeRatio(_brewRecipe);
-  const s = !_editBrewId && _brewHistory ? suggestRatio(_brewHistory, dose, rr) : null;
+  const s = !_editBrewId && _brewHistory ? suggestRatio(brewRecipeHistory(), dose, rr) : null;
   const differs = s && (rr ? Math.abs(s.yield_g - dose * rr) >= 0.5 : Math.abs(s.body) >= 0.5);
   el.hidden = !differs;
   if (!differs) { el.innerHTML = ''; el.dataset.yield = ''; return; }

@@ -24,14 +24,16 @@ const bagOf = c => (c ? {id: c.id, family: c.family_id ?? c.id, roast_date: c.ro
 
 // Todo lo que necesita la bolsa: modelo global, sus filas, las de su familia (antiguas primero),
 // objetivo y sugerencia para `date`. Una bolsa nueva aprende de las anteriores del mismo café.
-function grindContext(rows, coffeeId, recipeTarget, date, bag = null) {
+// Con receta (`recipe`), objetivo y molienda salen solo de los shots que cuentan para ella.
+function grindContext(rows, coffeeId, recipe, date, bag = null) {
   const model = bestGrindModel(rows);
   const coffeeRows = rows.filter(r => r.coffee_id === coffeeId);
   const family = bag?.family ?? coffeeRows[0]?.family_id;
   const familyRows = family != null ? rows.filter(r => r.family_id === family) : coffeeRows;
-  const target = targetFlowFor(familyRows, recipeTarget, tasteSlope(rows).k);
+  const recipeRows = forRecipe(familyRows, recipe?.id ?? null);
+  const target = targetFlowFor(recipeRows, recipe?.target_flow ?? null, tasteSlope(rows).k);
   const suggestion = model && target
-    ? suggestGrind(model, familyRows, {date, target: target.flow, step: grindStep, bag: bag?.opened_date || bag?.roast_date ? bag : null})
+    ? suggestGrind(model, recipeRows, {date, target: target.flow, step: grindStep, bag: bag?.opened_date || bag?.roast_date ? bag : null})
     : null;
   return {rows, model, coffeeRows, familyRows, target, suggestion};
 }
@@ -39,18 +41,18 @@ function grindContext(rows, coffeeId, recipeTarget, date, bag = null) {
 // --- Modal de brew: "Sugerida 13.5 · para 1.8 g/s" + botón Usar ------------------------
 // Se pinta antes de abrir el modal (las filas llegan con la receta y el historial) para que
 // no empuje el formulario bajo el dedo; se recalcula si cambia la fecha del brew.
-let _brewGrind = null;   // {rows, coffeeId, recipeTarget, bag, grind}
+let _brewGrind = null;   // {rows, coffeeId, recipe, bag, grind}
 
-// Devuelve la molienda sugerida (o null) para rellenar el campo al abrir el modal
+// Devuelve la molienda sugerida (o null) para rellenar el campo al abrir el modal o cambiar de receta
 function brewGrindHint(rows, coffeeId, recipe, bag = null) {
-  _brewGrind = rows ? {rows, coffeeId, recipeTarget: recipe?.target_flow ?? null, bag, grind: null} : null;
+  _brewGrind = rows ? {rows, coffeeId, recipe, bag, grind: null} : null;
   renderBrewGrindHint();
   return _brewGrind?.grind ?? null;
 }
 
 function renderBrewGrindHint() {
   const el = document.getElementById('b-grind-hint');
-  const ctx = _brewGrind && grindContext(_brewGrind.rows, _brewGrind.coffeeId, _brewGrind.recipeTarget,
+  const ctx = _brewGrind && grindContext(_brewGrind.rows, _brewGrind.coffeeId, _brewGrind.recipe,
     document.getElementById('b-date').value || todayLocal(), _brewGrind.bag);
   const s = ctx?.suggestion;
   if (_brewGrind) { _brewGrind.grind = s?.grind ?? null; _brewGrind.target = ctx.target?.flow ?? null; }
@@ -65,7 +67,7 @@ function renderBrewGrindHint() {
 }
 
 // Flujo objetivo aprendido (cata + receta) para la banda del shot con báscula
-const brewTargetFlow = () => _brewGrind?.target ?? _brewGrind?.recipeTarget ?? null;
+const brewTargetFlow = () => _brewGrind?.target ?? _brewGrind?.recipe?.target_flow ?? null;
 
 function useSuggestedGrind() {
   if (_brewGrind?.grind == null) return;
@@ -86,12 +88,12 @@ function syncGrindUse() {
 async function renderGrindSection(coffeeId) {
   const el = document.getElementById('detail-grind-section');
   if (!el) return;
-  let recipeTarget = null;
+  let recipe = null;   // la receta actual (la del último brew): la línea "Hoy" es para ella
   try {
     const r = await fetch('/api/coffees/' + coffeeId + '/recipe');
-    if (r.ok) recipeTarget = (await r.json()).target_flow ?? null;
+    if (r.ok) recipe = await r.json();
   } catch (_) {}
-  const ctx = grindContext(await fetchGrindData(), coffeeId, recipeTarget, todayLocal(), bagOf(currentDetail));
+  const ctx = grindContext(await fetchGrindData(), coffeeId, recipe, todayLocal(), bagOf(currentDetail));
   if (currentDetail?.id !== coffeeId) return;
   const {model, coffeeRows, familyRows, target, suggestion} = ctx;
   const basis = model?.basis ?? (coffeeRows.some(r => r.days_open != null) ? 'open' : 'roast');

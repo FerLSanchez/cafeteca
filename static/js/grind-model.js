@@ -7,8 +7,9 @@
 // (negativo = más fino con el tiempo). β convierte flujo en pasos de molienda.
 // Se regresa la molienda (y no el flujo) porque al ajustar la molienda para mantener el
 // flujo, molienda y días van casi colineales y β/γ no se separarían; así γ sale directa.
-// Las filas vienen de GET /api/grind-data: {coffee_id, brew_date, grind, flow, rating,
-// days_roast, days_open}.
+// Las filas vienen de GET /api/grind-data: {coffee_id, recipe_group, brew_date, grind, flow, rating,
+// days_roast, days_open}. Con varias recetas en un café (espresso y largo), cada receta de la bolsa
+// es un grupo propio: su α es distinta, la deriva γ y β son comunes.
 // ---------------------------------------------------------------------------
 const GRIND_MIN_POINTS = 5;    // puntos en bolsas con ≥2 shots para ajustar el modelo
 const GRIND_OFFSET_LAST = 5;   // shots recientes de la bolsa que fijan su α
@@ -21,14 +22,21 @@ function daysBetween(from, to) {
   return Math.round((Date.parse(to + 'T00:00:00Z') - Date.parse(from + 'T00:00:00Z')) / 86400000);
 }
 
-// Filas utilizables para una base de días, agrupadas por bolsa (orden de llegada: antiguas primero)
+// Grupo de un brew: su bolsa y la receta para la que cuenta
+const _groupKey = r => r.coffee_id + ':' + (r.recipe_group ?? '');
+
+// Las filas de una receta (recipeId null = todas: el café no tiene recetas)
+const forRecipe = (rows, recipeId) => (recipeId == null ? rows : rows.filter(r => r.recipe_group === recipeId));
+
+// Filas utilizables para una base de días, agrupadas por bolsa y receta (antiguas primero)
 function _groups(rows, basis) {
   const k = daysKey(basis);
   const by = new Map();
   for (const r of rows) {
     if (r[k] == null || r.grind == null || r.flow == null) continue;
-    if (!by.has(r.coffee_id)) by.set(r.coffee_id, []);
-    by.get(r.coffee_id).push({g: r.grind, f: r.flow, d: r[k]});
+    const key = _groupKey(r);
+    if (!by.has(key)) by.set(key, []);
+    by.get(key).push({g: r.grind, f: r.flow, d: r[k]});
   }
   return [...by.values()].filter(g => g.length >= 2);
 }
@@ -101,8 +109,9 @@ function tasteSlope(rows) {
   const by = new Map();
   for (const r of rows) {
     if (r.taste_balance == null || r.flow == null) continue;
-    if (!by.has(r.coffee_id)) by.set(r.coffee_id, []);
-    by.get(r.coffee_id).push(r);
+    const key = _groupKey(r);
+    if (!by.has(key)) by.set(key, []);
+    by.get(key).push(r);
   }
   let Sff = 0, Sfb = 0, n = 0;
   for (const grp of by.values()) {
@@ -141,17 +150,20 @@ function targetFlowFor(coffeeRows, recipeTarget = null, k = TASTE_K_DEFAULT) {
 }
 
 // Ratio aprendido del cuerpo de los últimos shots (brews más recientes primero, como
-// /api/coffees/:id/brews): cada shot estima su ratio ideal = el suyo + RATIO_STEP·cuerpo
-// (aguado → más corto, pesado → más largo), mezclado con el de la receta como recomendación.
+// /api/coffees/:id/brews, y solo los de la receta elegida): cada shot estima su ratio ideal =
+// el suyo + RATIO_STEP·cuerpo (aguado → más corto, pesado → más largo), mezclado con el de la
+// receta como recomendación. Sin receta se limita a ratios de espresso; con receta, a ±50 % de ella.
 const RATIO_LAST = 3;
 const RATIO_STEP = 0.15;   // puntos de ratio por punto de la escala de cuerpo
 const RATIO_RANGE = [1.2, 3.5];
+const _ratioRange = rr => (rr ? [Math.min(RATIO_RANGE[0], rr / 1.5), Math.max(RATIO_RANGE[1], rr * 1.5)] : RATIO_RANGE);
 function suggestRatio(brews, dose, recipeRatio = null) {
   const tasted = brews.filter(b => b.taste_body != null && b.dose_g && b.yield_g).slice(0, RATIO_LAST);
   if (!tasted.length || !dose) return null;
   const est = tasted.map(b => b.yield_g / b.dose_g + RATIO_STEP * b.taste_body);
   const raw = _blend(recipeRatio, est);
-  const ratio = +Math.min(RATIO_RANGE[1], Math.max(RATIO_RANGE[0], raw)).toFixed(2);
+  const [lo, hi] = _ratioRange(recipeRatio);
+  const ratio = +Math.min(hi, Math.max(lo, raw)).toFixed(2);
   return {ratio, yield_g: Math.round(dose * ratio * 2) / 2, n: tasted.length,
     body: _mean(tasted.map(b => b.taste_body)), source: recipeRatio ? 'taste_recipe' : 'taste'};
 }
@@ -198,5 +210,5 @@ function grindLine(model, coffeeRows, target, [d0, d1]) {
 
 if (typeof module !== 'undefined') {
   module.exports = {fitGrindModel, bestGrindModel, targetFlowFor, tasteSlope, suggestRatio, coffeeOffset, coffeeDaysAt, suggestGrind,
-    grindLine, daysBetween};
+    grindLine, daysBetween, forRecipe};
 }

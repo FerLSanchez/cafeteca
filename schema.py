@@ -63,6 +63,7 @@ def init_db():
         migrate_v10(conn)
         migrate_v11(conn)
         migrate_v12(conn)
+        migrate_v13(conn)
         if not col_exists(conn, 'coffees', 'altitude'):
             conn.execute('ALTER TABLE coffees ADD COLUMN altitude INTEGER')
 
@@ -343,6 +344,18 @@ def migrate_v12(conn):
             conn.execute('UPDATE coffees SET family_id=? WHERE id=?', (root, cid))
             linked += 1
     logging.info('[migration v12] Added family_id; un-shared %d brews, linked %d coffees.', len(by_brew), linked)
+
+
+
+def migrate_v13(conn):
+    """Phase 13: several recipes per coffee (e.g. an espresso and a long one). recipes.name is free text;
+    brews.recipe_id is the recipe a brew was made with (NULL = none chosen: it counts for the recipe with
+    the closest ratio, see models.recipe_for)."""
+    if not col_exists(conn, 'recipes', 'name'):
+        conn.execute('ALTER TABLE recipes ADD COLUMN name TEXT')
+    if not col_exists(conn, 'brews', 'recipe_id'):
+        conn.execute('ALTER TABLE brews ADD COLUMN recipe_id INTEGER REFERENCES recipes(id) ON DELETE SET NULL')
+        logging.info('[migration v13] recipes.name and brews.recipe_id ready.')
 
 
 def _rebuild_table_v1(conn):

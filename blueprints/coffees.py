@@ -245,15 +245,12 @@ def consume_coffee(cid):
         grams = int(gps_row['value']) if gps_row else 17
         new_val = max(0, coffee_row['remaining_g'] - grams)
         conn.execute('UPDATE coffees SET remaining_g=? WHERE id=?', (new_val, cid))
-        recipe = family_recipe(conn, cid, 'r.dose_g, r.yield_g, r.time_s, r.grind, r.temp_c')
-        dose_g  = float(recipe['dose_g'])  if recipe and recipe['dose_g']  is not None else float(grams)
-        yield_g = float(recipe['yield_g']) if recipe and recipe['yield_g'] is not None else None
-        time_s  = recipe['time_s']         if recipe else None
-        grind   = recipe['grind']          if recipe else None
-        temp_c  = recipe['temp_c']         if recipe else None
+        recipe = family_recipe(conn, cid) or {}   # la que usó el último brew de la familia
+        dose_g  = float(recipe['dose_g'])  if recipe.get('dose_g')  is not None else float(grams)
+        yield_g = float(recipe['yield_g']) if recipe.get('yield_g') is not None else None
         cur = conn.execute(
-            'INSERT INTO brews (brew_date, dose_g, yield_g, time_s, grind, temp_c) VALUES (?,?,?,?,?,?)',
-            (today, dose_g, yield_g, time_s, grind, temp_c)
+            'INSERT INTO brews (brew_date, dose_g, yield_g, time_s, grind, temp_c, recipe_id) VALUES (?,?,?,?,?,?,?)',
+            (today, dose_g, yield_g, recipe.get('time_s'), recipe.get('grind'), recipe.get('temp_c'), recipe.get('id'))
         )
         brew_id = cur.lastrowid
         conn.execute('INSERT INTO coffee_brews (coffee_id, brew_id) VALUES (?,?)', (cid, brew_id))

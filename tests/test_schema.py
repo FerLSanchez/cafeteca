@@ -293,3 +293,10 @@ def test_schema_idempotent_via_fixture(db):
     """Running _build_schema again on the same connection must not fail."""
     from tests.conftest import _build_schema
     _build_schema(db)  # second run — should be a no-op
+
+
+def test_migrate_v13_adds_recipe_name_and_brew_recipe(db):
+    """Several recipes per coffee: recipes.name and brews.recipe_id; idempotent."""
+    schema_mod.migrate_v13(db)
+    assert 'name' in [r[1] for r in db.execute('PRAGMA table_info(recipes)')]
+    assert 'recipe_id' in [r[1] for r in db.execute('PRAGMA table_info(brews)')]

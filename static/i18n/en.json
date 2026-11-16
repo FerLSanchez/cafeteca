@@ -195,10 +195,6 @@
   "confirm.consume_finish.msg": "\"{name}\" has run out of coffee. Mark it as finished with today's date?",
   "confirm.consume_finish.btn": "Mark as finished",
   "confirm.delete_recipe.title": "Remove recipe",
-  "confirm.save_recipe.title": "Save as recipe?",
-  "confirm.save_recipe.msg": "This coffee's recipe will become: {recipe}",
-  "confirm.save_recipe.btn": "Save",
-  "confirm.delete_recipe.msg": "Delete the recipe for this coffee?",
   "confirm.delete_recipe.btn": "Remove",
   "confirm.delete_brew.title": "Delete brew",
   "confirm.delete_brew.msg": "Delete this brew? It will be removed from all related bags.",
@@ -467,5 +463,15 @@
   "settings.theme": "Theme",
   "settings.theme.system": "Same as device",
   "settings.theme.light": "Light",
-  "settings.theme.dark": "Dark"
+  "settings.theme.dark": "Dark",
+  "modal.recipe_new": "New recipe",
+  "modal.recipe_edit": "Edit recipe",
+  "recipe.field.name": "Name",
+  "recipe.name_placeholder": "e.g. Espresso, Long",
+  "recipe.add_another": "+ Another recipe",
+  "recipe.hint_many": "Pick the recipe when you brew; each one learns only from its own shots. Shots without a recipe count for the one with the closest ratio.",
+  "brew.recipe_pick": "Recipe",
+  "confirm.delete_recipe.msg_named": "Delete the recipe “{name}”? Its shots stay and count for the one with the closest ratio.",
+  "error.brew.recipe_invalid": "Invalid recipe for this coffee",
+  "error.brew.recipe_name_invalid": "The recipe name can’t be longer than 60 characters"
 }

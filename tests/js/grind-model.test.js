@@ -137,3 +137,32 @@ test('bolsa nueva de la misma familia: parte de la anterior, días con sus fecha
   // sin fecha de apertura en la bolsa nueva no se inventan los días
   assert.strictEqual(suggestGrind(m, bag1, {date: '2026-10-01', target: 1.8, bag: {opened_date: null}}), null);
 });
+
+test('varias recetas: un largo 1:4.7 no se limita a 1:3.5 ni lo arrastra un espresso', () => {
+  const {suggestRatio, forRecipe} = require('../../static/js/grind-model.js');
+  const long = {taste_body: 0, dose_g: 17, yield_g: 80, recipe_group: 2};
+  const esp = {taste_body: 0, dose_g: 17, yield_g: 36.5, recipe_group: 1};
+  // Lo que pasaba: el espresso catado se mezclaba con la receta del largo y el tope era 1:3.5 → 59.5 g
+  assert.strictEqual(suggestRatio([esp], 17, 80 / 17).yield_g, 65.5);
+  assert.strictEqual(suggestRatio([esp], 17).ratio, 2.15);
+  // Con la receta elegida solo cuentan sus shots, y el tope sigue a la receta
+  assert.strictEqual(suggestRatio(forRecipe([esp], 2), 17, 80 / 17), null);
+  assert.strictEqual(suggestRatio(forRecipe([esp, long], 2), 17, 80 / 17).yield_g, 80);
+  assert.strictEqual(suggestRatio([{...long, taste_body: 2}], 17, 80 / 17).yield_g, 82);
+  assert.deepStrictEqual(forRecipe([esp, long], null), [esp, long]);
+});
+
+test('varias recetas: cada receta de la bolsa tiene su α; la deriva es común', () => {
+  const {fitGrindModel, suggestGrind, forRecipe} = require('../../static/js/grind-model.js');
+  // Misma bolsa: espresso a molienda ~α 5, largo ~α 9; mismos β (4) y γ (−0.1)
+  const tag = (rs, g) => rs.map(r => ({...r, recipe_group: g}));
+  const mixed = [...tag(bag(1, 5, '2026-08-01', [[0, 1.5], [3, 2.0], [6, 1.8], [10, 1.6]]), 1),
+    ...tag(bag(1, 9, '2026-08-01', [[1, 1.7], [5, 1.9], [9, 2.0], [12, 1.6]]), 2)];
+  const m = fitGrindModel(mixed, 'open');
+  assert.ok(Math.abs(m.beta - 4) < 1e-6 && Math.abs(m.gamma + 0.1) < 1e-6, JSON.stringify(m));
+  assert.strictEqual(m.bags, 2);
+  const at = g => suggestGrind(m, forRecipe(mixed, g), {date: '2026-08-21', target: 1.8, step: 0.1});
+  assert.strictEqual(at(1).grind, +(5 + 4 * 1.8 - 0.1 * 20).toFixed(1));
+  assert.strictEqual(at(2).grind, +(9 + 4 * 1.8 - 0.1 * 20).toFixed(1));
+  assert.strictEqual(suggestGrind(m, forRecipe(mixed, 3), {date: '2026-08-21', target: 1.8}), null);
+});

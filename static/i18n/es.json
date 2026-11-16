@@ -200,10 +200,6 @@
   "confirm.consume_finish.msg": "\"{name}\" se ha quedado sin café restante. ¿Marcarlo como terminado con la fecha de hoy?",
   "confirm.consume_finish.btn": "Marcar como terminado",
   "confirm.delete_recipe.title": "Quitar receta",
-  "confirm.save_recipe.title": "¿Guardar como receta?",
-  "confirm.save_recipe.msg": "La receta de este café pasará a ser: {recipe}",
-  "confirm.save_recipe.btn": "Guardar",
-  "confirm.delete_recipe.msg": "¿Eliminar la receta de este café?",
   "confirm.delete_recipe.btn": "Quitar",
   "confirm.delete_brew.title": "Eliminar preparación",
   "confirm.delete_brew.msg": "¿Eliminar esta preparación? Se quitará de todas las bolsas relacionadas.",
@@ -467,5 +463,15 @@
   "settings.theme": "Tema",
   "settings.theme.system": "Según el dispositivo",
   "settings.theme.light": "Claro",
-  "settings.theme.dark": "Oscuro"
+  "settings.theme.dark": "Oscuro",
+  "modal.recipe_new": "Nueva receta",
+  "modal.recipe_edit": "Editar receta",
+  "recipe.field.name": "Nombre",
+  "recipe.name_placeholder": "ej. Espresso, Largo",
+  "recipe.add_another": "+ Otra receta",
+  "recipe.hint_many": "Al preparar eliges la receta; cada una aprende solo de sus shots. Los shots sin receta cuentan para la de ratio más parecido.",
+  "brew.recipe_pick": "Receta",
+  "confirm.delete_recipe.msg_named": "¿Eliminar la receta «{name}»? Sus shots se quedan y pasan a contar para la de ratio más parecido.",
+  "error.brew.recipe_invalid": "Receta no válida para este café",
+  "error.brew.recipe_name_invalid": "El nombre de la receta no puede superar los 60 caracteres"
 }
