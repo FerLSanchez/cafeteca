@@ -533,7 +533,7 @@ async function brewScaleShot() {
   const targetYield = parseFloat(document.getElementById('b-yield').value) || _brewRecipe?.yield_g || null;
   const target = brewTargetFlow() ?? _brewRecipe?.target_flow ?? null;
   // Mejor valorado; a igual nota, primero el que tenga curva y luego el más reciente
-  const compare = (_brewHistory || []).filter(b => b.rating && b.shot_metrics?.main_flow != null && b.id !== _editBrewId)
+  const compare = brewRecipeHistory().filter(b => b.rating && b.shot_metrics?.main_flow != null && b.id !== _editBrewId)
     .sort((a, b) => b.rating - a.rating || !!b.shot_curve - !!a.shot_curve
       || (b.brew_date > a.brew_date ? 1 : -1))[0] || null;
   const delay = targetYield ? await loadStopDelay() : null;

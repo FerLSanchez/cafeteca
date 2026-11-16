@@ -136,56 +136,57 @@ function recipeSummaryLine(recipe) {
   return parts.join(' · ') || '—';
 }
 
-// "Guardar como receta" en un shot bueno: la receta (de toda la familia) se actualiza con la experiencia
-async function saveBrewAsRecipe(brewId, coffeeId) {
+// Nombre de una receta: el suyo o, sin nombre, su ratio
+const recipeName = r => r.name || fmtRatio(r.dose_g, r.yield_g) || t('recipe.label');
+
+// "Guardar como receta" en un shot bueno: abre la receta para la que cuenta el shot (o una nueva)
+// rellenada con el shot, para revisarla y ponerle nombre
+function saveBrewAsRecipe(brewId, coffeeId) {
   const b = _brewCache[brewId];
   if (!b) return;
   const flow = b.shot_metrics?.main_flow ?? (b.yield_g && b.time_s ? b.yield_g / b.time_s : null);
-  const r = {dose_g: b.dose_g, yield_g: b.yield_g, time_s: b.time_s, grind: b.grind, temp_c: b.temp_c,
-    target_flow: flow != null && flow >= 0.1 && flow <= 10 ? +flow.toFixed(2) : null};
-  showConfirm({
-    icon: 'clipboard', title: t('confirm.save_recipe.title'),
-    msg: t('confirm.save_recipe.msg', {recipe: recipeSummaryLine(r)}),
-    btnLabel: t('confirm.save_recipe.btn'), btnClass: 'btn-primary',
-    onConfirm: async () => {
-      await api('/coffees/' + coffeeId + '/recipe', {method: 'PUT', body: JSON.stringify(r)});
-      showToast(t('toast.recipe_saved'));
-      renderRecipeSection(coffeeId);
-    }
-  });
+  openRecipeModal(coffeeId, b.recipe_group ?? null, {dose_g: b.dose_g, yield_g: b.yield_g, time_s: b.time_s,
+    grind: b.grind, temp_c: b.temp_c, target_flow: flow != null && flow >= 0.1 && flow <= 10 ? +flow.toFixed(2) : null});
 }
 
 // ---------------------------------------------------------------------------
-// Recipe section inside detail modal
+// Recipes section inside detail modal: varias por café (espresso, largo…), de toda la familia
 // ---------------------------------------------------------------------------
+let _detailRecipes = [];
+
 async function renderRecipeSection(coffeeId) {
   const el = document.getElementById('detail-recipe-section');
   if (!el) return;
   el.innerHTML = '';
-  let recipe = null;
+  let recipes = [];
   try {
-    const r = await fetch('/api/coffees/' + coffeeId + '/recipe', {headers:{'Content-Type':'application/json'}});
-    if (r.ok) recipe = await r.json();
+    const r = await fetch('/api/coffees/' + coffeeId + '/recipes');
+    if (r.ok) recipes = (await r.json()).recipes;
   } catch (_) {}
-
-  if (recipe && !recipe.error) {
-    el.innerHTML = `
-      <div class="recipe-section">
-        <div class="recipe-header">
-          <span class="recipe-label">${t('recipe.label')}</span>
-          <button class="btn-inline-edit" onclick="openRecipeModal(${coffeeId})" title="${esc(t('recipe.btn.edit'))}" aria-label="${esc(t('recipe.btn.edit'))}">${icon('edit')}</button>
-          <button class="btn-inline-edit" onclick="confirmDeleteRecipe(${coffeeId})" title="${esc(t('recipe.btn.delete'))}" aria-label="${esc(t('recipe.btn.delete'))}" style="color:var(--ink-muted)">${icon('trash')}</button>
-        </div>
-        <div class="recipe-summary">${esc(recipeSummaryLine(recipe))}</div>
-        <div class="form-hint">${esc(t('recipe.hint'))}</div>
-      </div>`;
-  } else {
+  _detailRecipes = recipes;
+  const add = `<button class="btn-add-recipe" onclick="openRecipeModal(${coffeeId})">${esc(t(recipes.length ? 'recipe.add_another' : 'recipe.add_btn'))}</button>`;
+  if (!recipes.length) {
     el.innerHTML = `
       <div class="recipe-section recipe-empty">
         <span style="color:var(--ink-muted);font-size:13px">${t('recipe.no_recipe')}</span>
-        <button class="btn-add-recipe" onclick="openRecipeModal(${coffeeId})">${t('recipe.add_btn')}</button>
+        ${add}
       </div>`;
+    return;
   }
+  el.innerHTML = `
+    <div class="recipe-section">
+      ${recipes.map(r => `
+        <div class="recipe-item">
+          <div class="recipe-header">
+            <span class="recipe-label">${esc(recipes.length > 1 || r.name ? recipeName(r) : t('recipe.label'))}</span>
+            <button class="btn-inline-edit" onclick="openRecipeModal(${coffeeId},${r.id})" title="${esc(t('recipe.btn.edit'))}" aria-label="${esc(t('recipe.btn.edit'))}">${icon('edit')}</button>
+            <button class="btn-inline-edit" onclick="confirmDeleteRecipe(${coffeeId},${r.id})" title="${esc(t('recipe.btn.delete'))}" aria-label="${esc(t('recipe.btn.delete'))}" style="color:var(--ink-muted)">${icon('trash')}</button>
+          </div>
+          <div class="recipe-summary">${esc(recipeSummaryLine(r))}</div>
+        </div>`).join('')}
+      <div class="form-hint">${esc(t(recipes.length > 1 ? 'recipe.hint_many' : 'recipe.hint'))}</div>
+      <div class="recipe-add-row">${add}</div>
+    </div>`;
 }
 
 // ---------------------------------------------------------------------------
@@ -219,33 +220,28 @@ async function renderBrewsSection(coffeeId) {
 }
 
 // ---------------------------------------------------------------------------
-// Recipe modal
+// Recipe modal: nueva (recipeId null) o editar una; `prefill` rellena con un shot ("Guardar como receta")
 // ---------------------------------------------------------------------------
 let _recipeTargetId = null;
+let _recipeEditId = null;
+const RECIPE_INPUTS = {name: 'r-name', dose_g: 'r-dose', yield_g: 'r-yield', time_s: 'r-time', grind: 'r-grind',
+  temp_c: 'r-temp', target_flow: 'r-target-flow'};
 
-async function openRecipeModal(coffeeId) {
+async function openRecipeModal(coffeeId, recipeId = null, prefill = null) {
   _recipeTargetId = coffeeId;
-  // Pre-fill if recipe exists
-  document.getElementById('r-dose').value  = '';
-  document.getElementById('r-yield').value = '';
-  document.getElementById('r-time').value  = '';
-  document.getElementById('r-grind').value = '';
-  document.getElementById('r-temp').value  = '';
-  document.getElementById('r-target-flow').value = '';
+  _recipeEditId = recipeId;
+  let recipe = recipeId != null ? _detailRecipes.find(r => r.id === recipeId) : null;
+  if (recipeId != null && !recipe) {
+    try {
+      const r = await fetch('/api/coffees/' + coffeeId + '/recipes');
+      if (r.ok) recipe = (await r.json()).recipes.find(x => x.id === recipeId) ?? null;
+    } catch (_) {}
+    if (!recipe) _recipeEditId = null;
+  }
+  const src = {...(recipe || {}), ...(prefill || {})};
+  for (const [k, id] of Object.entries(RECIPE_INPUTS)) document.getElementById(id).value = src[k] ?? '';
+  document.querySelector('#modal-recipe .modal-title').textContent = t(recipe ? 'modal.recipe_edit' : 'modal.recipe_new');
   updateRatioDisplay();
-  try {
-    const r = await fetch('/api/coffees/' + coffeeId + '/recipe', {headers:{'Content-Type':'application/json'}});
-    if (r.ok) {
-      const recipe = await r.json();
-      document.getElementById('r-dose').value  = recipe.dose_g  ?? '';
-      document.getElementById('r-yield').value = recipe.yield_g ?? '';
-      document.getElementById('r-time').value  = recipe.time_s  ?? '';
-      document.getElementById('r-grind').value = recipe.grind   ?? '';
-      document.getElementById('r-temp').value  = recipe.temp_c  ?? '';
-      document.getElementById('r-target-flow').value = recipe.target_flow ?? '';
-      updateRatioDisplay();
-    }
-  } catch (_) {}
   openModal('modal-recipe');
 }
 
@@ -264,6 +260,7 @@ function updateRatioDisplay() {
 
 async function submitRecipe() {
   if (!_recipeTargetId) return;
+  const name    = document.getElementById('r-name').value.trim() || null;
   const dose_g  = parseFloat(document.getElementById('r-dose').value)  || null;
   const yield_g = parseFloat(document.getElementById('r-yield').value) || null;
   const time_s  = parseInt(document.getElementById('r-time').value)    || null;
@@ -271,22 +268,22 @@ async function submitRecipe() {
   const grind   = Number.isNaN(grindV) ? null : grindV;
   const temp_c  = parseInt(document.getElementById('r-temp').value)    || null;
   const target_flow = parseFloat(document.getElementById('r-target-flow').value) || null;
-  await api('/coffees/' + _recipeTargetId + '/recipe', {
-    method: 'PUT',
-    body: JSON.stringify({ dose_g, yield_g, time_s, grind, temp_c, target_flow })
-  });
+  const body = JSON.stringify({ name, dose_g, yield_g, time_s, grind, temp_c, target_flow });
+  if (_recipeEditId != null) await api('/recipes/' + _recipeEditId, { method: 'PUT', body });
+  else await api('/coffees/' + _recipeTargetId + '/recipes', { method: 'POST', body });
   closeModal('modal-recipe');
   showToast(t('toast.recipe_saved'));
   renderRecipeSection(_recipeTargetId);
 }
 
-function confirmDeleteRecipe(coffeeId) {
+function confirmDeleteRecipe(coffeeId, recipeId) {
+  const r = _detailRecipes.find(x => x.id === recipeId);
   showConfirm({
     icon: 'clipboard', title: t('confirm.delete_recipe.title'),
-    msg: t('confirm.delete_recipe.msg'),
+    msg: t('confirm.delete_recipe.msg_named', {name: r ? recipeName(r) : t('recipe.label')}),
     btnLabel: t('confirm.delete_recipe.btn'), btnClass: 'btn-danger',
     onConfirm: async () => {
-      await api('/coffees/' + coffeeId + '/recipe', { method: 'DELETE' });
+      await api('/recipes/' + recipeId, { method: 'DELETE' });
       showToast(t('toast.recipe_deleted'));
       renderRecipeSection(coffeeId);
     }
@@ -300,8 +297,13 @@ let _brewTargetId = null;
 let _brewRating   = 0;
 let _editBrewId   = null;
 let _brewCache    = {};
-let _brewRecipe   = null;   // receta del café (target_flow para el shot con báscula)
-let _brewHistory  = null;   // brews del café (último para la pista, mejor para comparar)
+let _brewRecipe   = null;   // receta elegida (target_flow para el shot con báscula)
+let _brewRecipes  = [];     // recetas del café (espresso, largo…)
+let _brewHistory  = null;   // brews de la familia (último para la pista, mejor para comparar)
+let _brewSetup    = null;   // {grindRows, coffee}: para volver a rellenar al cambiar de receta
+
+// Los brews que cuentan para la receta elegida (los elegidos con ella o los de ratio más cercano)
+const brewRecipeHistory = () => forRecipe(_brewHistory || [], _brewRecipe?.id ?? null);
 
 const BREW_FIELDS = {dose: 'b-dose', yield: 'b-yield', time: 'b-time', grind: 'b-grind', temp: 'b-temp'};
 const _bv = id => document.getElementById(id);
@@ -310,7 +312,9 @@ async function openBrewModal(coffeeId = null, brewId = null, coffeeName = null) 
   _brewTargetId = coffeeId ?? currentDetail?.id ?? null;
   _editBrewId   = brewId ?? null;
   _brewRecipe   = null;
+  _brewRecipes  = [];
   _brewHistory  = null;
+  _brewSetup    = null;
   _brewShotMetrics = _editBrewId ? undefined : null;   // undefined = no tocar al editar
   _brewShotCurve   = null;
   brewScaleDoseStop();
@@ -318,6 +322,7 @@ async function openBrewModal(coffeeId = null, brewId = null, coffeeName = null) 
   _bv('b-dose-scale').hidden = true;
   _bv('b-last').hidden = true;
   _bv('b-recipe').hidden = true;
+  _bv('b-recipe-pick').hidden = true;
   brewGrindHint(null);
   const editing = _editBrewId ? _brewCache[_editBrewId] : null;
   brewShowShotSummary(editing?.shot_metrics, editing?.shot_curve);
@@ -339,36 +344,17 @@ async function openBrewModal(coffeeId = null, brewId = null, coffeeName = null) 
 
   if (!editing && _brewTargetId) {
     const get = (url, fallback) => fetch(url).then(r => (r.ok ? r.json() : fallback)).catch(() => fallback);
-    const [recipe, history, grindRows, coffee] = await Promise.all([
-      get('/api/coffees/' + _brewTargetId + '/recipe', null),
+    const [recipes, history, grindRows, coffee] = await Promise.all([
+      get('/api/coffees/' + _brewTargetId + '/recipes', {recipes: [], current_id: null}),
       get('/api/coffees/' + _brewTargetId + '/brews?family=1', []),   // también las bolsas anteriores del mismo café
       fetchGrindData(),
       get('/api/coffees/' + _brewTargetId, null),
     ]);
-    _brewRecipe  = recipe;
+    _brewRecipes = recipes.recipes;
     _brewHistory = history;
-    const last = history[0] || null;   // más reciente primero
-    // La receta es una recomendación: la molienda y la salida aprendidas (cata + receta) van primero;
-    // dosis y temperatura, de la receta o del último shot
-    const grind = brewGrindHint(grindRows, _brewTargetId, recipe, bagOf(coffee));   // antes de abrir: sin saltos
-    const dose = recipe?.dose_g ?? last?.dose_g ?? null;
-    const learned = suggestRatio(history, dose, recipeRatio(recipe));
-    _bv('b-dose').value  = dose ?? '';
-    _bv('b-yield').value = learned?.yield_g ?? recipe?.yield_g ?? '';
-    _bv('b-time').value  = recipe?.time_s  ?? '';
-    _bv('b-grind').value = grind ?? recipe?.grind ?? last?.grind ?? '';
-    _bv('b-temp').value  = recipe?.temp_c  ?? last?.temp_c ?? '';
-    if (last) {
-      _bv('b-last').hidden = false;
-      _bv('b-last').innerHTML = `<b>${esc(t('brew.last_label'))}</b> ${esc(brewSummaryLine(last))}`
-        + ` · ${last.rating ? '★'.repeat(last.rating) : esc(t('brew.unrated'))}`
-        + (tasteLine(last) ? ` · ${esc(tasteLine(last))}` : '')
-        + (last.coffee_id !== _brewTargetId ? ` · ${esc(t('brew.other_bag', {name: last.coffee_name}))}` : '');
-    }
-    if (recipe) {
-      _bv('b-recipe').hidden = false;
-      _bv('b-recipe').innerHTML = `<b>${esc(t('recipe.label'))}</b> ${esc(recipeSummaryLine(recipe))}`;
-    }
+    _brewSetup   = {grindRows, coffee};
+    // Empieza con la receta que usó el último brew (o la última editada)
+    applyBrewRecipe(_brewRecipes.find(r => r.id === recipes.current_id) ?? _brewRecipes[0] ?? null);
   } else if (editing && _brewTargetId) {
     fetch('/api/coffees/' + _brewTargetId + '/brews?family=1').then(r => (r.ok ? r.json() : null))
       .then(h => { if (h) _brewHistory = h; }).catch(() => {});
@@ -381,6 +367,60 @@ async function openBrewModal(coffeeId = null, brewId = null, coffeeName = null) 
   wakeSessionStart('brew');
   // Con la báscula ya conectada, el paso 1 empieza leyendo la dosis sin más toques
   if (!editing && scaleSupported() && scaleConnected()) brewScaleDoseStart();
+}
+
+// Rellena el modal para una receta: la molienda y la salida aprendidas (cata + receta) van primero;
+// dosis y temperatura, de la receta o del último shot de esa receta. Solo se aprende de los shots de
+// la receta: un largo 1:4.7 no arrastra al espresso 1:2.15 del mismo café.
+function applyBrewRecipe(recipe) {
+  _brewRecipe = recipe;
+  const history = brewRecipeHistory();
+  const last = history[0] || (_brewRecipes.length ? null : _brewHistory?.[0]) || null;   // más reciente primero
+  const grind = brewGrindHint(_brewSetup.grindRows, _brewTargetId, recipe, bagOf(_brewSetup.coffee));
+  const dose = recipe?.dose_g ?? last?.dose_g ?? _brewHistory?.[0]?.dose_g ?? null;
+  const learned = suggestRatio(history, dose, recipeRatio(recipe));
+  if (!_doseSession) _bv('b-dose').value = dose ?? '';   // la báscula ya puede estar escribiendo la dosis
+  _bv('b-yield').value = learned?.yield_g ?? recipe?.yield_g ?? '';
+  _bv('b-time').value  = recipe?.time_s  ?? '';
+  _bv('b-grind').value = grind ?? recipe?.grind ?? last?.grind ?? '';
+  _bv('b-temp').value  = recipe?.temp_c  ?? last?.temp_c ?? '';
+  _bv('b-last').hidden = !last;
+  _bv('b-last').innerHTML = last ? `<b>${esc(t('brew.last_label'))}</b> ${esc(brewSummaryLine(last))}`
+    + ` · ${last.rating ? '★'.repeat(last.rating) : esc(t('brew.unrated'))}`
+    + (tasteLine(last) ? ` · ${esc(tasteLine(last))}` : '')
+    + (last.coffee_id !== _brewTargetId ? ` · ${esc(t('brew.other_bag', {name: last.coffee_name}))}` : '') : '';
+  _bv('b-recipe').hidden = !recipe;
+  _bv('b-recipe').innerHTML = recipe ? `<b>${esc(t('recipe.label'))}</b> ${esc(recipeSummaryLine(recipe))}` : '';
+  renderBrewRecipePick();
+  updateBrewRatioDisplay();
+  renderBrewRatioHint();
+}
+
+// Con más de una receta: elegirla al empezar (grupo de radios, una parada de Tab y ← →)
+function renderBrewRecipePick() {
+  const el = _bv('b-recipe-pick');
+  el.hidden = _brewRecipes.length < 2;
+  if (el.hidden) { el.innerHTML = ''; return; }
+  el.innerHTML = _brewRecipes.map(r => {
+    const on = r.id === _brewRecipe?.id;
+    return `<button type="button" class="recipe-pick${on ? ' active' : ''}" role="radio" aria-checked="${on}"`
+      + ` tabindex="${on ? 0 : -1}" onclick="pickBrewRecipe(${r.id})" onkeydown="recipePickKey(event)">${esc(recipeName(r))}</button>`;
+  }).join('');
+}
+
+function pickBrewRecipe(id) {
+  const r = _brewRecipes.find(x => x.id === id);
+  if (!r || r === _brewRecipe) return;
+  applyBrewRecipe(r);
+  _bv('b-recipe-pick').querySelector('[aria-checked="true"]')?.focus();
+}
+
+function recipePickKey(event) {
+  const d = {ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1}[event.key];
+  if (!d) return;
+  event.preventDefault();
+  const i = _brewRecipes.findIndex(r => r.id === _brewRecipe?.id);
+  pickBrewRecipe(_brewRecipes[(i + d + _brewRecipes.length) % _brewRecipes.length].id);
 }
 
 function updateBrewRatioDisplay() {
@@ -465,6 +505,7 @@ async function _submitBrew() {
   const notes     = _bv('b-notes').value || null;
   const rating    = _brewRating >= 1 ? _brewRating : null;
   const extra     = _brewShotMetrics ? { shot_metrics: _brewShotMetrics, shot_curve: _brewShotCurve } : {};
+  if (!_editBrewId && _brewRecipe) extra.recipe_id = _brewRecipe.id;
   const body = JSON.stringify({ dose_g, yield_g, time_s, grind, temp_c, brew_date, notes, rating, ..._brewTaste, ...extra });
 
   if (_editBrewId) {

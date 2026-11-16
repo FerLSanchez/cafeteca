@@ -1,3 +1,4 @@
+import math
 import re
 from lookup_config import get_or_create
 
@@ -133,16 +134,54 @@ def set_family(conn, cid, target):
     conn.execute('UPDATE coffees SET family_id=? WHERE id=?', (tkey, cid))
 
 
-def family_recipe(conn, cid, cols='r.*'):
-    """Recipe of the coffee or, if it has none, the most recently updated one in its family."""
+# A brew without a chosen recipe counts for the recipe with the closest ratio, if it is within this
+# factor of it (×/÷): a 1:2.15 espresso never counts for a 1:4.7 long one.
+RECIPE_MATCH = 1.35
+RECIPE_COLS = 'id, name, dose_g, yield_g, time_s, grind, temp_c, target_flow, updated_at'
+
+
+def family_recipes(conn, cid):
+    """All the recipes of the coffee's family (oldest first)."""
     ids = family_ids(conn, cid)
     if not ids:
+        return []
+    cols = ', '.join('r.' + c.strip() for c in RECIPE_COLS.split(','))
+    return [dict(r) for r in conn.execute(
+        f'SELECT DISTINCT {cols} FROM recipes r JOIN coffee_recipes cr ON cr.recipe_id = r.id '
+        f"WHERE cr.coffee_id IN ({','.join('?' * len(ids))}) ORDER BY r.id", ids)]
+
+
+def recipe_for(brew, recipes):
+    """Id of the recipe a brew counts for: the one it was made with or, if none, the closest ratio."""
+    rid = brew.get('recipe_id')
+    if rid is not None and any(r['id'] == rid for r in recipes):
+        return rid
+    dose, yld = brew.get('dose_g'), brew.get('yield_g')
+    if not dose or not yld:
         return None
-    marks = ','.join('?' * len(ids))
-    return conn.execute(
-        f'SELECT {cols} FROM recipes r JOIN coffee_recipes cr ON cr.recipe_id = r.id '
-        f'WHERE cr.coffee_id IN ({marks}) '
-        'ORDER BY (cr.coffee_id = ?) DESC, r.updated_at DESC, r.id DESC LIMIT 1', ids + [cid]).fetchone()
+    best = None
+    for r in recipes:
+        if r.get('dose_g') and r.get('yield_g'):
+            dist = abs(math.log((yld / dose) / (r['yield_g'] / r['dose_g'])))
+            if dist <= math.log(RECIPE_MATCH) and (best is None or dist < best[0]):
+                best = (dist, r['id'])
+    return best[1] if best else None
+
+
+def family_recipe(conn, cid):
+    """The family's current recipe: the one its latest brew counts for or, if none, the latest edited."""
+    recipes = family_recipes(conn, cid)
+    if not recipes:
+        return None
+    ids = family_ids(conn, cid)
+    for b in conn.execute(
+            'SELECT b.recipe_id, b.dose_g, b.yield_g FROM brews b JOIN coffee_brews cb ON cb.brew_id = b.id '
+            f"WHERE cb.coffee_id IN ({','.join('?' * len(ids))}) "
+            'ORDER BY b.brew_date DESC, b.created_at DESC, b.id DESC LIMIT 30', ids):
+        rid = recipe_for(dict(b), recipes)
+        if rid is not None:
+            return next(r for r in recipes if r['id'] == rid)
+    return max(recipes, key=lambda r: (r['updated_at'] or '', r['id']))
 
 
 def get_coffee_by_id(conn, cid):
@@ -234,11 +273,17 @@ def validate_brew(data, recipe=False):
             return _verr('error.brew.field_invalid',
                          f'Valor inválido para "{field}" ({lo}-{hi})', field=field, min=lo, max=hi)
     if recipe:
+        name = data.get('name')
+        if name is not None and (not isinstance(name, str) or len(name) > 60):
+            return _verr('error.brew.recipe_name_invalid', 'El nombre de la receta no puede superar los 60 caracteres')
         tf = data.get('target_flow')
         if tf is not None and not _num_ok(tf, (int, float), 0.1, 10):
             return _verr('error.brew.field_invalid', 'Valor inválido para "target_flow" (0.1-10)',
                          field='target_flow', min=0.1, max=10)
         return None
+    rid = data.get('recipe_id')
+    if rid is not None and not _num_ok(rid, int, 1, 2**62):
+        return _verr('error.brew.recipe_invalid', 'Receta no válida para este café')
     sm = data.get('shot_metrics')
     if sm is not None and not _shot_metrics_ok(sm):
         return _verr('error.brew.shot_metrics_invalid', 'Métricas del shot inválidas')

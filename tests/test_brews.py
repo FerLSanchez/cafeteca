@@ -508,3 +508,93 @@ class TestPendingBrews:
         resp = client.get(url)
         assert resp.status_code == 400
         assert resp.get_json()['error_key'] == 'error.coffee.invalid_date'
+
+
+class TestMultipleRecipes:
+    """Same beans, two drinks: an espresso (1:2.15) and a long one (1:4.7)."""
+
+    def _two(self, client, cid):
+        esp = client.post(f'/api/coffees/{cid}/recipes',
+                          json={'name': 'Espresso', 'dose_g': 17, 'yield_g': 36.5}).get_json()
+        lng = client.post(f'/api/coffees/{cid}/recipes',
+                          json={'name': '  Largo ', 'dose_g': 17, 'yield_g': 80, 'target_flow': 1.8}).get_json()
+        return esp, lng
+
+    def test_create_list_update_delete(self, client):
+        c = make_coffee(client)
+        esp, lng = self._two(client, c['id'])
+        assert lng['name'] == 'Largo'
+        data = client.get(f'/api/coffees/{c["id"]}/recipes').get_json()
+        assert [r['name'] for r in data['recipes']] == ['Espresso', 'Largo']
+        upd = client.put(f'/api/recipes/{lng["id"]}', json={'yield_g': 82}).get_json()
+        assert (upd['name'], upd['yield_g'], upd['target_flow']) == ('Largo', 82, 1.8)
+        assert client.delete(f'/api/recipes/{esp["id"]}').status_code == 200
+        assert [r['name'] for r in client.get(f'/api/coffees/{c["id"]}/recipes').get_json()['recipes']] == ['Largo']
+        assert client.delete(f'/api/recipes/{esp["id"]}').status_code == 404
+        assert client.put('/api/recipes/999', json={'dose_g': 1}).status_code == 404
+
+    def test_name_too_long(self, client):
+        c = make_coffee(client)
+        resp = client.post(f'/api/coffees/{c["id"]}/recipes', json={'name': 'x' * 61})
+        assert resp.get_json()['error_key'] == 'error.brew.recipe_name_invalid'
+
+    def test_recipes_are_shared_by_the_family(self, client):
+        a = make_coffee(client, {'name': 'A'})
+        esp, lng = self._two(client, a['id'])
+        b = make_coffee(client, {'name': 'B', 'family_id': a['id']})
+        assert len(client.get(f'/api/coffees/{b["id"]}/recipes').get_json()['recipes']) == 2
+        assert make_brew(client, b['id'], {'recipe_id': lng['id']})['recipe_id'] == lng['id']
+
+    def test_brew_recipe_must_belong_to_the_family(self, client):
+        a, other = make_coffee(client, {'name': 'A'}), make_coffee(client, {'name': 'Other'})
+        rid = client.post(f'/api/coffees/{other["id"]}/recipes', json={'dose_g': 17}).get_json()['id']
+        resp = client.post(f'/api/coffees/{a["id"]}/brews', json={'dose_g': 17, 'recipe_id': rid})
+        assert resp.status_code == 400 and resp.get_json()['error_key'] == 'error.brew.recipe_invalid'
+        bid = make_brew(client, a['id'])['id']
+        assert client.put(f'/api/brews/{bid}', json={'recipe_id': rid}).status_code == 400
+        assert client.post(f'/api/coffees/{a["id"]}/brews', json={'recipe_id': 'x'}).status_code == 400
+
+    def test_brews_count_for_their_recipe_or_the_closest_ratio(self, client):
+        c = make_coffee(client)
+        esp, lng = self._two(client, c['id'])
+        chosen = make_brew(client, c['id'], {'dose_g': 17, 'yield_g': 40, 'recipe_id': lng['id']})
+        near_long = make_brew(client, c['id'], {'dose_g': 17, 'yield_g': 78})
+        near_esp = make_brew(client, c['id'], {'dose_g': 17, 'yield_g': 37})
+        between = make_brew(client, c['id'], {'dose_g': 17, 'yield_g': 57})   # 1:3.35, lejos de las dos
+        no_yield = make_brew(client, c['id'], {'dose_g': 17, 'yield_g': None})
+        groups = {b['id']: b['recipe_group'] for b in client.get(f'/api/coffees/{c["id"]}/brews').get_json()}
+        assert groups == {chosen['id']: lng['id'], near_long['id']: lng['id'], near_esp['id']: esp['id'],
+                          between['id']: None, no_yield['id']: None}
+
+    def test_grind_data_has_recipe_group(self, client):
+        c = make_coffee(client, {'roast_date': '2026-01-01'})
+        esp, lng = self._two(client, c['id'])
+        make_brew(client, c['id'], {'dose_g': 17, 'yield_g': 80, 'time_s': 40, 'grind': 14})
+        make_brew(client, c['id'], {'dose_g': 17, 'yield_g': 36, 'time_s': 28, 'grind': 12})
+        assert [r['recipe_group'] for r in client.get('/api/grind-data').get_json()] == [lng['id'], esp['id']]
+
+    def test_current_recipe_is_the_one_the_last_brew_used(self, client):
+        c = make_coffee(client)
+        esp, lng = self._two(client, c['id'])
+        assert client.get(f'/api/coffees/{c["id"]}/recipes').get_json()['current_id'] == lng['id']   # sin brews: la última editada
+        make_brew(client, c['id'], {'dose_g': 17, 'yield_g': 36, 'brew_date': '2026-11-01'})
+        assert client.get(f'/api/coffees/{c["id"]}/recipe').get_json()['id'] == esp['id']
+        make_brew(client, c['id'], {'dose_g': 17, 'yield_g': 36, 'recipe_id': lng['id'], 'brew_date': '2026-11-02'})
+        assert client.get(f'/api/coffees/{c["id"]}/recipes').get_json()['current_id'] == lng['id']
+
+    def test_consume_records_the_current_recipe(self, client):
+        c = make_coffee(client, {'quantity_g': 250})
+        esp, lng = self._two(client, c['id'])
+        client.post(f'/api/coffees/{c["id"]}/open', json={'date': '2026-11-01'})
+        make_brew(client, c['id'], {'dose_g': 17, 'yield_g': 79, 'brew_date': '2026-11-01'})
+        client.post(f'/api/coffees/{c["id"]}/consume', json={'date': '2026-11-02'})
+        b = client.get(f'/api/coffees/{c["id"]}/brews').get_json()[0]
+        assert (b['yield_g'], b['recipe_id']) == (80, lng['id'])
+
+    def test_deleting_a_recipe_unlinks_its_brews(self, client, db):
+        c = make_coffee(client)
+        esp, lng = self._two(client, c['id'])
+        bid = make_brew(client, c['id'], {'dose_g': 17, 'yield_g': 36, 'recipe_id': esp['id']})['id']
+        client.delete(f'/api/recipes/{esp["id"]}')
+        assert db.execute('SELECT recipe_id FROM brews WHERE id=?', (bid,)).fetchone()[0] is None
+        assert db.execute('SELECT COUNT(*) FROM coffee_recipes WHERE recipe_id=?', (esp['id'],)).fetchone()[0] == 0
